@@ -1,0 +1,26 @@
+\newcommand{\FunEvalsTo}[3]{{#1}\mathrel{\Downarrow'}\AbsABT{#2}{#3}}
+\newcommand{\FunEvalsToHO}[3]{{#2}\vargen \fappabt{#1}{#2}\evalsto{#3}}
+
+\newcommand{\arrtyabt}[2]{\OpABT{\cd{arr}}{#1;#2}}
+\newcommand{\arrtycst}[2]{{#1}\mathrel{\to}{#2}}
+\newcommand{\lamabt}[3]{\OpABTp{\cd{lam}}{#1}{\AbsABT{#2}{#3}}}
+\newcommand{\lamcst}[3]{\mathop{\lambda}\cdparens{\TightIsOf{#2}{#1}}\,{#3}}
+\newcommand{\appabt}[2]{\OpABT{\cd{ap}}{#1;#2}}
+\newcommand{\appcst}[2]{{#1}\cdparens{#2}}
+
+\newcommand{\letabt}[4]{\OpABTp{\cd{let}}{#1}{#2;\AbsABT{#3}{#4}}}
+\newcommand{\letcst}[4]{\kwop{let}\TightIsOf{#3}{#1}\kwop{be}{#2}\kwop{in}{#4}}
+\newcommand{\uletabt}[3]{\OpABT{\cd{let}}{#1;\AbsABT{#2}{#3}}}
+\newcommand{\uletcst}[3]{\kwop{let}{#2}\kwop{be}{#1}\kwop{in}{#3}}
+
+\newcommand{\fdefabt}[6]{\OpABTp{\cd{fun}}{#1;#2}{\AbsABT{#3}{#4};\AbsABT{#5}{#6}}}
+\newcommand{\fdefcst}[6]{\kwop{fun}{#5}\TightIsOf{\cdparens{\TightIsOf{#3}{#1}}}{#2}\mathbin{\cd{=}}{#4}\kwop{in}{#6}}
+\newcommand{\fappabt}[2]{\OpABTp{\cd{apply}}{#1}{#2}}
+\newcommand{\fappcst}[2]{#1\cdparens{#2}}
+\newcommand{\fsubst}[3]{\dblsqbracks{#1\mathord{/}#2}{#3}}
+
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "book"
+%%% End: 

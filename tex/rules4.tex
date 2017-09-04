@@ -1,0 +1,451 @@
+\documentclass[11pt]{article}
+\usepackage{fullpage}
+\usepackage{latexsym}
+\usepackage{verbatim}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{stackengine}
+\usepackage{scalerel}
+\usepackage{code,proof,amsthm,amssymb, amsmath}
+\usepackage{proof}
+\usepackage{mathpartir}
+\usepackage{turnstile}
+
+\input{generic-defns}
+\input{syn-defns}
+\input{../pfpl/fun-defns}
+\input{../pfpl/pcf-defns}
+\input{../pfpl/prod-defns}
+\input{../pfpl/sum-defns}
+\input{../pfpl/icoi-defns}
+\input{../pfpl/t-defns}
+
+% =========================================================================== %
+%                                                                             %
+%                          Using this LaTeX Template                          %
+%                                                                             %
+% - new tasks are on their own section (how Gradescope expects them)          %
+% - use '\task' to start a new task                                           %
+% - use 'begin{task} ... \end{task}' if you'd like to preface your answer     %
+%   with the question itself (i.e., fill in the '...' with the question)      %
+% - use '\nextgroup' to advance from, for example, Task 1.4 to Task 2.1       %
+% - use '\skipaheadtask' to skip from, for example, Task 2.2 to Task 2.4      %
+%                                                                             %
+% You also have access to all the definitions from the handout. See defs.tex, %
+% syn-defns.tex, and generic-defns.tex.                                       %
+%                                                                             %
+%               TODO: Fill in your personal information below!                %
+%                                                                             %
+% =========================================================================== %
+\newcommand{\myname}{Andrew Carnegie}
+\newcommand{\myandrewid}{andrew}
+\newcommand{\hwnumber}{1}
+% =========================================================================== %
+
+\newcounter{group}
+\setcounter{group}{1}
+\newtheorem{theorem}{Task}[group]
+% Remove '\newpage' below to preview your doc compactly.
+% Remember to put it back before submitting to Gradescope.
+\newcommand{\task}{\newpage\begin{theorem}\end{theorem}}
+\newcommand{\nextgroup}{\stepcounter{group}}
+\newcommand{\skipaheadtask}{\stepcounter{theorem}}
+\newcommand{\ms}[1]{\ensuremath{\mathsf{#1}}}
+\newcommand{\irl}[1]{\mathtt{#1}}
+\newcounter{rule}
+\setcounter{rule}{0}
+\newcommand{\rn}
+  {\addtocounter{rule}{1}(\arabic{rule})}
+
+\newcounter{infercount}
+\setcounter{infercount}{1}
+\newcommand{\infern}[2]{\inferrule{#1}{#2}(\text{S}_{\arabic{infercount}}\stepcounter{infercount})}
+\newcommand*\ts[2]{%
+  \,\scalebox{1}[0.5]{$\sststile[ss]{\textstyle#1}{\textstyle#2}$}\,
+}
+
+\title{15-312 Assignment \hwnumber}
+\author{\myname\\(\myandrewid)}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Syntax}\section{Heap allocation semantics}
+
+The following rules will use judgements of the form:
+\[
+\fbox{$V,H\; \vdash e \Downarrow^s v, H'$}
+\]
+
+Where $V : VID \to Val$ and $H : Loc \to Val$. This can be read as: under stack $V$ and heap $H$
+the expression $e$ evaluates to $v$ while allocating $s$ heap cells, and engenders a new heap $H'$.\\
+
+This is different from the above GC semantics, since $s$ counts the number of heap allocations, not the maximum heap size.
+Hence this heap allocation semantics is an upperbound on the GC semantics.
+
+We define the following metric for measuring the number of heap allocations:
+
+\begin{align*}
+  K^{int} = 1\\
+  K^{true} = 1\\
+  K^{false} = 1\\
+  K^{null} = 1\\
+  K^{tuple} = 1\\
+  K^{nil} = 1\\
+  K^{cons} = 1\\
+  K^{\_} = 0
+\end{align*}
+
+Where $K^{\_}$ are all other constants.
+
+\begin{mathpar}
+
+\infern
+{ x \in dom(V)
+}
+{V,H \vdash x \Downarrow^{K^{var}} V(x),H}
+
+\infern
+{
+  (l \; \text{fresh})\\
+  H' = H[l \mapsto n^l]
+}{
+  V,H \vdash \numeral{n} \Downarrow^{K^{int}} n^l,H'
+}
+
+\infern{
+  (l \; \text{fresh})\\
+  H' = H[l \mapsto \irl{T}^l]
+}{
+  V,H \vdash \irl{T} \Downarrow^{K^{true}} \irl{T}^l,H'
+}
+
+\infern{
+  (l \; \text{fresh})\\
+  H' = H[l \mapsto \irl{F}^l]
+}{
+  V,H \vdash \irl{F} \Downarrow^{K^{false}} \irl{F}^l,H'
+}
+
+\infern{
+  (l \; \text{fresh}) \\
+  H' = H[l \mapsto \irl{Null}^l]
+}{
+  V,H \vdash () \Downarrow^{K^{null}} \irl{Null}^l,H'
+}
+
+\infern{
+  V(x) = \irl{T}^l\\
+  V,H \vdash e_1 \Downarrow^{s_1} v_1, H_1
+}{
+  V,H \vdash \ifexabt{x}{e_1}{e_2} \Downarrow^{s_1} v_1, H_1
+}
+
+\infern{
+  V(x) = \irl{F}^l\\
+  V,H \vdash e_2 \Downarrow^{s_2} v_2, H_2
+}{
+  V,H \vdash \ifexabt{x}{e_1}{e_2} \Downarrow^{s_2} v_2, H_2
+}
+
+% function
+
+\infern{
+  (l \; \text{fresh})\\
+  H' = H[l \mapsto (V,x.e)^l]
+}{
+  V,H \vdash \irl{lam}(x : \tau.e) \Downarrow^{K^{lam}} (V, x.e)^l,H'
+}
+
+\infern{
+  V(f) = (V_1, x.e)^{l_1} \\
+  V(x) = v_1 \\
+  V[x \mapsto v_1], H \vdash e \Downarrow^s v, H'
+}{
+  V,H \vdash \appcst{f}{x} \Downarrow^{s} v,H'
+}
+
+% tuples
+
+\infern{
+  V(x_1) = v_1 \\
+  V(x_2) = v_2 \\
+  (l \; \text{fresh})\\
+  H' = H[l \mapsto \pairexcst{v_1}{v_2}^l]
+}{
+  V,H \vdash \pairexcst{x_1}{x_2} \Downarrow^{K^{tuple}} \pairexcst{v_1}{v_2}^l,H'
+}
+
+\infern{
+  V(x) = \pairexcst{v_1}{v_2}^l\\
+}{
+  V,H \vdash \fstexcst{x} \Downarrow^{K^{fst}} v_1,H
+}
+
+\infern{
+  V(x) = \pairexcst{v_1}{v_2}^l\\
+}{
+  V,H \vdash \sndexcst{x} \Downarrow^{K^{snd}} v_2,H'
+}
+
+% lists
+
+\infern{
+  (l \; \text{fresh})\\
+  H' = H[l \mapsto \irl{Null}^l]
+}{
+  V,H \vdash \nilexabt \Downarrow^{K^{nil}} \irl{Null}^l,H'
+}
+
+\infern{
+  V(x_1) = v_1\\
+  V(x_2) = v_2\\
+  (l \; \text{fresh})\\
+  H' = H[l \mapsto \pairexcst{v_1}{v_2}^l]
+}{
+  V,H \vdash \consexcst{x_1}{x_2} \Downarrow^{K^{cons}} \pairexcst{v_1}{v_2}^l,H'
+}
+
+\infern{
+  V(z) = \irl{Null}^l\\
+  V,H \vdash e_1 \Downarrow^{s_1} v_1, H_1 \\
+}{
+  V,H \vdash \listcaseexcst{z}{e_1}{x}{xs}{e_2} \Downarrow^{s_1} v_1,H_1
+}
+
+\infern{
+  V(z) = \pairexcst{v_h}{v_t}^l \\
+  V[x \mapsto v_h, xs \mapsto v_t],H \vdash e_2 \Downarrow^{s_2} v_2, H_2 \\
+}{
+  V,H \vdash \listcaseexcst{z}{e_1}{x}{xs}{e_2} \Downarrow^{s_2} v_2,H_2
+}
+
+\infern{
+  V,H \vdash e_1 \Downarrow^{s_1} v_1, H' \\
+  V[x \mapsto v_1],H' \vdash e_2 \Downarrow^{s_2} v_2, H_2 \\
+}{
+  V,H \vdash \irl{let}(e_1; x : \tau.e_2) \Downarrow^{s_1 + s_2} v_2,H_2
+}
+\end{mathpar}
+
+\[
+\begin{array}{r l l l l}
+\ms{Type} & \tau \,\,\,\,\, ::= \\
+	& \irl{nat}                	 			& \irl{nat}											& \text{naturals}\\
+	& \unittyabt                	 			& \unittycst										& \text{unit}\\
+  & \booltyabt                       & \booltycst                    & \text{boolean}\\
+  & \prodtyabt{\tau_1}{\tau_2}       & \prodtycst{\tau_1}{\tau_2}    & \text{product}\\
+	&\irl{arr}(\tau_1;\tau_2) 				& \arrtycst{\tau_1}{\tau_2} 									& \text{function}\\
+  &\listtyabt{\tau}		& \listtycst{\tau}											& \text{list}\\
+	 \\
+\ms{Exp}
+        & e   \,\,\,\,\, ::= \\
+ 	& x                                			& x 												& \text{variable}\\
+  & \irl{nat}[n]							& \numeral{n}												& \text{number}\\
+  & \irl{unit}							& ()												& \text{unit}\\
+  & \irl{T}							& \irl{T}												& \text{true}\\
+  & \irl{F}	   					& \irl{F}												& \text{false}\\
+  & \ifexabt{x}{e_1}{e_2} & \ifexcst{x}{e_1}{e_2}  & \text{if}\\
+  & \irl{lam}(x:\tau.e) 						&\lambda \; x : \tau. e 		& \text{abstraction}\\
+  & \irl{ap}(f;x) 					& \appcst{f}{x} 										& \text{application}\\
+  & \irl{tpl}(x_1;x_2)     	& \pairexcst{x_1}{x_2}                									& \text{tuple}\\
+ 	& \irl{fst}(x)					& \fstexcst{x}   										& \text{first projection}\\
+ 	& \irl{snd}(x)					& \sndexcst{x}   										& \text{second projection}\\
+ 	& \nilexabt					& []   										& \text{nil}\\
+ 	& \consexabt{x_1}{x_2}					& x_1::x_2   										& \text{cons}\\
+ 	& \listcaseexabt{l}{e_1}{x}{xs}{e_2}					& \listcaseexcst{l}{e_1}{x}{xs}{e_2}   	& \text{match list}\\
+  & \irl{let}(e_1; x : \tau.e_2)			& \irl{let}\; x = e_1 \; \irl{in}\; e_2   	& \text{let}\\
+  \\
+\ms{Val}
+        & v   \,\,\,\,\, ::= \\
+ 	& \irl{val}[l](n)                                			& n^l 												& \text{numeric value}\\
+ 	& \irl{val}[l](\irl{T})                               			& \irl{T}^l 								  & \text{true value}\\
+ 	& \irl{val}[l](\irl{F})                                			& \irl{F}^l								  & \text{false value}\\
+ 	& \irl{val}[l](\irl{Null})                                  & \irl{Null}^l 								  & \text{null value}\\
+ 	& \irl{val}[l](\irl{cl}(V; x.e))                & (V, x.e)^l 					& \text{function value}\\
+ 	& \irl{val}[l_2](l_1)                                			& l_1^{l_2} 								  & \text{loc value}\\
+ 	& \irl{val}[l](\pairexabt{v_1}{v_2})                             & \pairexcst{v_1}{v_2}^l 								  & \text{pair value}\\
+  \\
+\ms{Loc}
+        & l   \,\,\,\,\, ::= \\
+ 	& \irl{loc}(l)                                			& l 												& \text{location}\\
+\end{array}
+\]
+
+\section{Garbage collection semantics}
+
+Model dynamics using judgement of the form:
+\[
+\fbox{$V,H,R,s \; \vdash e \Downarrow v, H', s'$}
+\]
+
+Where $V : VID \to Val$, $H : Loc \to Val$, and $R : \{Loc\}$. This can be read as: under stack $V$, heap $H$, roots $R$,
+freelist $s$, the expression $e$ evaluates to $v$, and engenders a new heap $H'$ and freelist $s'$.\\
+
+Roots represents the set of locations required to compute the continuation \emph{excluding} the current expression.
+We can think of roots as the heap allocations necessary to compute the context with a hole that will be filled
+by the current expression.\\
+
+Below defines the size of reachable values and space for roots:
+
+\begin{align*}
+  &reach_{H}(n^l) = \{l\}\\
+  &reach_{H}(\irl{T}^l) = \{l\}\\
+  &reach_{H}(\irl{F}^l) = \{l\}\\
+  &reach_{H}(\irl{Null}^l) = \{l\}\\
+  &reach_{H}((V, x.e)^l) = \{l\} \cup (\bigcup\limits_{y \in FV(e) \setminus x} reach_H(V(y))) \\
+  &reach_{H}(l_1^{l_2}) = \{l_2\} \cup loc_{H}(H(l_1))\\
+  &reach_{H}(\pairexcst{v_1}{v_2}^l) = \{l\} \cup reach_{H}(v_1) \cup reach_{H}(v_2)\\\\
+  &loc_{H}(l) = \{l\} \cup reach_{H}(H(l))\\\\
+  &space_{H}(R) = |\bigcup\limits_{l \in R} loc_{H}(l)|\\\\
+  &locs_{V,H}(e) = \bigcup\limits_{x \in FV(e)} reach_H(V(x))
+\end{align*}
+
+\begin{mathpar}
+
+\infern
+{ x \in dom(V)
+}
+{V,H,R \; \vdash x \Downarrow^{space_H(R \cup (reach_H(V(x))))} V(x),H}
+
+\infern
+{
+  (l \; \text{fresh})\\
+  H' = H[l \mapsto n^l]
+}{
+  V,H,R \; \vdash \numeral{n} \Downarrow^{space_{H'}(R \cup (\{l\})} n^l,H'
+}
+
+\infern{
+  (l \; \text{fresh})\\
+  H' = H[l \mapsto \irl{T}^l]
+}{
+  V,H,R \; \vdash \irl{T} \Downarrow^{space_{H'}(R \cup \{l\})} \irl{T}^l,H'
+}
+
+\infern{
+  (l \; \text{fresh})\\
+  H' = H[l \mapsto \irl{F}^l]
+}{
+  V,H,R \; \vdash \irl{F} \Downarrow^{space_{H'}(R \cup \{l\})} \irl{F}^l,H'
+}
+
+\infern{
+  (l \; \text{fresh}) \\
+  H' = H[l \mapsto \irl{Null}^l]
+}{
+  V,H,R \; \vdash () \Downarrow^{space_{H'}(R \cup \{l\})} \irl{Null}^l,H'
+}
+
+\infern{
+  V(x) = \irl{T}^l\\
+  V,H,R \; \vdash e_1 \Downarrow^{s_1} v_1, H_1
+}{
+  V,H,R \; \vdash \ifexabt{x}{e_1}{e_2} \Downarrow^{s_1} v_1, H_1
+}
+
+\infern{
+  V(x) = \irl{F}^l\\
+  V,H,R \; \vdash e_2 \Downarrow^{s_2} v_2, H_2
+}{
+  V,H,R \; \vdash \ifexabt{x}{e_1}{e_2} \Downarrow^{s_2} v_2, H_2
+}
+
+% function
+
+\infern{
+  (l \; \text{fresh})\\
+  H' = H[l \mapsto (V,x.e)^l]
+}{
+  V,H,R \; \vdash \irl{lam}(x : \tau.e) \Downarrow^{space_{H'}(R \cup \{l\})} (V, x.e)^l,H'
+}
+
+\infern{
+  V(f) = (V_1, x.e)^{l_1} \\
+  V(x) = v_1 \\
+  V_1[x \mapsto v_1], H, R \; \vdash e \Downarrow^s v, H'
+}{
+  V,H,R \; \vdash \appcst{f}{x} \Downarrow^{s} v,H'
+}
+
+% tuples
+
+\infern{
+  V(x_1) = v_1 \\
+  V(x_2) = v_2 \\
+  (l \; \text{fresh})\\
+  H' = H[l \mapsto \pairexcst{v_1}{v_2}^l]
+}{
+  V,H,R \; \vdash \pairexcst{x_1}{x_2} \Downarrow^{space_{H'}(R \cup \{l\})} \pairexcst{v_1}{v_2}^l,H'
+}
+
+\infern{
+  V(x) = \pairexcst{v_1}{v_2}^l\\
+}{
+  V,H,R \; \vdash \fstexcst{x} \Downarrow^{space_{H'}(R \cup reach(v_1))} v_1,H
+}
+
+\infern{
+  V(x) = \pairexcst{v_1}{v_2}^l\\
+}{
+  V,H,R \; \vdash \sndexcst{x} \Downarrow^{space_{H'}(R \cup reach(v_2))} v_2,H'
+}
+
+% lists
+
+\infern{
+  (l \; \text{fresh})\\
+  H' = H[l \mapsto \irl{Null}^l]
+}{
+  V,H,R \; \vdash \nilexabt \Downarrow^{space_{H'}(R \cup \{l\})} \irl{Null}^l,H'
+}
+
+\infern{
+  V(x_1) = v_1\\
+  V(x_2) = v_2\\
+  (l \; \text{fresh})\\
+  H' = H[l \mapsto \pairexcst{v_1}{v_2}^l]
+}{
+  V,H,R \; \vdash \consexcst{x_1}{x_2} \Downarrow^{space_{H'}(R \cup \{l\})} \pairexcst{v_1}{v_2}^l,H'
+}
+
+\infern{
+  V(z) = \irl{Null}^l\\
+  V,H,R \; \vdash e_1 \Downarrow^{s_1} v_1, H_1 \\
+}{
+  V,H,R \; \vdash \listcaseexcst{z}{e_1}{x}{xs}{e_2} \Downarrow^{s_1} v_1,H_1
+}
+
+\infern{
+  V(z) = \pairexcst{v_h}{v_t}^l \\
+  V[x \mapsto v_h, xs \mapsto v_t],H,R \; \vdash e_2 \Downarrow^{s_2} v_2, H_2 \\
+}{
+  V,H,R \; \vdash \listcaseexcst{z}{e_1}{x}{xs}{e_2} \Downarrow^{s_2} v_2,H_2
+}
+
+\infern{
+  V,H,R \cup locs_{V,H}(\irl{lam}(x : \tau.e_2)) \; \vdash e_1 \Downarrow^{s_1} v_1, H' \\
+  V[x \mapsto v_1],H',R \; \vdash e_2 \Downarrow^{s_2} v_2, H_2 \\
+}{
+  V,H,R \; \vdash \irl{let}(e_1; x : \tau.e_2) \Downarrow^{\max{(s_1,s_2)}} v_2,H_2
+}
+\end{mathpar}
+
+
+\section{Soundness for heap allocation}
+
+We simplify the soundness proof of the type system for the general metric to one with monotonic resource.
+(No function types for now)
+
+\begin{theorem}[Soundness]
+\label{a} let $H \vDash V : \Gamma$ and $\Sigma; \Gamma \sststile{q'}{q} e : B$
+\begin{enumerate}
+  \item If $V,H \vdash e \leadsto v$
+\end{enumerate}
+\end{theorem}
+
+
+
+\end{document}

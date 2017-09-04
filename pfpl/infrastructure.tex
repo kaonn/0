@@ -1,0 +1,103 @@
+%%% book infrastructure
+
+\allowdisplaybreaks[1]       %mildly permissible to break up displayed equations
+
+\newcommand{\partlabel}[1]{\label{part:#1}}
+\newcommand{\partref}[1]{\ref{part:#1}} % not a \vref!
+
+\newcommand{\chaplabel}[1]{\label{chap:#1}\gdef\chaptag{#1}}
+\newcommand{\chapref}[1]{\ref{chap:#1}} % not a \vref!
+
+\newcommand{\seclabel}[2]{\label{chap:#1-sec:#2}\gdef\sectag{#2}}
+\newcommand{\secref}[2]{\ref{chap:#1-sec:#2}} % not a \vref!
+
+\newcommand{\eqvref}[1]{\eqref{#1}}
+\newcommand{\eqvrefrange}[2]{\eqref{#1}\ to\ \eqref{#2}}
+
+\newcommand{\infruleslabel}[2]{\label{chap:#1-rules:#2}\gdef\infrulestag{#2}}
+\newcommand{\infrulesref}[2]{\eqvref{chap:#1-rules:#2}}
+\newcommand{\infrulelabel}[3]{\label{chap:#1-rules:#2-rule:#3}}
+\newcommand{\infruleref}[3]{\eqvref{chap:#1-rules:#2-rule:#3}}
+\newcommand{\infrulerefstar}[2]{\eqvref{chap:#1-rules:none-rule:#2}}
+\newcommand{\infrulerefrange}[4]{\eqvrefrange{chap:#1-rules:#2-rule:#3}{chap:#1-rules:#2-rule:#4}}
+
+\newcommand{\dfnlabel}[2]{\label{chap:#1-dfn:#2}}
+\newcommand{\dfnref}[2]{\ref{chap:#1-dfn:#2}}
+
+\newcommand{\thmlabel}[2]{\label{chap:#1-thm:#2}}
+\newcommand{\thmref}[2]{\ref{chap:#1-thm:#2}}
+
+\newcommand{\lemlabel}[2]{\label{chap:#1-lem:#2}}
+\newcommand{\lemref}[2]{\ref{chap:#1-lem:#2}}
+
+\newcommand{\corlabel}[2]{\label{chap:#1-cor:#2}}
+\newcommand{\corref}[2]{\ref{chap:#1-cor:#2}}
+
+\newcommand{\figlabel}[2]{\label{chap:#1-fig:#2}}
+\newcommand{\figref}[2]{\ref{chap:#1-fig:#2}}
+
+\newcommand{\exlabel}[2]{\label{chap:#1-ex:#2}}
+\newcommand{\exref}[2]{\ref{chap:#1-ex:#2}}
+\newcommand{\sollabel}[2]{\label{chap:#1-sol:#2}}
+\newcommand{\solref}[2]{\ref{chap:#1-sol:#2}}
+
+\newcommand{\displabel}[2]{\label{chap:#1-disp:#2}}
+\newcommand{\dispref}[2]{\eqvref{chap:#1-disp:#2}}
+
+\newcommand{\gramlabel}[2]{\label{chap:#1-grammar:#2}}
+\newcommand{\gramref}[2]{\eqvref{chap:#1-grammar:#2}}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{defn}[theorem]{Definition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{remark}
+
+% number equations, etc as chap.eqn for ease of external reference
+\numberwithin{equation}{chapter}
+\numberwithin{figure}{chapter}
+\numberwithin{table}{chapter}
+
+\newenvironment{infrules}[1]{\begin{subequations}\infruleslabel{\chaptag}{#1}}{\end{subequations}\ignorespacesafterend}
+\newenvironment{infrule}[1]{\begin{equation}\infrulelabel{\chaptag}{\infrulestag}{#1}\vcenter\bgroup}{\egroup\end{equation}\ignorespacesafterend}
+\newenvironment{infrule*}[1]{\begin{equation}\infrulelabel{\chaptag}{none}{#1}\vcenter\bgroup}{\egroup\end{equation}\ignorespacesafterend}
+\newenvironment{optinfrule}[1]{\begin{equation}\infrulelabel{\chaptag}{\infrulestag}{#1}\left\lbrack\begin{gathered}}{\end{gathered}\right\rbrack\end{equation}\ignorespacesafterend}
+
+\newenvironment{synchart}[1]%
+{\begin{equation*}
+      \gramlabel{\chaptag}{#1}
+      \renewcommand{\bnfalt}{\mathrel{\phantom{\mid}}}
+      \begin{array}{llc@{\quad\extracolsep{\fill}}lll}
+%        \textit{Sort} & & & \textit{Abstract} & \textit{Concrete} & \\
+}
+{\end{array}\end{equation*}\ignorespacesafterend}
+
+\newenvironment{synchart*}[1]%
+{\begin{equation*}
+      \gramlabel{\chaptag}{#1}
+      \renewcommand{\bnfalt}{\mathrel{\phantom{\mid}}}
+      \begin{array}{llc@{\quad\extracolsep{\fill}}lll}
+        \textit{Sort} & & & \textit{Abstract} & \textit{Concrete} & \\
+}
+{\end{array}\end{equation*}\ignorespacesafterend}
+
+\newenvironment{displayed}[1]{\begin{equation}\displabel{\chaptag}{#1}}{\end{equation}\ignorespacesafterend}
+\newenvironment{displayed*}{\begin{equation*}}{\end{equation*}\ignorespacesafterend}
+
+\newenvironment{exercises}{\setcounter{chnumber:\chaptag}{\value{chapter}}\section*{Exercises}\seclabel{\chaptag}{exs}\renewcommand{\theenumi}{\textbf{\thechapter.\arabic{enumi}}}\noindent\begin{enumerate}}{\end{enumerate}\ignorespacesafterend}
+\newenvironment{exercise}[1]{\item\exlabel{\chaptag}{#1}}{}
+
+\newenvironment{solutions}[1]{\setcounter{section}{\value{chnumber:#1}}\section*{Chapter~{\chapref{#1}}}\seclabel{\chaptag}{#1}\renewcommand{\theenumi}{\textbf{\arabic{section}.\arabic{enumi}}}\noindent\begin{enumerate}}{\end{enumerate}{\ignorespacesafterend}}
+\newenvironment{solution}[1]{\item\sollabel{\sectag}{#1}}{}
+
+\newcommand{\idx}[1]{\index{#1}}
+\newcommand{\bdx}[1]{\index{#1|textbf}}
+\newcommand{\sdx}[2]{\index{#1|see {#2}}}
+\newcommand{\adx}[3]{\index{#1|see also {#2}}}
+
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "book"
+%%% End: 

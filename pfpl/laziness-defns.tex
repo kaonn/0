@@ -1,0 +1,35 @@
+\newcommand{\LangLPCF}{\textbsf{LPCF}}
+\newcommand{\LangLFPC}{\textbsf{LFPC}}
+\newcommand{\LangSFPC}{\textbsf{SFPC}}
+
+\newcommand{\derefabt}[1]{\OpABT{\cd{via}}{#1}}
+\newcommand{\derefcst}[1]{\getvarcst{#1}}
+
+\newcommand{\susptyabt}[1]{\OpABT{\cd{susp}}{#1}}
+\newcommand{\susptycst}[1]{{#1}\,\cd{susp}}
+
+\newcommand{\susprefabt}[1]{\OpInst{\cd{lcell}}{#1}}
+\newcommand{\susprefcst}[1]{\susprefabt{#1}}
+
+\newcommand{\delayabt}[3]{\OpABTp{\cd{susp}}{#1}{\AbsABT{#2}{#3}}}
+\newcommand{\delaycst}[3]{\kwop{susp}\IsOf{#2}{#1}\kwop{is}{#3}}
+
+\newcommand{\forceabt}[1]{\OpABT{\cd{force}}{#1}}
+%\newcommand{\forcecst}[1]{\mathop{\downarrow}\nolimits{#1}}
+\newcommand{\forcecst}[1]{\forceabt{#1}}
+
+\newcommand{\letforceabt}[3]{\OpABT{\cd{force}}{#1;\AbsABT{#2}{#3}}}
+\newcommand{\letforcecst}[3]{\kwop{let}\delaycst{#2}\kwop{be}{#1}\kwop{in}{#3}}
+
+\newcommand{\BlackHole}{\bullet}
+
+%\newcommand{\NState}[2]{{#2}\mathrel{\parallel}{#1}}
+%\newcommand{\NState}[3]{\parens{\mathop{\nu}{#2}}\;{#3}\mathrel{\parallel}{#1}}
+\newcommand{\NState}[3]{\mathop{\nu}{#2}\,\braces{\,{#3}\mathrel{\parallel}{#1}\,}}
+
+\newcommand{\Loops}[1]{\JPost{#1}{\textsf{loops}}}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "book"
+%%% End: 

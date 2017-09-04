@@ -1,0 +1,54 @@
+\newcommand{\LangPPCF}{\textbsf{PPCF}}
+\newcommand{\LangVPCF}{\textbsf{VPCF}}
+\newcommand{\MachP}{\textbsf{P}}
+
+\newcommand{\letparabt}[5]{\OpABT{\kw{par}}{{#2};{#4};\AbsABT{#1}{\AbsABT{#3}{#5}}}}
+\newcommand{\letparcst}[5]{\kwop{par}{#1}\mathbin{\cd{=}}{#2}\kwop{and}{#3}\mathbin{\cd{=}}{#4}\kwop{in}{#5}}
+
+\newcommand{\gjoinparabt}[3]{\OpABT{\OpInst{\kw{join}}{#1}}{\AbsABT{#2}{#3}}}
+\newcommand{\joinparabt}[5]{\gjoinparabt{#1;#2}{#3;#4}{#5}}
+\newcommand{\contparabt}[3]{\gjoinparabt{#1}{#2}{#3}}
+
+\newcommand{\zerocost}{\mathbf{0}}
+\newcommand{\unitcost}{\mathbf{1}}
+\newcommand{\parcost}[2]{{#1}\otimes{#2}}
+\newcommand{\seqcost}[2]{{#1}\oplus{#2}}
+\newcommand{\futcost}[1]{{#1}\mathop{\oslash}\relax}
+
+\newcommand{\workcost}[1]{\mathop{\textit{wk}}\parens{#1}}
+\newcommand{\depthcost}[1]{\mathop{\textit{dp}}\parens{#1}}
+
+\newcommand{\pairvalabt}[2]{\OpABT{\cd{pr}}{#1;#2}}
+
+\newcommand{\vectyabt}[1]{\OpABT{\cd{seq}}{#1}}
+\newcommand{\vectycst}[1]{{#1}\,\cd{seq}}
+
+\newcommand{\vecexabt}[1]{\OpABT{\cd{seq}}{#1}}
+\newcommand{\vecexcst}[1]{\cdsqbracks{#1}}
+
+\newcommand{\veltabt}[2]{\OpABT{\cd{sub}}{#1;#2}}
+\newcommand{\veltcst}[2]{{#1}\cdsqbracks{#2}}
+\newcommand{\vsizabt}[1]{\OpABT{\cd{len}}{#1}}
+\newcommand{\vsizcst}[1]{\cdbar{#1}\cdbar}
+\newcommand{\vforabt}[3]{\OpABT{\cd{map}}{\AbsABT{#1}{#2};{#3}}}
+\newcommand{\vforcst}[3]{\cdsqbracks{{#2}\casesepcst{#1}\mathop{\in}{#3}}}
+\newcommand{\vcatabt}[2]{\OpABT{\cd{cat}}{#1;#2}}
+\newcommand{\vcatcst}[2]{\vcatabt{#1}{#2}}
+\newcommand{\vredabt}[5]{\OpABT{\cd{red}}{#1;\AbsABT{#2,#3}{#4};#5}}
+\newcommand{\vredcst}[5]{\vredabt{#1}{#2}{#3}{#4}{#5}}
+\newcommand{\vtababt}[3]{\OpABT{\cd{tab}}{\AbsABT{#1}{#2};{#3}}}
+\newcommand{\vtabcst}[3]{\vtababt{#1}{#2}{#3}}
+
+\newcommand{\parletabt}[7]{\OpABT{\OpInst{\cd{par}}{#1;#2}}{#4;#6;\AbsABT{#3,#5}{#7}}}
+\newcommand{\parletcst}[7]{\kwop{par}\IsOf{#3}{#1}\kwop{be}{#4}\kwop{and}\IsOf{#5}{#2}\kwop{be}{#6}\kwop{in}{#7}}
+
+\newcommand{\PState}[2]{\mathop{\nu}{#1}\,\braces{\,{#2}\,}}
+\newcommand{\PSTask}[2]{\pairff{#1}{#2}}
+\newcommand{\PSProd}[2]{\combff{#1}{#2}}
+
+\newcommand{\CostRaises}[3]{{#1}\mathbin{\Uparrow}^{#3}{#2}}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "book"
+%%% End: 

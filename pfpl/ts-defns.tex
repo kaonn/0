@@ -1,0 +1,57 @@
+\newcommand{\stepstosymbol}{\ensuremath{\longmapsto}}
+\newcommand{\lblstepstosymbol}[1]{\ensuremath{\xmapsto[#1]{}}}
+\newcommand{\llblstepstosymbol}[2]{\ensuremath{\xmapsto[#2]{#1}}}
+\newcommand{\StepsTo}{\mathrel{\stepstosymbol}}
+
+\newcommand{\istepstosymbol}{\ensuremath{\rightarrow}}
+\newcommand{\IStepsTo}{\mathrel{\istepstosymbol}}
+
+\newcommand{\Multi}[1]{\mathrel{#1^\ast}}
+\newcommand{\MultiStepsTo}{\Multi{\stepstosymbol}}
+
+\newcommand{\MultiNZ}[1]{\mathrel{#1^{+}}}
+\newcommand{\MultiNZStepsTo}{\Multi{\stepstosymbol}}
+
+\newcommand{\Terminates}[1]{\JPost{#1}{\downarrow}}
+
+\newcommand{\NFold}[2]{\mathrel{#1^{#2}}}
+\newcommand{\NStepsTo}[1]{\NFold{\stepstosymbol}{#1}}
+
+\newcommand{\UStepsTo}[1]{\mathrel{\llblstepstosymbol{#1}{}}}
+\newcommand{\LStepsTo}[1]{\mathrel{\llblstepstosymbol{}{#1}}}
+\newcommand{\LLStepsTo}[2]{\mathrel{\llblstepstosymbol{#1}{#2}}}
+\newcommand{\WLLStepsTo}[3]{\mathrel{\llblstepstosymbol{#1\mathop{@}{#3}}{#2}}}
+
+\newcommand{\MultiLStepsTo}[1]{\Multi{\llblstepstosymbol{#1}{}}}
+\newcommand{\MultiLLStepsTo}[2]{\Multi{\llblstepstosymbol{#1}{#2}}}
+
+\newcommand{\IsState}[1]{\JPost{#1}{\textsf{state}}}
+\newcommand{\IsFinal}[1]{\JPost{#1}{\textsf{final}}}
+\newcommand{\IsInitial}[1]{\JPost{#1}{\textsf{initial}}}
+
+\newcommand{\LIsInitial}[2]{\JPost{#2}{\textsf{initial}_{#1}}}
+\newcommand{\LIsFinal}[2]{\JPost{#2}{\textsf{final}_{#1}}}
+
+\newcommand{\IsEvalCtxt}[1]{\JPost{#1}{\textsf{ectxt}}}
+\newcommand{\FillIs}[3]{{#3}={#1}\{#2\}}
+\newcommand{\Fill}[2]{{#1}\{#2\}}
+
+\newcommand{\SSStepsTo}{\mathrel{\StepsTo_{\mathsf{s}}}}
+\newcommand{\CSStepsTo}{\mathrel{\StepsTo_{\mathsf{c}}}}
+
+\newcommand{\MultiCSStepsTo}{\mathrel{\StepsTo_{\mathsf{c}}^\ast}}
+\newcommand{\MultiSSStepsTo}{\mathrel{\StepsTo_{\mathsf{s}}^\ast}}
+
+\newcommand{\SeqStepsTo}{\mathrel{\mapsto_{\textsf{seq}}}}
+\newcommand{\ParStepsTo}{\mathrel{\mapsto_{\textsf{par}}}}
+
+\newcommand{\SeqStepsToSup}[1]{\mathrel{\mapsto_{\textsf{seq}}^{#1}}}
+\newcommand{\ParStepsToSup}[1]{\mathrel{\mapsto_{\textsf{par}}^{#1}}}
+
+\newcommand{\MultiSeqStepsTo}{\mathrel{\SeqStepsToSup{\ast}}}
+\newcommand{\MultiParStepsTo}{\mathrel{\ParStepsToSup{\ast}}}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "book"
+%%% End: 

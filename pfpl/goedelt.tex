@@ -1,0 +1,578 @@
+%\chapter{\foreignlanguage{german}{G"odel's} \LangT{}}
+\chapter{System \LangT{} of Higher-Order Recursion}
+\chaplabel{goedelt}
+
+System \LangT{}, well-known as \emph{G\"{o}del's T}, is the
+combination of function types with the type of natural numbers.  In
+contrast to $\LangExpr$, which equips the naturals with some
+arbitrarily chosen arithmetic operations, the language \LangT{}
+provides a general mechanism, called \emph{primitive recursion}, from
+which these primitives may be defined.  Primitive recursion captures
+the essential inductive character of the natural numbers, and hence
+may be seen as an intrinsic termination proof for each program in the
+language.  Consequently, we may only define \emph{total} functions in
+the language, those that always return a value for each argument.  In
+essence every program in \LangT{} ``comes equipped'' with a proof of
+its termination.  Although this may seem like a shield against
+infinite loops, it is also a weapon that can be used to show that some
+programs cannot be written in \LangT{}.  To do so would demand a
+master termination proof for every possible program in the language,
+something that we shall prove does not exist.
+
+\section{Statics}
+\seclabel{goedelt}{statics}
+
+\index{G\"{o}del's \LangT{}}
+\index{\LangT{}|see{G\"{o}del's \LangT}}
+The syntax of \LangT{} is given by the following grammar:
+\begin{synchart}{syn}
+  \TypeSort & \tau & \bnfdef & \nattyabt & \nattycst & \text{naturals} \\
+              &      & \bnfalt & \arrtyabt{\tau_1}{\tau_2} &
+              \arrtycst{\tau_1}{\tau_2} & \text{function} \\
+  \ExprSort & e    & \bnfdef & x & x & \text{variable} \\
+              &      & \bnfalt & \zeroabt & \zerocst & \text{zero} \\
+              &      & \bnfalt & \succabt{e} & \succcst{e} & \text{successor} \\
+              &      & \bnfalt & \natrecabt{\tau}{e}{e_0}{x}{y}{e_1} &
+              \multicolumn{2}{l}{\natreccst{\tau}{e}{e_0}{x}{y}{e_1}} \\
+              &      &             &            &  & \text{recursion} \\
+              &      & \bnfalt & \lamabt{\tau}{x}{e} & \lamcst{\tau}{x}{e} &
+              \text{abstraction} \\
+              &      & \bnfalt & \appabt{e_1}{e_2} & \appcst{e_1}{e_2} & \text{application}
+\end{synchart}
+\index{G\"{o}del's \LangT{}!recursor}
+We write $\numeral{n}$ for the expression
+$\succabt{\dots \succabt{\zeroabt}}$, in which the successor is applied $n\geq
+0$ times to zero.  The expression $\natrecabt{\tau}{e}{e_0}{x}{y}{e_1}$ is
+called the \emph{recursor}.  It represents the $e$-fold iteration of the
+transformation $\AbsABT{x}{\AbsABT{y}{e_1}}$ starting from $e_0$.  The bound
+variable $x$ represents the predecessor and the bound variable $y$ represents
+the result of the $x$-fold iteration.  The ``\textcd{with}'' clause in the
+concrete syntax for the recursor binds the variable $y$ to the result of the
+recursive call, as will become clear shortly.
+
+\index{G\"{o}del's \LangT{}!iterator}
+Sometimes the \emph{iterator},
+$\natiterabt{\tau}{e}{e_0}{y}{e_1}$, is considered as an alternative to the
+recursor.  It has essentially the same meaning as the recursor, except that only
+the result of the recursive call is bound to $y$ in $e_1$, and no binding is
+made for the predecessor.  Clearly the iterator is a special case of the
+recursor, because we can always ignore the predecessor binding.  Conversely, the
+recursor is definable from the iterator, provided that we have product types
+(Chapter~\chapref{prod}) at our disposal.  To define the recursor from the
+iterator, we simultaneously compute the predecessor while iterating the
+specified computation.
+
+\smallskip
+
+\index{G\"{o}del's \LangT{}!statics}
+The statics of \LangT{} is given by the following typing rules:
+\begin{infrules}{ss}
+  \begin{infrule}{var}
+    \infer
+    {\Gamma,\IsOf{x}{\tau}\vdash\IsOf{x}{\tau}}
+    {\strut}
+  \end{infrule}
+  \begin{infrule}{zero}
+    \infer
+    {\Gamma\vdash \IsOf{\zeroabt}{\nattyabt}}
+    {\strut}
+  \end{infrule}
+  \begin{infrule}{succ}
+    \infer{\Gamma \vdash \IsOf{\succabt{e}}{\nattyabt}}
+    {\Gamma\vdash \IsOf{e}{\nattyabt}}
+  \end{infrule}
+  \begin{infrule}{rec}
+    \infer{\Gamma\vdash \IsOf{\natrecabt{\tau}{e}{e_0}{x}{y}{e_1}}{\tau}}
+    {\Gamma\vdash \IsOf{e}{\nattyabt} &
+      \Gamma\vdash \IsOf{e_0}{\tau} &
+      \Gamma, \IsOf{x}{\nattyabt}, \IsOf{y}{\tau} \vdash \IsOf{e_1}{\tau}}
+  \end{infrule}
+  \begin{infrule}{lam}
+    \infer
+    {\Gamma\vdash\IsOf{\lamabt{\tau_1}{x}{e}}{\arrtyabt{\tau_1}{\tau_2}}}
+    {\Gamma,\IsOf{x}{\tau_1}\vdash \IsOf{e}{\tau_2}}
+  \end{infrule}
+  \begin{infrule}{app}
+    \infer
+    {\Gamma\vdash\IsOf{\appabt{e_1}{e_2}}{\tau}}
+    {\Gamma\vdash\IsOf{e_1}{\arrtyabt{\tau_2}{\tau}} &
+      \Gamma\vdash\IsOf{e_2}{\tau_2}}
+  \end{infrule}
+\end{infrules}
+
+As usual, admissibility of the structural rule of substitution is crucially
+important.
+\begin{lemma}
+  \lemlabel{goedelt}{subst}
+  If $\Gamma\vdash \IsOf{e}{\tau}$ and $\Gamma,\IsOf{x}{\tau}\vdash
+  \IsOf{e'}{\tau'}$, then $\Gamma\vdash \IsOf{\Subst{e}{x}{e'}}{\tau'}$.
+\end{lemma}
+
+\section{Dynamics}
+\seclabel{goedelt}{dynamics}
+
+\index{G\"{o}del's \LangT{}!dynamics}
+The closed values of \LangT{} are defined by the following rules:
+\begin{infrules}{ds-val}
+  \begin{infrule}{zero}
+    \infer
+    {\IsVal{\zeroabt}}
+    {\strut}
+  \end{infrule}
+  \begin{infrule}{succ}
+    \infer
+    {\IsVal{\succabt{e}}}
+    {\optional{\IsVal{e}}}
+  \end{infrule}
+  \begin{infrule}{lam}
+    \infer
+    {\IsVal{\lamabt{\tau}{x}{e}}}
+    {\strut}
+  \end{infrule}
+\end{infrules}
+The premise of rule~\infruleref{goedelt}{ds-val}{succ} is included for an
+\emph{eager} interpretation of successor, and excluded for a \emph{lazy}
+interpretation.
+
+The transition rules for the dynamics of \LangT{} are as follows:
+\begin{infrules}{ds}
+   \begin{optinfrule}{succ-step}
+     \infer
+     {{\succabt{e}}\StepsTo{\succabt{e'}}}
+     {{e}\StepsTo{e'}}
+   \end{optinfrule}
+  \begin{infrule}{app-fun}
+    \infer
+    {\appabt{e_1}{e_2}\StepsTo\appabt{e_1'}{e_2}}
+    {e_1\StepsTo e_1'}
+  \end{infrule}
+  \begin{optinfrule}{app-arg}
+    \infer
+    {\appabt{e_1}{e_2}\StepsTo\appabt{e_1}{e_2'}}
+    {\IsVal{e_1} & e_2\StepsTo e_2'}
+  \end{optinfrule}
+  \begin{infrule}{app-beta}
+    \infer
+    {\appabt{\lamabt{\tau}{x}{e}}{e_2}\StepsTo\Subst{e_2}{x}{e}}
+    {\optional{\IsVal{e_2}}}
+  \end{infrule}
+  \begin{infrule}{rec-step}
+    \infer
+    {{\natrecabt{\tau}{e}{e_0}{x}{y}{e_1}}\StepsTo{\natrecabt{\tau}{e'}{e_0}{x}{y}{e_1}}}
+    {{e}\StepsTo{e'}}
+  \end{infrule}
+  \begin{infrule}{rec-zero}
+    \infer
+    {{\natrecabt{\tau}{\zeroabt}{e_0}{x}{y}{e_1}}\StepsTo{e_0}}
+    {\strut}
+  \end{infrule}
+  \begin{infrule}{rec-succ}
+    \infer
+    {{\natrecabt{\tau}{\succabt{e}}{e_0}{x}{y}{e_1}}
+      \StepsTo
+      {\Subst{e,\natrecabt{\tau}{e}{e_0}{x}{y}{e_1}}{x,y}{e_1}}}
+    {\IsVal{\succabt{e}}}
+  \end{infrule}
+\end{infrules}
+The bracketed rules and premises are included for an eager successor
+and call-by-value application, and omitted for a lazy successor and
+call-by-name application.  Rules~\infruleref{goedelt}{ds}{rec-zero}
+and ~\infruleref{goedelt}{ds}{rec-succ} specify the behavior of the
+recursor on $\zeroabt$ and $\succabt{e}$.  In the former case the
+recursor reduces to $e_0$, and in the latter case the variable $x$ is
+bound to the predecessor $e$ and $y$ is bound to the (unevaluated)
+recursion on $e$.  If the value of $y$ is not required in the rest of
+the computation, the recursive call is not evaluated.
+
+% \begin{lemma}
+%   If $\IsOf{e}{\nattycst}$ and $\IsVal{e}$, then $e=\numeral{n}$ for some $n\geq
+%   0$.  That is, either $e=\zerocst$ or $e=\succcst{e'}$ for some $e'$ such that
+%   $\IsNat{e'}$ and $\IsVal{e'}$.
+% \end{lemma}
+
+\begin{comment}
+If, instead, we prefer to insist that the recursive call always be evaluated we
+may replace rule~\infruleref{goedelt}{dynamic}{rec-succ} with the following
+variant:
+\begin{infrule*}{rec-succ}
+  \infer[.]
+  {
+    \begin{gathered}
+    \natrecabt{\tau}{\succabt{e}}{e_0}{x}{y}{e_1} \\[-1ex]
+    \StepsTo  \\[-1ex]
+    \appabt{\appabt{\lamabt{\nattyabt}{x}{\lamabt{\tau}{y}{e_1}}}{e}}{\natrecabt{\tau}{e}{e_0}{x}{y}{e_1}}
+    \end{gathered}
+  }
+  {\IsVal{\succabt{e}}}
+\end{infrule*}
+Rule~\infrulerefstar{goedelt}{rec-succ} forces evaluation of the recursive call prior to evaluation of $e_1$.
+\end{comment}
+
+\begin{lemma}[Canonical Forms]
+  \lemlabel{goedelt}{cfl} If $\IsOf{e}{\tau}$ and $\IsVal{e}$, then
+  \begin{enumerate}
+  \item If $\tau=\nattycst$, then $e=\succcst{\succcst{\dots\zerocst}}$ for some
+    number $n\geq 0$ occurrences of the successor starting with zero.
+  \item If $\tau=\arrtycst{\tau_1}{\tau_2}$, then $e=\lamcst{\tau_1}{x}{e_2}$
+    for some $e_2$.
+  \end{enumerate}
+\end{lemma}
+
+\index{G\"{o}del's \LangT{}!safety}
+
+\begin{theorem}[Safety]
+  \thmlabel{goedelt}{safety}
+  \begin{enumerate}
+  \item If $\IsOf{e}{\tau}$ and $e\StepsTo e'$, then $\IsOf{e'}{\tau}$.
+  \item If $\IsOf{e}{\tau}$, then either $\IsVal{e}$ or $e\StepsTo e'$ for some
+    $e'$.
+  \end{enumerate}
+\end{theorem}
+
+\section{Definability}
+\seclabel{goedelt}{definability}
+
+\index{G\"{o}del's \LangT{}!definability}
+A mathematical function $f:\mathbb{N}\to\mathbb{N}$ on the natural numbers is
+\emph{definable} in \LangT{} iff there exists an expression $e_f$ of type
+$\arrtycst{\nattycst}{\nattycst}$ such that for every $n\in\mathbb{N}$,
+\begin{displayed}{definability}
+  \IsDefEqvCl{\appcst{e_f}{\numeral{n}}}{\numeral{f(n)}}{\nattycst}.
+\end{displayed}
+That is, the numeric function $f:\mathbb{N}\to\mathbb{N}$ is definable iff there
+is an expression $e_f$ of type $\arrtycst{\nattycst}{\nattycst}$ such that, when
+applied to the numeral representing the argument $n\in\mathbb{N}$, the
+application is definitionally equal to the numeral corresponding to
+$f(n)\in\mathbb{N}$.
+
+\index{G\"{o}del's \LangT{}!definitional equality}
+Definitional equality for \LangT{}, written
+$\IsDefEqv{\Gamma}{e}{e'}{\tau}$, is the strongest congruence containing these
+axioms:
+\begin{infrules}{eq}
+  \begin{infrule}{beta}
+    \infer
+    {\IsDefEqv{\Gamma}{\appabt{\lamabt{\tau_1}{x}{e_2}}{e_1}}{\Subst{e_1}{x}{e_2}}{\tau_2}}
+    {\Gamma,\IsOf{x}{\tau_1}\vdash\IsOf{e_2}{\tau_2} & \Gamma\vdash\IsOf{e_1}{\tau_1}}
+  \end{infrule}
+  \begin{infrule}{rec-zero}
+    \infer
+    {\IsDefEqv{\Gamma}{\natrecabt{\tau}{\zeroabt}{e_0}{x}{y}{e_1}}{e_0}{\tau}}
+    {\Gamma\vdash\IsOf{e_0}{\tau} & \Gamma,\IsOf{x}{\tau}\vdash \IsOf{e_1}{\tau}}
+  \end{infrule}
+  \begin{infrule}{rec-succ}
+    \infer
+    {\IsDefEqv{\Gamma}{\natrecabt{\tau}{\succabt{e}}{e_0}{x}{y}{e_1}}{\Subst{e,\natrecabt{\tau}{e}{e_0}{x}{y}{e_1}}{x,y}{e_1}}{\tau}}
+    {\Gamma\vdash\IsOf{e_0}{\tau} & \Gamma,\IsOf{x}{\tau}\vdash \IsOf{e_1}{\tau}}
+  \end{infrule}
+\end{infrules}
+%It may be proved that if $\IsOf{e}{\nattycst}$, then
+%$\IsDefEqvCl{e}{\numeral{n}}{\nattycst}$ iff $e\MultiStepsTo\numeral{n}$.
+
+\smallskip
+
+For example, the doubling function, $d(n)=2\times n$, is definable in
+\LangT{} by the expression $\IsOf{e_d}{\arrtycst{\nattycst}{\nattycst}}$
+given by
+\begin{displayed*}
+  \lamcst{\nattycst}{x}{\natreccst{\nattycst}{x}{\zerocst}{u}{v}{\succcst{\succcst{v}}}}.
+\end{displayed*}
+To check that this defines the doubling function, we proceed by induction on
+$n\in\mathbb{N}$.  For the basis, it is easy to check that
+\begin{displayed*}
+  \IsDefEqvCl{\appcst{e_d}{\numeral{0}}}{\numeral{0}}{\nattycst}.
+\end{displayed*}
+For the induction, assume that
+\begin{displayed*}
+  \IsDefEqvCl{\appcst{e_d}{\numeral{n}}}{\numeral{d(n)}}{\nattycst}.
+\end{displayed*}
+Then calculate using the rules of definitional equality:
+\begin{align*}
+  \appcst{e_d}{\numeral{n+1}}
+  & \equiv \succcst{\succcst{\appcst{e_d}{\numeral{n}}}} \\
+  & \equiv \succcst{\succcst{\numeral{2\times n}}} \\
+  & = \numeral{2\times (n+1)} \\
+  & = \numeral{d(n+1)}.
+\end{align*}
+
+%\section{Ackermann's Function}
+%\seclabel{goedelt}{ackermann}
+\smallskip
+
+As another example, consider the following function, called \emph{Ackermann's
+  function}, defined by the following equations:
+\begin{align*}
+A(0,n)     &= n+1 \\
+A(m+1,0)   &= A(m,1) \\
+A(m+1,n+1) &= A(m, A(m+1,n)).
+\end{align*}
+The Ackermann function grows very quickly.  For example, $A(4,2) \approx 2^{65,536}$,
+which is often cited as being larger than the number of atoms in the
+universe!  Yet we can show that the Ackermann function is total by a
+lexicographic induction on the pair of arguments $(m,n)$.  On each recursive
+call, either $m$ decreases, or else $m$ remains the same, and $n$ decreases, so
+inductively the recursive calls are well-defined, and hence so is $A(m,n)$.
+
+A \emph{first-order primitive recursive function} is a function of type
+$\arrtycst{\nattycst}{\nattycst}$ that is defined using the recursor, but
+without using any higher order functions.  Ackermann's function is defined so
+that it is not first-order primitive recursive, but is higher-order primitive
+recursive.  The key to showing that it is definable in \LangT{} is to
+note that $A(m+1,n)$ iterates $n$ times the function $A(m,-)$, starting with
+$A(m,1)$.  As an auxiliary, let us define the higher-order function
+\begin{displaymath}
+\IsOf{\cd{it}}{\arrtycst{\cdparens{\arrtycst{\nattycst}{\nattycst}}}{\arrtycst{\nattycst}{\arrtycst{\nattycst}{\nattycst}}}}
+\end{displaymath}
+to be the $\lambda$-abstraction
+\begin{displaymath}
+  {\lamcst
+    {\arrtycst{\nattycst}{\nattycst}}
+    {f}
+    {\lamcst
+      {\nattycst}
+      {n}
+      {\natreccst
+        {\nattycst}
+        {n}
+        {\cd{id}}
+        {\_}{g}{f\circ g}}}},
+\end{displaymath}
+where $\cd{id}=\lamcst{\nattycst}{x}{x}$ is the identity, and $f\circ g =
+\lamcst{\nattycst}{x}{\appcst{f}{\appcst{g}{x}}}$ is the composition of $f$ and
+$g$.  It is easy to check that
+\begin{displaymath}
+  \IsDefEqvCl
+  {\appcst{\appcst{\appcst{\cd{it}}{f}}{\numeral{n}}}{\numeral{m}}}
+  {f^{\parens{n}}(\numeral{m})}
+  {\nattycst},
+\end{displaymath}
+where the latter expression is the $n$-fold composition of $f$ starting with
+$\numeral{m}$.  We may then define the Ackermann function
+\begin{displaymath}
+  \IsOf{e_a}{\arrtycst{\nattycst}{\arrtycst{\nattycst}{\nattycst}}}
+\end{displaymath}
+to be the expression
+\begin{displaymath}
+  \lamcst
+  {\nattycst}
+  {m}
+  {\natreccst
+    {\arrtycst{\nattycst}{\nattycst}}
+    {m}
+    {\cd{s}}
+    {\_}
+    {f}
+    {\lamcst
+      {\nattycst}
+      {n}
+      {\appcst{\appcst{\appcst{\cd{it}}{f}}{n}}{\appcst{f}{\numeral{1}}}}}}.
+\end{displaymath}
+
+It is instructive to check that the following equivalences are valid:
+\begin{align}
+  \appcst{\appcst{e_a}{\numeral{0}}}{\numeral{n}}  &\equiv{} \succcst{\numeral{n}} \\
+  \appcst{\appcst{e_a}{\numeral{m+1}}}{\numeral{0}} & \equiv{}
+  \appcst{\appcst{e_a}{\numeral{m}}}{\numeral{1}} \\
+  \appcst{\appcst{e_a}{\numeral{m+1}}}{\numeral{n+1}} &\equiv{}
+  \appcst{\appcst{e_a}{\numeral{m}}}{\appcst{\appcst{e_a}{\succcst{\numeral{m}}}}{\numeral{n}}}.
+\end{align}
+That is, the Ackermann function is definable in \LangT{}.
+
+\section{Undefinability}
+\seclabel{goedelt}{nondef}
+
+\index{G\"{o}del's \LangT{}!undefinability}
+It is impossible to define an infinite loop in \LangT{}.
+\begin{theorem}
+  \thmlabel{goedelt}{termination}
+  If $\IsOf{e}{\tau}$, then there exists $\IsVal{v}$ such that $\IsDefEqvCl{e}{v}{\tau}$.
+\end{theorem}
+\begin{proof}
+  See Corollary~\corref{equiv-t}{termination}.
+\end{proof}
+
+Consequently, values of function type in \LangT{} behave like mathematical
+functions: if $\IsOf{e}{\arrtycst{\tau_1}{\tau_2}}$ and $\IsOf{e_1}{\tau_1}$, then
+$\appcst{e}{e_1}$ evaluates to a value of type $\tau_2$.  Moreover, if
+$\IsOf{e}{\nattycst}$, then there exists a natural number $n$ such that
+$\IsDefEqvCl{e}{\numeral{n}}{\nattycst}$.
+
+Using this, we can show, using a technique called \emph{diagonalization}, that
+there are functions on the natural numbers that are not definable in
+\LangT{}.  We make use of a technique, called \emph{G\"{o}del-numbering},
+that assigns a unique natural number to each closed expression of \LangT{}.
+By assigning a unique number to each expression, we may manipulate
+expressions as data values in \LangT{} so that \LangT{} is able to
+compute with its own programs.\footnote{The same
+  technique lies at the heart of the proof of G\"{o}del's celebrated
+  incompleteness theorem.  The undefinability of certain functions on the
+  natural numbers within \LangT{} may be seen as a form of incompleteness
+  like that considered by G\"{o}del.}
+
+The essence of G\"{o}del-numbering is captured by the following simple
+construction on abstract syntax trees.  (The generalization to abstract binding
+trees is slightly more difficult, the main complication being to ensure that all
+$\alpha$-equivalent expressions are assigned the same G\"{o}del number.)  Recall
+that a general ast $a$ has the form $\OpAST{o}{a_1,\dots,a_k}$, where $o$ is
+an operator of arity $k$.  Enumerate the operators so that every
+operator has an index $i\in\mathbb{N}$, and let $m$ be the index of $o$ in this
+enumeration.  Define the \emph{G\"{o}del number} $\corners{a}$ of $a$ to be the
+number
+\begin{displayed*}
+  2^m\,3^{n_1}\,5^{n_2}\,\dots\,p_k^{n_k},
+\end{displayed*}
+where $p_k$ is the $k$th prime number (so that $p_0=2$, $p_1=3$, and so on), and
+$n_1,\dots,n_k$ are the G\"{o}del numbers of $a_1,\dots,a_k$, respectively.
+This procedure assigns a natural number to each ast.  Conversely, given a natural number,
+$n$, we may apply the prime factorization theorem to ``parse'' $n$ as a unique
+abstract syntax tree.  (If the factorization is not of the right form,
+which can only be because the arity of the operator does not match the number of
+factors, then $n$ does not code any ast.)
+
+Now, using this representation, we may define a (mathematical) function
+$f_{\textit{univ}}:\mathbb{N}\to\mathbb{N}\to\mathbb{N}$ such that, for any
+$\IsOf{e}{\arrtycst{\nattycst}{\nattycst}}$,
+$f_{\textit{univ}}(\corners{e})(m)=n$ iff
+$\IsDefEqvCl{\appcst{e}{\numeral{m}}}{\numeral{n}}{\nattycst}$.\footnote{The
+  value of $f_{\textit{univ}}(k)(m)$ may be chosen arbitrarily to be zero when
+  $k$ is not the code of any expression $e$.}  The determinacy of the dynamics,
+together with Theorem~\thmref{goedelt}{termination}, ensure that
+$f_{\textit{univ}}$ is a well-defined function.  It is called the
+\emph{universal function} for \LangT{} because it specifies the behavior of
+any expression $e$ of type $\arrtycst{\nattycst}{\nattycst}$.  Using the
+universal function, let us define an auxiliary mathematical function, called the
+\emph{diagonal function} $\delta:\mathbb{N}\to\mathbb{N}$, by the equation
+$\delta(m)=f_{\textit{univ}}(m)(m)$.  The $\delta$ function is chosen so that
+$\delta(\corners{e})=n$ iff
+$\IsDefEqvCl{\appcst{e}{\numeral{\corners{e}}}}{\numeral{n}}{\nattycst}$.  (The
+motivation for its definition will become clear in a moment.)
+
+The function $f_{\textit{univ}}$ is not definable in \LangT{}.  Suppose
+that it were definable by the expression $e_{\textit{univ}}$, then the diagonal
+function $\delta$ would be definable by the expression 
+\begin{displayed*}
+e_{\delta}=\lamcst{\nattycst}{m}{\appcst{\appcst{e_{\textit{univ}}}{m}}{m}}.
+\end{displayed*}
+But in that case we would have the equations
+\begin{align*}
+  \appcst{e_{\delta}}{\numeral{\corners{e}}} & \equiv
+  \appcst{\appcst{e_{\textit{univ}}}{\numeral{\corners{e}}}}{\numeral{\corners{e}}}
+  \\
+  & \equiv \appcst{e}{\numeral{\corners{e}}}.
+\end{align*}
+Now let $e_{\Delta}$ be the function expression
+\begin{displayed*}
+\lamcst{\nattycst}{x}{\succcst{\appcst{e_{\delta}}{x}}},
+\end{displayed*}
+so that we may deduce
+\begin{align*}
+  \appcst{e_{\Delta}}{\numeral{\corners{e_{\Delta}}}}
+  & \equiv \succcst{\appcst{e_{\delta}}{\numeral{\corners{e_{\Delta}}}}} \\
+  & \equiv \succcst{\appcst{e_{\Delta}}{\numeral{\corners{e_{\Delta}}}}}.
+\end{align*}
+But the termination theorem implies that there exists $n$ such that
+$\DefEqvU{\appcst{e_{\Delta}}{\numeral{\corners{e_{\Delta}}}}}{\numeral{n}}$, and hence we
+have $\DefEqvU{\numeral{n}}{\succcst{\numeral{n}}}$, which is impossible.
+
+We say that a language $\mathcal{L}$ is \emph{universal} if it is possible to
+write an interpreter for $\mathcal{L}$ in $\mathcal{L}$ itself.  It is
+intuitively clear that $f_{\textit{univ}}$ is computable in the sense that we
+can define it in \emph{some} sufficiently powerful programming language.  But
+the preceding argument shows that \LangT{} is not up to the task; it is not
+a universal programming language.  Examination of the foregoing proof reveals an
+inescapable tradeoff: by insisting that all expressions terminate, we
+necessarily lose universality---there are computable functions that are not
+definable in the language.
+
+\section{Notes}
+\seclabel{goedelt}{notes}
+
+System \LangT{} was introduced by G\"{o}del in his study of the
+consistency of arithmetic \citep{goedel:t}.  He showed how to
+``compile'' proofs in arithmetic into well-typed terms of system
+\LangT{}, and to reduce the consistency problem for arithmetic to the
+termination of programs in \LangT{}.  It was perhaps the first
+programming language whose design was directly influenced by the
+verification (of termination) of its programs.
+
+\begin{exercises}
+  
+  \begin{exercise}{cfl}
+    \index{G\"{o}del's \LangT{}!canonical forms}
+%
+    Prove Lemma~\lemref{goedelt}{cfl}.
+  \end{exercise}
+
+  \begin{exercise}{safety}
+    \index{G\"{o}del's \LangT{}!safety}
+%
+    Prove Theorem~\thmref{goedelt}{safety}.
+  \end{exercise}
+
+  \begin{exercise}{nat-term}
+    \index{G\"{o}del's \LangT{}!termination}
+%
+    Attempt to prove that if $e:\nattycst$ is closed, then there exists $n$ such that
+    $e\MultiStepsTo\numeral{n}$.  Where does the proof break down?
+  \end{exercise}
+
+  \begin{exercise}{direct-term}
+    \index{G\"{o}del's \LangT{}!termination}
+%
+    Attempt to prove termination for all well-typed closed terms: if $\IsOf{e}{\tau}$,
+    then there exists $\IsVal{e'}$ such that $e\MultiStepsTo e'$.  You are free
+    to appeal to Lemma~\lemref{goedelt}{cfl} and
+    Theorem~\thmref{goedelt}{safety} as necessary.  Where does the attempt break
+    down?  Can you think of a stronger inductive hypothesis that might evade the
+    difficulty?
+  \end{exercise}
+
+  \begin{exercise}{hered-term}
+    \index{G\"{o}del's \LangT{}!hereditary termination}
+    Define a closed term $e$ of type $\tau$ in \LangT{} to be \emph{hereditarily
+      terminating at type $\tau$} by induction on the structure of $\tau$ as
+    follows:
+    \begin{enumerate}
+    \item If $\tau=\nattycst$, then $e$ is hereditarily
+      terminating at type $\tau$ iff $e$ is terminating (that is, iff
+      $e\MultiStepsTo\numeral{n}$ for some $n$.)
+    \item If $\tau=\arrtycst{\tau_1}{\tau_2}$, then $e$ is 
+      hereditarily terminating iff when $e_1$ is hereditarily terminating at
+      type $\tau_1$, then $\appcst{e}{e_1}$ is hereditarily terminating at type
+      $\tau_2$.
+    \end{enumerate}
+    Attempt to prove hereditary termination for well-typed terms: if $e:\tau$,
+    then $e$ is hereditarily terminating at type $\tau$.  The stronger inductive
+    hypothesis bypasses the difficulty that arose in
+    Exercise~\exref{goedelt}{direct-term}, but introduces another obstacle.  What
+    is the complication?  Can you think of an even stronger inductive hypothesis
+    that would suffice for the proof?
+  \end{exercise}
+
+  \begin{exercise}{head-exp}
+    Show that if $e$ is hereditarily terminating at type $\tau$,
+    $\IsOf{e'}{\tau}$, and $e'\StepsTo e$, then $e$ is also hereditarily
+    terminating at type $\tau$.  (The need for this result will become
+    clear in the solution to Exercise~\exref{goedelt}{hered-term}.)
+  \end{exercise}
+
+  \begin{exercise}{gen-term}
+    Define an open, well-typed term
+    \begin{displayed*}
+      \IsOf{x_1}{\tau_1},\dots,\IsOf{x_n}{\tau_n}\vdash\IsOf{e}{\tau}
+    \end{displayed*}
+    to be \emph{open hereditarily terminating} iff every substitution instance
+    \begin{displayed*}
+      \Subst{e_1,\dots,e_n}{x_1,\dots,x_n}{e}
+    \end{displayed*}
+    is closed hereditarily terminating at type $\tau$ when each $e_i$ is
+    closed hereditarily terminating at type $\tau_i$ for each $1\leq i\leq n$.
+    Derive Exercise~\exref{goedelt}{nat-term} from this result.
+  \end{exercise}
+
+\end{exercises}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "book"
+%%% End: 

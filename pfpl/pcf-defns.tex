@@ -1,0 +1,38 @@
+\newcommand{\LangPCF}{\textbsf{PCF}}
+
+\newcommand{\genrecabt}[3]{\OpABTp{\cd{fix}}{#1}{\AbsABT{#2}{#3}}}
+\newcommand{\genreccst}[3]{\kwop{fix}{#2}\cdcolon{#1}\kwop{is}{#3}}
+\newcommand{\sgenreccst}[2]{\kwop{fix}{#1}\kwop{is}{#2}}
+
+\newcommand{\bddrecabt}[4]{\OpABTp{\cd{fix}^{#1}}{#2}{\AbsABT{#3}{#4}}}
+\newcommand{\bddreccst}[4]{\mathop{\cd{fix}^{#1}}{#3}\cdcolon{#2}\kwop{is}{#4}}
+
+\newcommand{\parrtyabt}[2]{\OpABT{\cd{parr}}{#1;#2}}
+\newcommand{\parrtycst}[2]{{#1}\mathbin{\rightharpoonup}{#2}}
+\newcommand{\pappabt}[2]{\OpABT{\cd{ap}}{#1;#2}}
+\newcommand{\pappcst}[2]{\appcst{#1}{#2}}
+
+\newcommand{\funabt}[5]{\OpABTp{\cd{fun}}{#1;#2}{\AbsABT{#3}{\AbsABT{#4}{#5}}}}
+\newcommand{\funcst}[5]{\kwop{fun}{#3}\cdparens{{#4}{\cdcolon}{#1}}{\cdcolon}{#2}\kwop{is}{#5}}
+
+\newcommand{\empenv}{\bullet}
+\newcommand{\extenv}[3]{{#1},{#2}{=}{#3}}
+
+\newcommand{\expclo}[1]{\widehat{#1}}
+\newcommand{\expclois}[2]{\expclo{#1}{=}{#2}}
+\newcommand{\expenv}[2]{\widehat{#1}\parens{#2}}
+\newcommand{\expenvis}[3]{\expenv{#1}{#2}{=}{#3}}
+
+\newcommand{\cutoff}[2]{{#1}^{(#2)}}
+
+%\newcommand{\Replace}[3]{\sqbracks{#2\mathbin{\leftarrow}#1}{#3}}
+
+\newcommand{\lnattyabt}{\cd{lnat}}
+\newcommand{\lnattycst}{\lnattyabt}
+\newcommand{\lsuccabt}[2]{\OpABT{\cd{succ}}{\AbsABT{#1}{#2}}}
+\newcommand{\lsucccst}[2]{{#1}\kwbin{is}\succcst{#2}}
+
+%%% Local Variables: 
+%%% mode: plain-tex
+%%% TeX-master: "book"
+%%% End: 

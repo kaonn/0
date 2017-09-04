@@ -1,0 +1,40 @@
+\newcommand{\LangFut}{\textbsf{PCFFut}}
+
+\newcommand{\futtyabt}[1]{\OpABT{\cd{fut}}{#1}}
+\newcommand{\futtycst}[1]{{#1}\,\cd{fut}}
+\newcommand{\futexabt}[1]{\OpABT{\cd{fut}}{#1}}
+\newcommand{\futexcst}[1]{\futexabt{#1}}
+\newcommand{\futandabt}[3]{\OpABT{\cd{fut}}{#1;\AbsABT{#2}{#3}}}
+\newcommand{\futandcst}[3]{\kwop{fut}{#2}\kwop{is}{#1}\kwop{and}{#3}}
+\newcommand{\fsynexabt}[1]{\OpABT{\cd{fsyn}}{#1}}
+\newcommand{\fsynexcst}[1]{\fsynexabt{#1}}
+\newcommand{\futrefabt}[1]{\OpInst{\cd{fcell}}{#1}}
+\newcommand{\futrefcst}[1]{\futrefabt{#1}}
+
+\newcommand{\spectyabt}[1]{\OpABT{\cd{spec}}{#1}}
+\newcommand{\spectycst}[1]{{#1}\,\cd{spec}}
+
+\newcommand{\specrefabt}[1]{\OpInst{\cd{scell}}{#1}}
+\newcommand{\specrefcst}[1]{\specrefabt{#1}}
+
+\newcommand{\specabt}[1]{\OpABT{\cd{spec}}{#1}}
+\newcommand{\speccst}[1]{\specabt{#1}}
+
+\newcommand{\ssynexabt}[1]{\OpABT{\cd{ssyn}}{#1}}
+\newcommand{\ssynexcst}[1]{\ssynexabt{#1}}
+
+\newcommand{\FState}[3]{\mathop{\nu}{#1}\,\braces{\,{#2}\mathrel{\parallel}{#3}\,}}
+\newcommand{\LocStepsTo}{\StepsTo_{\textit{loc}}}
+\newcommand{\GloStepsTo}{\StepsTo_{\textit{glo}}}
+\newcommand{\OptLocStepsTo}{\LocStepsTo^{\textbf{0,1}}}
+
+\newcommand{\letfutabt}[3]{\OpABT{\cd{letfut}}{#1;\AbsABT{#1}{#2}}}
+\newcommand{\letfutcst}[3]{\mathop{\cd{letfut}}{#2}\mathop{\cd{be}}{#1}\mathop{\cd{in}} {#3}}
+
+\newcommand{\sparkabt}[2]{\OpABT{\cd{spark}}{#1;#2}}
+\newcommand{\sparkcst}[2]{\sparkabt{#1}{#2}}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "book"
+%%% End: 

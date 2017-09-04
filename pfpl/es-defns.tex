@@ -1,0 +1,18 @@
+\newcommand{\evalstosymbol}{\ensuremath{\Downarrow}}
+\newcommand{\evalsto}{\mathrel{\evalstosymbol}}
+\newcommand{\EvalsTo}[2]{{#1}\evalsto{#2}}
+\newcommand{\CostEvalsTo}[3]{#1\evalstosymbol^{#3} #2}
+
+\newcommand{\TermsWith}[2]{{#1}\mathbin{\downarrow}{#2}}
+
+\newcommand{\EnvEvalsTo}[3]{\sqbracks{#1}\;{#2}\evalsto{#3}}
+\newcommand{\EnvLookupIs}[3]{{#1}\parens{#2}={#3}}
+
+\newcommand{\goeswrongsymbol}{\ensuremath{\mathbf{??}}}
+\newcommand{\GoesWrong}[1]{{#1}\,\goeswrongsymbol}
+
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "book"
+%%% End: 

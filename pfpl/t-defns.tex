@@ -1,0 +1,31 @@
+\newcommand{\LangT}{\textbsf{T}}
+
+\newcommand{\nattyabt}{\cd{nat}}
+\newcommand{\nattycst}{\nattyabt}
+
+\newcommand{\zeroabt}{\cd{z}}
+\newcommand{\zerocst}{\zeroabt}
+\newcommand{\succabt}[1]{\OpABT{\cd{s}}{#1}}
+\newcommand{\succcst}[1]{\succabt{#1}}
+
+\newcommand{\predabt}[1]{\OpABT{\cd{p}}{#1}}
+\newcommand{\predcst}[1]{\predabt{#1}}
+
+\newcommand{\numeral}[1]{\overline{#1}}
+
+\newcommand{\natrecabt}[6]{\OpABTp{\kw{rec}}{#3;\AbsABT{#4}{\AbsABT{#5}{#6}}}{#2}}
+\newcommand{\natreccst}[6]{\kwop{rec}{#2}\,\cdbraces{\zerocst\casebrcst{#3}\casesepcst\succcst{#4}\kwop{with}{#5}\casebrcst{#6}}}
+
+\newcommand{\natiterabt}[5]{\OpABTp{\cd{iter}}{#3;\AbsABT{#4}{#5}}{#2}}
+\newcommand{\natitercst}[5]{\kwop{iter}{#2}\,\cdbraces{\zerocst\casebrcst{#3}\casesepcst\succcst{#4}\casebrcst{#5}}}
+
+\newcommand{\natcaseabt}[4]{\OpABTp{\cd{ifz}}{#2;\AbsABT{#3}{#4}}{#1}}
+\newcommand{\natcasecst}[4]{\kwop{ifz}{#1}\,\cdbraces{\zerocst\casebrcst{#2}\casesepcst\succcst{#3}\casebrcst{#4}}}
+
+\newcommand{\nullstrabt}{\epsilon}
+\newcommand{\consstrabt}[2]{{#1}\cdot{#2}}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "book"
+%%% End: 
