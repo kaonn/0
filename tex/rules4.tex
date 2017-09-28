@@ -72,164 +72,6 @@
 \begin{document}
 \maketitle
 
-\section{Syntax}\section{Heap allocation semantics}
-
-The following rules will use judgements of the form:
-\[
-\fbox{$V,H\; \vdash e \Downarrow^s v, H'$}
-\]
-
-Where $V : VID \to Val$ and $H : Loc \to Val$. This can be read as: under stack $V$ and heap $H$
-the expression $e$ evaluates to $v$ while allocating $s$ heap cells, and engenders a new heap $H'$.\\
-
-This is different from the above GC semantics, since $s$ counts the number of heap allocations, not the maximum heap size.
-Hence this heap allocation semantics is an upperbound on the GC semantics.
-
-We define the following metric for measuring the number of heap allocations:
-
-\begin{align*}
-  K^{int} = 1\\
-  K^{true} = 1\\
-  K^{false} = 1\\
-  K^{null} = 1\\
-  K^{tuple} = 1\\
-  K^{nil} = 1\\
-  K^{cons} = 1\\
-  K^{\_} = 0
-\end{align*}
-
-Where $K^{\_}$ are all other constants.
-
-\begin{mathpar}
-
-\infern
-{ x \in dom(V)
-}
-{V,H \vdash x \Downarrow^{K^{var}} V(x),H}
-
-\infern
-{
-  (l \; \text{fresh})\\
-  H' = H[l \mapsto n^l]
-}{
-  V,H \vdash \numeral{n} \Downarrow^{K^{int}} n^l,H'
-}
-
-\infern{
-  (l \; \text{fresh})\\
-  H' = H[l \mapsto \irl{T}^l]
-}{
-  V,H \vdash \irl{T} \Downarrow^{K^{true}} \irl{T}^l,H'
-}
-
-\infern{
-  (l \; \text{fresh})\\
-  H' = H[l \mapsto \irl{F}^l]
-}{
-  V,H \vdash \irl{F} \Downarrow^{K^{false}} \irl{F}^l,H'
-}
-
-\infern{
-  (l \; \text{fresh}) \\
-  H' = H[l \mapsto \irl{Null}^l]
-}{
-  V,H \vdash () \Downarrow^{K^{null}} \irl{Null}^l,H'
-}
-
-\infern{
-  V(x) = \irl{T}^l\\
-  V,H \vdash e_1 \Downarrow^{s_1} v_1, H_1
-}{
-  V,H \vdash \ifexabt{x}{e_1}{e_2} \Downarrow^{s_1} v_1, H_1
-}
-
-\infern{
-  V(x) = \irl{F}^l\\
-  V,H \vdash e_2 \Downarrow^{s_2} v_2, H_2
-}{
-  V,H \vdash \ifexabt{x}{e_1}{e_2} \Downarrow^{s_2} v_2, H_2
-}
-
-% function
-
-\infern{
-  (l \; \text{fresh})\\
-  H' = H[l \mapsto (V,x.e)^l]
-}{
-  V,H \vdash \irl{lam}(x : \tau.e) \Downarrow^{K^{lam}} (V, x.e)^l,H'
-}
-
-\infern{
-  V(f) = (V_1, x.e)^{l_1} \\
-  V(x) = v_1 \\
-  V[x \mapsto v_1], H \vdash e \Downarrow^s v, H'
-}{
-  V,H \vdash \appcst{f}{x} \Downarrow^{s} v,H'
-}
-
-% tuples
-
-\infern{
-  V(x_1) = v_1 \\
-  V(x_2) = v_2 \\
-  (l \; \text{fresh})\\
-  H' = H[l \mapsto \pairexcst{v_1}{v_2}^l]
-}{
-  V,H \vdash \pairexcst{x_1}{x_2} \Downarrow^{K^{tuple}} \pairexcst{v_1}{v_2}^l,H'
-}
-
-\infern{
-  V(x) = \pairexcst{v_1}{v_2}^l\\
-}{
-  V,H \vdash \fstexcst{x} \Downarrow^{K^{fst}} v_1,H
-}
-
-\infern{
-  V(x) = \pairexcst{v_1}{v_2}^l\\
-}{
-  V,H \vdash \sndexcst{x} \Downarrow^{K^{snd}} v_2,H'
-}
-
-% lists
-
-\infern{
-  (l \; \text{fresh})\\
-  H' = H[l \mapsto \irl{Null}^l]
-}{
-  V,H \vdash \nilexabt \Downarrow^{K^{nil}} \irl{Null}^l,H'
-}
-
-\infern{
-  V(x_1) = v_1\\
-  V(x_2) = v_2\\
-  (l \; \text{fresh})\\
-  H' = H[l \mapsto \pairexcst{v_1}{v_2}^l]
-}{
-  V,H \vdash \consexcst{x_1}{x_2} \Downarrow^{K^{cons}} \pairexcst{v_1}{v_2}^l,H'
-}
-
-\infern{
-  V(z) = \irl{Null}^l\\
-  V,H \vdash e_1 \Downarrow^{s_1} v_1, H_1 \\
-}{
-  V,H \vdash \listcaseexcst{z}{e_1}{x}{xs}{e_2} \Downarrow^{s_1} v_1,H_1
-}
-
-\infern{
-  V(z) = \pairexcst{v_h}{v_t}^l \\
-  V[x \mapsto v_h, xs \mapsto v_t],H \vdash e_2 \Downarrow^{s_2} v_2, H_2 \\
-}{
-  V,H \vdash \listcaseexcst{z}{e_1}{x}{xs}{e_2} \Downarrow^{s_2} v_2,H_2
-}
-
-\infern{
-  V,H \vdash e_1 \Downarrow^{s_1} v_1, H' \\
-  V[x \mapsto v_1],H' \vdash e_2 \Downarrow^{s_2} v_2, H_2 \\
-}{
-  V,H \vdash \irl{let}(e_1; x : \tau.e_2) \Downarrow^{s_1 + s_2} v_2,H_2
-}
-\end{mathpar}
-
 \[
 \begin{array}{r l l l l}
 \ms{Type} & \tau \,\,\,\,\, ::= \\
@@ -260,13 +102,13 @@ Where $K^{\_}$ are all other constants.
   \\
 \ms{Val}
         & v   \,\,\,\,\, ::= \\
- 	& \irl{val}[l](n)                                			& n^l 												& \text{numeric value}\\
- 	& \irl{val}[l](\irl{T})                               			& \irl{T}^l 								  & \text{true value}\\
- 	& \irl{val}[l](\irl{F})                                			& \irl{F}^l								  & \text{false value}\\
- 	& \irl{val}[l](\irl{Null})                                  & \irl{Null}^l 								  & \text{null value}\\
- 	& \irl{val}[l](\irl{cl}(V; x.e))                & (V, x.e)^l 					& \text{function value}\\
- 	& \irl{val}[l_2](l_1)                                			& l_1^{l_2} 								  & \text{loc value}\\
- 	& \irl{val}[l](\pairexabt{v_1}{v_2})                             & \pairexcst{v_1}{v_2}^l 								  & \text{pair value}\\
+ 	& \irl{val}(n)                                			& n 												& \text{numeric value}\\
+ 	& \irl{val}(\irl{T})                               			& \irl{T} 								  & \text{true value}\\
+ 	& \irl{val}(\irl{F})                                			& \irl{F}								  & \text{false value}\\
+ 	& \irl{val}(\irl{Null})                                  & \irl{Null} 								  & \text{null value}\\
+ 	& \irl{val}(\irl{cl}(V; x.e))                & (V, x.e)^l 					& \text{function value}\\
+ 	& \irl{val}(l)                                			& l 								  & \text{loc value}\\
+ 	& \irl{val}(\pairexabt{v_1}{v_2})                             & \pairexcst{v_1}{v_2} 								  & \text{pair value}\\
   \\
 \ms{Loc}
         & l   \,\,\,\,\, ::= \\
@@ -278,11 +120,11 @@ Where $K^{\_}$ are all other constants.
 
 Model dynamics using judgement of the form:
 \[
-\fbox{$V,H,R,s \; \vdash e \Downarrow v, H', s'$}
+\fbox{$V,H,R,F \; \vdash e \Downarrow v, H', F'$}
 \]
 
 Where $V : VID \to Val$, $H : Loc \to Val$, and $R : \{Loc\}$. This can be read as: under stack $V$, heap $H$, roots $R$,
-freelist $s$, the expression $e$ evaluates to $v$, and engenders a new heap $H'$ and freelist $s'$.\\
+freelist $F$, the expression $e$ evaluates to $v$, and engenders a new heap $H'$ and freelist $F'$.\\
 
 Roots represents the set of locations required to compute the continuation \emph{excluding} the current expression.
 We can think of roots as the heap allocations necessary to compute the context with a hole that will be filled
@@ -297,7 +139,7 @@ Below defines the size of reachable values and space for roots:
   &reach_{H}(\irl{Null}^l) = \{l\}\\
   &reach_{H}((V, x.e)^l) = \{l\} \cup (\bigcup\limits_{y \in FV(e) \setminus x} reach_H(V(y))) \\
   &reach_{H}(l_1^{l_2}) = \{l_2\} \cup loc_{H}(H(l_1))\\
-  &reach_{H}(\pairexcst{v_1}{v_2}^l) = \{l\} \cup reach_{H}(v_1) \cup reach_{H}(v_2)\\\\
+  &reach_{H}(\pairexcst{v_1}{v_2}^L) = L \cup reach_{H}(v_1) \cup reach_{H}(v_2)\\\\
   &loc_{H}(l) = \{l\} \cup reach_{H}(H(l))\\\\
   &space_{H}(R) = |\bigcup\limits_{l \in R} loc_{H}(l)|\\\\
   &locs_{V,H}(e) = \bigcup\limits_{x \in FV(e)} reach_H(V(x))
@@ -308,58 +150,53 @@ Below defines the size of reachable values and space for roots:
 \infern
 { x \in dom(V)
 }
-{V,H,R \; \vdash x \Downarrow^{space_H(R \cup (reach_H(V(x))))} V(x),H}
+{V,H,R,F \; \vdash x \Downarrow V(x),H,F}
 
 \infern
 {
-  (l \; \text{fresh})\\
-  H' = H[l \mapsto n^l]
 }{
-  V,H,R \; \vdash \numeral{n} \Downarrow^{space_{H'}(R \cup (\{l\})} n^l,H'
+  V,H,R,F \; \vdash \numeral{n} \Downarrow \irl{val}(n),H,F
 }
 
 \infern{
-  (l \; \text{fresh})\\
-  H' = H[l \mapsto \irl{T}^l]
 }{
-  V,H,R \; \vdash \irl{T} \Downarrow^{space_{H'}(R \cup \{l\})} \irl{T}^l,H'
+  V,H,R,F \; \vdash \irl{T} \Downarrow \irl{val(T)},H,F
 }
 
 \infern{
-  (l \; \text{fresh})\\
-  H' = H[l \mapsto \irl{F}^l]
 }{
-  V,H,R \; \vdash \irl{F} \Downarrow^{space_{H'}(R \cup \{l\})} \irl{F}^l,H'
+  V,H,R,F \; \vdash \irl{F} \Downarrow \irl{val(F)},H ,F
 }
 
 \infern{
-  (l \; \text{fresh}) \\
-  H' = H[l \mapsto \irl{Null}^l]
 }{
-  V,H,R \; \vdash () \Downarrow^{space_{H'}(R \cup \{l\})} \irl{Null}^l,H'
+  V,H,R,F \; \vdash () \Downarrow \irl{val(Null)},H ,F
 }
 
 \infern{
   V(x) = \irl{T}^l\\
-  V,H,R \; \vdash e_1 \Downarrow^{s_1} v_1, H_1
+  g = \{l \in H | l \notin F \cup R \cup locs_{V,H}(e_1)\}\\
+  V,H,R,F \cup g\; \vdash e_1 \Downarrow v, H',F'
 }{
-  V,H,R \; \vdash \ifexabt{x}{e_1}{e_2} \Downarrow^{s_1} v_1, H_1
+  V,H,R,F \; \vdash \ifexabt{x}{e_1}{e_2} \Downarrow v, H',F'
 }
 
 \infern{
   V(x) = \irl{F}^l\\
-  V,H,R \; \vdash e_2 \Downarrow^{s_2} v_2, H_2
+  g = \{l \in H | l \notin F \cup R \cup locs_{V,H}(e_2)\}\\
+  V,H,R,F \cup g \; \vdash e_2 \Downarrow v, H',F'
 }{
-  V,H,R \; \vdash \ifexabt{x}{e_1}{e_2} \Downarrow^{s_2} v_2, H_2
+  V,H,R,F \; \vdash \ifexabt{x}{e_1}{e_2} \Downarrow v, H' ,F'
 }
 
 % function
 
 \infern{
-  (l \; \text{fresh})\\
+  l \in F\\
+  F' = F \setminus \{l\}\\
   H' = H[l \mapsto (V,x.e)^l]
 }{
-  V,H,R \; \vdash \irl{lam}(x : \tau.e) \Downarrow^{space_{H'}(R \cup \{l\})} (V, x.e)^l,H'
+  V,H,R,F \; \vdash \irl{lam}(x : \tau.e) \Downarrow (V, x.e)^l,H' ,F'
 }
 
 \infern{
@@ -367,7 +204,7 @@ Below defines the size of reachable values and space for roots:
   V(x) = v_1 \\
   V_1[x \mapsto v_1], H, R \; \vdash e \Downarrow^s v, H'
 }{
-  V,H,R \; \vdash \appcst{f}{x} \Downarrow^{s} v,H'
+  V,H,R,F \; \vdash \appcst{f}{x} \Downarrow v,H',F
 }
 
 % tuples
@@ -375,64 +212,100 @@ Below defines the size of reachable values and space for roots:
 \infern{
   V(x_1) = v_1 \\
   V(x_2) = v_2 \\
-  (l \; \text{fresh})\\
+  l \in F\\
+  F' = F \setminus \{l\}\\
   H' = H[l \mapsto \pairexcst{v_1}{v_2}^l]
 }{
-  V,H,R \; \vdash \pairexcst{x_1}{x_2} \Downarrow^{space_{H'}(R \cup \{l\})} \pairexcst{v_1}{v_2}^l,H'
+  V,H,R,F \; \vdash \pairexcst{x_1}{x_2} \Downarrow \pairexcst{v_1}{v_2}^l,H' ,F'
 }
 
 \infern{
   V(x) = \pairexcst{v_1}{v_2}^l\\
 }{
-  V,H,R \; \vdash \fstexcst{x} \Downarrow^{space_{H'}(R \cup reach(v_1))} v_1,H
+  V,H,R,F \; \vdash \fstexcst{x} \Downarrow v_1,H ,F
 }
 
 \infern{
   V(x) = \pairexcst{v_1}{v_2}^l\\
 }{
-  V,H,R \; \vdash \sndexcst{x} \Downarrow^{space_{H'}(R \cup reach(v_2))} v_2,H'
+  V,H,R,F \; \vdash \sndexcst{x} \Downarrow v_2,H,F
 }
 
 % lists
 
 \infern{
-  (l \; \text{fresh})\\
-  H' = H[l \mapsto \irl{Null}^l]
 }{
-  V,H,R \; \vdash \nilexabt \Downarrow^{space_{H'}(R \cup \{l\})} \irl{Null}^l,H'
+  V,H,R,F \; \vdash \nilexabt \Downarrow \irl{val(Null)},H,F
 }
 
 \infern{
   V(x_1) = v_1\\
   V(x_2) = v_2\\
-  (l \; \text{fresh})\\
-  H' = H[l \mapsto \pairexcst{v_1}{v_2}^l]
+  l \in F\\
+  F' = F \setminus \{l\}\\
+  H' = H[l \mapsto \pairexcst{v_1}{v_2}]
 }{
-  V,H,R \; \vdash \consexcst{x_1}{x_2} \Downarrow^{space_{H'}(R \cup \{l\})} \pairexcst{v_1}{v_2}^l,H'
+  V,H,R,F \; \vdash \consexcst{x_1}{x_2} \Downarrow l,H' ,F'
 }
 
 \infern{
   V(z) = \irl{Null}^l\\
-  V,H,R \; \vdash e_1 \Downarrow^{s_1} v_1, H_1 \\
+  g = \{l \in H | l \notin F \cup R \cup locs_{V,H}(e_1)\}\\
+  V,H,R,F \cup g \; \vdash e_1 \Downarrow v, H',F' \\
 }{
-  V,H,R \; \vdash \listcaseexcst{z}{e_1}{x}{xs}{e_2} \Downarrow^{s_1} v_1,H_1
+  V,H,R,F \; \vdash \listcaseexcst{z}{e_1}{x_h}{x_t}{e_2} \Downarrow v,H',F'
 }
 
 \infern{
   V(z) = \pairexcst{v_h}{v_t}^l \\
-  V[x \mapsto v_h, xs \mapsto v_t],H,R \; \vdash e_2 \Downarrow^{s_2} v_2, H_2 \\
+  g = \{l \in H | l \notin F \cup R \cup locs_{V,H}(e_2)\}\\
+  V[x_h \mapsto v_h, x_t \mapsto v_t],H,R,F \cup g \; \vdash e_2 \Downarrow v, H',F' \\
 }{
-  V,H,R \; \vdash \listcaseexcst{z}{e_1}{x}{xs}{e_2} \Downarrow^{s_2} v_2,H_2
+  V,H,R,F \; \vdash \listcaseexcst{z}{e_1}{x_h}{x_t}{e_2} \Downarrow v,H',F'
 }
 
 \infern{
-  V,H,R \cup locs_{V,H}(\irl{lam}(x : \tau.e_2)) \; \vdash e_1 \Downarrow^{s_1} v_1, H' \\
-  V[x \mapsto v_1],H',R \; \vdash e_2 \Downarrow^{s_2} v_2, H_2 \\
+  R' = R \cup locs_{V,H}(\irl{lam}(x : \tau.e_2))\\
+  V,H,R',F \vdash e_1 \Downarrow v_1,H_1,F_1\\
+  V' = V[x \mapsto v_1]\\
+  R'' = R \cup locs_{V',H_1}(e_2)\\
+  g = \{ l \in H_1 | l \notin R'' \cup F_1 \}\\
+  V',H_1,R, F_1 \cup g \vdash e_2 \Downarrow v_2,H_2,F_2 \\
 }{
-  V,H,R \; \vdash \irl{let}(e_1; x : \tau.e_2) \Downarrow^{\max{(s_1,s_2)}} v_2,H_2
+  V,H,R,F \; \vdash \irl{let}(e_1; x : \tau.e_2) \Downarrow v_2,H_2,F_2
 }
 \end{mathpar}
 
+\section{Type rules}
+
+The type system takes into account of garbaged collected cells by returning potential locally in a match construct. Since we are interested in the number of heap cells, all constants are assumed to be nonnegative.
+
+\begin{mathpar}
+\infer[\text{L:CONSTI}]{
+  \Sigma; \emptyset \sststile{q}{q} n : int 
+}{
+  n \in \mathbb{Z}
+}
+
+\infer[\text{L:VAR}]{
+  \Sigma; x : B \sststile{q}{q} x : B
+}{
+}
+
+\infer[\text{L:MatL}]{
+  \Sigma; \Gamma, x : L^p(A) \sststile{q'}{q} \listcaseexcst{z}{e_1}{x}{xs}{e_2} : B
+}{
+  \Sigma; \Gamma \sststile{q'}{q} e_1 : B &
+  \Sigma; \Gamma, x_h : A, x_t : L^p(A) \sststile{q'}{q + p + 1} e_2 : B
+}
+
+\infer[\text{L:Let}]{
+  \Sigma; \Gamma_1, \Gamma_2 \sststile{q'}{q} \irl{let}(e_1; x : \tau.e_2) : B
+}{
+  \Sigma; \Gamma_1 \sststile{p}{q} e_1 : A &
+  \Sigma; \Gamma_2, x : A \sststile{q'}{p} e_2 : B
+}
+\end{mathpar}
 
 \section{Soundness for heap allocation}
 
@@ -441,11 +314,88 @@ We simplify the soundness proof of the type system for the general metric to one
 
 \begin{theorem}[Soundness]
 \label{a} let $H \vDash V : \Gamma$ and $\Sigma; \Gamma \sststile{q'}{q} e : B$
-\begin{enumerate}
-  \item If $V,H \vdash e \leadsto v$
-\end{enumerate}
+If $  V,H,R,F \; \vdash e \Downarrow v, H', F'$, then 
+\begin{align}
+%   |F|  &\le \Phi_{V,H}(\Gamma) +q\\
+  |F| - |F'| &\le \Phi_{V,H}(\Gamma) +q - (\Phi_{H'}(v:B) + q')
+\end{align}
 \end{theorem}
 
+\begin{proof}
+Induction on the evaluation judgement.\\
+\begin{description}
+   \item[Case 1: E:Var]
+   \begin{align}
+   &V,H,R,F \; \vdash x \Downarrow V(x),H,F \tag{admissibility}\\
+   &\Sigma; x : B \sststile{p}{p} x : B \tag{admissibility}\\
+   &|F| - |F'|\\
+   &\quad = |F| - |F| \tag{ad.}\\
+   &\quad = 0\\
+   &\Phi_{V,H}(\Gamma) + q - (\Phi_{H'}(v:B) + q')\\
+   &\quad = \Phi_{V,H}(x : B) + p - (\Phi_{H}(V(x) : B) + p) \tag{ad.}\\
+   &\quad = \Phi_{H}(V(x) : B) + p  - (\Phi_{H}(V(x) : B) + p) \tag{def. of $\Phi_{V,H}$}\\
+   &\quad = 0\\
+   &|F| - |F'| \le \Phi_{V,H}(\Gamma) +q - (\Phi_{H'}(v:B) + q') \tag{(3),(5)}
+   \end{align}
+   \item[Case 2: E:ConstU]
+   \item[Case 3: E:ConstI]
+   \item[Case 4: E:App]
+   \item[Case 5: E:CondT]
+   \item[Case 6: E:CondF] 
+   \item[Case 7: E:Let]
+   \begin{align*}
+   &V,H,R',F \vdash e_1 \Downarrow v_1,H_1,F_1 \tag{ad.}\\
+   &\Sigma; \Gamma_1 \sststile{p}{q} e_1 : A \tag{ad.}\\
+   &H \vDash V : \Gamma_1 \tag{$\Gamma_1 \subseteq \Gamma$}\\
+   &|F| - |F_1| \le \Phi_{V,H}(\Gamma_1) +q - (\Phi_{H_1}(v_1:A) + p) \tag{IH}\\
+   &V',H_1,R, F_1 \cup g \vdash e_2 \Downarrow v_2,H_2,F_2 \tag{ad.}\\
+   &\Sigma; \Gamma_2, x : A \sststile{q'}{p} e_2 : B \tag{ad.}\\
+   &H_1 \vDash v_1 : A \text{ and } \tag{Theorem 3.3.4}\\ 
+   &H_1 \vDash V : \Gamma_2 \tag{???}\\
+   &H_1 \vDash V' : \Gamma_2, x : A \tag{def of $\vDash$}\\
+   &|F_1 \cup g| - |F_2| \le  \Phi_{V',H_1}(\Gamma_2, x:A) +p - (\Phi_{H_2}(v_2:B) + q') \tag{IH}\\
+   &|F_1| - |F_2| \le \Phi_{V',H_1}(\Gamma_2,x:A) + p - (\Phi_{H_2}(v_2:B) + q')\\
+   &\text{summing the inequalities:}\\
+   &|F| - |F_1| + |F_1| - |F_2| \le \Phi_{V,H}(\Gamma_1) +q - (\Phi_{H_1}(v_1:A) + p) + \Phi_{V',H_1}(\Gamma_2,x:A) + p - (\Phi_{H_2}(v_2:B) + q')\\
+   &|F| - |F_2| \le \Phi_{V,H}(\Gamma_1) +q - \Phi_{H_1}(v_1:A) + \Phi_{V',H_1}(\Gamma_2,x:A) - (\Phi_{H_2}(v_2:B) + q')\\
+   &\quad = \Phi_{V,H}(\Gamma_1) + \Phi_{V',H_1}(\Gamma_2) + q - \Phi_{H_1}(v_1:A) + \Phi_{V',H_1}(x:A) - (\Phi_{H_2}(v_2:B) + q') \tag{def of $\Phi_{V,H}$}\\
+   &\quad = \Phi_{V,H}(\Gamma_1) + \Phi_{V,H}(\Gamma_2) + q - \Phi_{H_1}(v_1:A) + \Phi_{V',H_1}(x:A) - (\Phi_{H_2}(v_2:B) + q') \tag{Lemma 4.3.3}\\
+   &\quad = \Phi_{V,H}(\Gamma) + q - \Phi_{H_1}(v_1:A) + \Phi_{H_1}(v_1:A) - (\Phi_{H_2}(v_2:B) + q') \tag{def of $\Phi_{V,H}$}\\
+   &\quad = \Phi_{V,H}(\Gamma) + q - (\Phi_{H_2}(v_2:B) + q') \\
+   \end{align*}
+   \item[Case 8: E:Pair]
+   \item[Case 9: E:MatP]
+   \item[Case 10: E:Nil]
+   \item[Case 11: E:Cons]
+   \item[Case 12: E:MatNil]
+   \item[Case 13: E:MatCons]
+   \begin{align*}
+   &V(z) = \pairexcst{v_h}{v_t}^L \tag{ad.}\\
+   &\Gamma = \Gamma', x : L^p(A) \tag{ad.}\\
+   &\Sigma; \Gamma', x_h : A, x_t : L^p(A) \sststile{q'}{q + p + K^{cons}} e_2 : B \tag{ad.}\\
+   &\text{let } V' = V[x_h \mapsto v_h, x_t \mapsto v_t]\\
+   &V',H,R,F \cup g \; \vdash e_2 \Downarrow v_2, H_2, F' \tag{ad.} \\
+   &H \vDash V' : \Gamma', x_h : A, x_t : L^p(A) \tag{Lemma*}\\
+   &|F \cup g| - |F'| \le  \Phi_{V,H}(\Gamma',x_h:A,x_t:L^p(A)) + q + p + K^{cons} - (\Phi_{H'}(v:B) + q') \tag{IH}\\
+   &\quad = \Phi_{V,H}(\Gamma') + \Phi_H(v_h:A) + \Phi_H(v_t:L^p(A)) + p + q + 1 - (\Phi_{H'}(v:B) + q') \tag{def of $\Phi_{V,H}$}\\
+   &\quad = \Phi_{V,H}(\Gamma') + \Phi_H(\pairexcst{v_h}{v_t}^L : L^p(A)) + q + 1 - (\Phi_{H'}(v:B) + q') \tag{Lemma 4.1.1}\\
+   &\quad = \Phi_{V,H}(\Gamma', z : L^p(A)) + q + 1 - (\Phi_{H'}(v:B) + q') \tag{def of $\Phi_{V,H}$}\\
+   &\quad = \Phi_{V,H}(\Gamma) + q + 1 - (\Phi_{H'}(v:B) + q') \tag{Lemma 4.1.1}\\
+   &\text{Looking at $z$, we have: }\\
+   &locs_{V,H}(z) \nsubseteq R \cup locs_{V,H}(e_2) \tag{Heap linearity}\\
+   &\text{Then,}\\
+   &locs_{V,H}(z) \subseteq g \tag{def of $g$}\\
+   &\text{Furthermore,}\\
+   &|locs_{V,H}(z)| \ge 1 \tag{def of $locs_{V,H}$}\\
+   &|g| \ge 1 \tag{$locs_{V,H} \subseteq g$}\\
+   &|F \cup g| - |F'|\\
+   &\quad = |F| + |g| - |F'| \tag{$F,g$ disjoint}\\
+   &\text{Hence,}\\
+   &|F| + |g| - |F'| \le  \Phi_{V,H}(\Gamma) + q + 1 - (\Phi_{H'}(v:B) + q')\\
+   &|F| - |F'| \le \Phi_{V,H}(\Gamma) + q + 1 - |g| - (\Phi_{H'}(v:B) + q')\\
+   &\quad \le \Phi_{V,H}(\Gamma) + q - (\Phi_{H'}(v:B) + q') \tag{$|g| \ge 1$}\\
+   \end{align*}
+\end{proof}
 
 
 \end{document}

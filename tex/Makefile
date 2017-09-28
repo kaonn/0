@@ -1,5 +1,5 @@
 
-TARGETS := $(patsubst %.tex,%.pdf,$(wildcard rules3.tex) $(wildcard assn*.tex))
+TARGETS := $(patsubst %.tex,%.pdf,$(wildcard rules4.tex) $(wildcard assn*.tex))
 
 all: $(TARGETS)
 
