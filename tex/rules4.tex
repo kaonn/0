@@ -239,19 +239,19 @@ Below defines the size of reachable values and space for roots:
 }
 
 \infern{
-  V(z) = \irl{Null}\\
+  V(x) = \irl{Null}\\
   g = \{l \in H | l \notin F \cup R \cup locs_{V,H}(e_1)\}\\
   V,H,R,F \cup g \; \vdash e_1 \Downarrow v, H',F' \\
 }{
-  V,H,R,F \; \vdash \listcaseexcst{z}{e_1}{x_h}{x_t}{e_2} \Downarrow v,H',F'
+  V,H,R,F \; \vdash \listcaseexcst{x}{e_1}{x_h}{x_t}{e_2} \Downarrow v,H',F'
 }
 
 \infern{
-  V(z) = \pairexcst{v_h}{v_t} \\
+  V(x) = \pairexcst{v_h}{v_t} \\
   g = \{l \in H | l \notin F \cup R \cup locs_{V,H}(e_2)\}\\
   V[x_h \mapsto v_h, x_t \mapsto v_t],H,R,F \cup g \; \vdash e_2 \Downarrow v, H',F' \\
 }{
-  V,H,R,F \; \vdash \listcaseexcst{z}{e_1}{x_h}{x_t}{e_2} \Downarrow v,H',F'
+  V,H,R,F \; \vdash \listcaseexcst{x}{e_1}{x_h}{x_t}{e_2} \Downarrow v,H',F'
 }
 
 \infern{
@@ -321,12 +321,12 @@ The type system takes into account of garbaged collected cells by returning pote
 }(\text{L:Nil})
 
 \inferr{
-  \Sigma; \Gamma, x_h : A, x_t : L^p(A) \sststile{q}{q+p+K^{cons}} \consexcst{x_h}{x_t} : L^p(A)
+  \Sigma; \Gamma, x_h : A, x_t : L^p(A) \sststile{q}{q+p+1} \consexcst{x_h}{x_t} : L^p(A)
 }{
 }(\text{L:Cons})
 
 \inferr{
-  \Sigma; \Gamma, x : L^p(A) \sststile{q'}{q} \listcaseexcst{z}{e_1}{x}{xs}{e_2} : B
+  \Sigma; \Gamma, x : L^p(A) \sststile{q'}{q} \listcaseexcst{x}{e_1}{x_h}{x_t}{e_2} : B
 }{
   \Sigma; \Gamma \sststile{q'}{q} e_1 : B &
   \Sigma; \Gamma, x_h : A, x_t : L^p(A) \sststile{q'}{q + p + 1} e_2 : B
@@ -413,19 +413,41 @@ Induction on the evaluation judgement.\\
   &\quad = \Phi_{V,H}(\Gamma) + q - (\Phi_{H_2}(v_2:B) + q') \\
   \end{align*}
   \item[Case 8: E:Pair]
+  Similar to E:Const*
   \item[Case 9: E:MatP]
+  Similar to E:MatCons
   \item[Case 10: E:Nil]
+  Similar to E:Const*
   \item[Case 11: E:Cons]
+  \begin{align*}
+  &|F| - |F'|\\
+  &\quad = |F| - |F \setminus \{l\}| \tag{ad.}\\
+  &\quad = 1\\
+  &\Phi_{V,H}(\Gamma) +q - (\Phi_{H'}(v:B) + q')\\
+  &\quad = \Phi_{V,H}(x_h : A,x_t:L^p(A)) + q + p + 1 - (\Phi_{H'}(v:L^p(A)) + q) \tag{ad.}\\
+  &\quad = \Phi_{V,H}(x_h : A,x_t:L^p(A)) + p + 1 - \Phi_{H'}(v:L^p(A))) \\
+  &\quad = \Phi_{H}(V(x_h):A) + \Phi_{H}(V(x_t):L^p(A)) + p + 1 - \Phi_{H'}(v:L^p(A))) \tag{def of $\Phi_{V,H}$}\\
+  &\quad = \Phi_{H}(v_h:A) + \Phi_{H}(v_t:L^p(A)) + p + 1 - \Phi_{H'}(v:L^p(A))) \tag{ad.}\\
+  &\quad = \Phi_{H}(v_h:A) + \Phi_{H}(v_t:L^p(A)) + p + 1 - (p + \Phi_{H'}(v_h:A) + \Phi_{H'}(v_t:L^p(A))) \tag{Lemma 4.1.1}\\
+  &\quad = \Phi_{H}(v_h:A) + \Phi_{H}(v_t:L^p(A)) + p + 1 - (p + \Phi_{H}(v_h:A) + \Phi_{H}(v_t:L^p(A))) \tag{Lemma 4.3.3}\\
+  &\quad = 1\\
+  &\text{Hence,}\\
+  &|F| - |F'| \le \Phi_{V,H}(\Gamma) +q - (\Phi_{H'}(v:B) + q')
+  \end{align*}
   \item[Case 12: E:MatNil]
+  Similar to E:Cond*
   \item[Case 13: E:MatCons]
   \begin{align*}
-  &V(z) = \pairexcst{v_h}{v_t}^L \tag{ad.}\\
+  &V(x) = \pairexcst{v_h}{v_t} \tag{ad.}\\
   &\Gamma = \Gamma', x : L^p(A) \tag{ad.}\\
-  &\Sigma; \Gamma', x_h : A, x_t : L^p(A) \sststile{q'}{q + p + K^{cons}} e_2 : B \tag{ad.}\\
+  &\Sigma; \Gamma', x_h : A, x_t : L^p(A) \sststile{q'}{q + p + 1} e_2 : B \tag{ad.}\\
   &\text{let } V' = V[x_h \mapsto v_h, x_t \mapsto v_t]\\
   &V',H,R,F \cup g \; \vdash e_2 \Downarrow v_2, H_2, F' \tag{ad.} \\
-  &H \vDash V' : \Gamma', x_h : A, x_t : L^p(A) \tag{Lemma*}\\
-  &|F \cup g| - |F'| \le  \Phi_{V,H}(\Gamma',x_h:A,x_t:L^p(A)) + q + p + K^{cons} - (\Phi_{H'}(v:B) + q') \tag{IH}\\
+  &H \vDash V(x) : L^p(A) \tag{def of W.D.E}\\
+  &H''\vDash v_h : A,\; H'' \vDash v_t : L^p(A) \tag{ad.}\\
+  &H\vDash v_h : A,\; H \vDash v_t : L^p(A) \tag{???}\\
+  &H \vDash V' : \Gamma', x_h : A, x_t : L^p(A) \tag{def of W.D.E}\\
+  &|F \cup g| - |F'| \le  \Phi_{V,H}(\Gamma',x_h:A,x_t:L^p(A)) + q + p + 1 - (\Phi_{H'}(v:B) + q') \tag{IH}\\
   &\quad = \Phi_{V,H}(\Gamma') + \Phi_H(v_h:A) + \Phi_H(v_t:L^p(A)) + p + q + 1 - (\Phi_{H'}(v:B) + q') \tag{def of $\Phi_{V,H}$}\\
   &\quad = \Phi_{V,H}(\Gamma') + \Phi_H(\pairexcst{v_h}{v_t}^L : L^p(A)) + q + 1 - (\Phi_{H'}(v:B) + q') \tag{Lemma 4.1.1}\\
   &\quad = \Phi_{V,H}(\Gamma', z : L^p(A)) + q + 1 - (\Phi_{H'}(v:B) + q') \tag{def of $\Phi_{V,H}$}\\
