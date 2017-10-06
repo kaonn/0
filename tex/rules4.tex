@@ -139,7 +139,9 @@ Below defines the size of reachable values and space for roots:
   &reach_{H}(l) = \{l\} \cup reach_{H}(H(l))\\
   &reach_{H}(\pairexcst{v_1}{v_2}) = reach_{H}(v_1) \cup reach_{H}(v_2)\\
   &reach_{H}(\_) = \emptyset\\\\
-  &locs_{V,H}(e) = \bigcup\limits_{x \in FV(e)} reach_H(V(x))
+  &locs_{V,H}(e) = \bigcup\limits_{x \in FV(e)} reach_H(V(x))\\\\
+  &size_H(v) = ...\\\\
+  &copy(H,L,v) = ...\\
 \end{align*}
 
 \begin{mathpar}
@@ -229,11 +231,11 @@ Below defines the size of reachable values and space for roots:
 }
 
 \infern{
-  V(x_1) = v_1\\
-  V(x_2) = v_2\\
-  l \in F\\
-  F' = F \setminus \{l\}\\
-  H' = H[l \mapsto \pairexcst{v_1}{v_2}]
+  v = \pairexcst{V(x_1)}{V(x_2)}\\
+  L \subseteq F\\
+  |L| = size_H(v)\\
+  F' = F \setminus L\\
+  H',l = copy(H,L,v)\\
 }{
   V,H,R,F \; \vdash \consexcst{x_1}{x_2} \Downarrow l,H' ,F'
 }
@@ -247,7 +249,8 @@ Below defines the size of reachable values and space for roots:
 }
 
 \infern{
-  V(x) = \pairexcst{v_h}{v_t} \\
+  V(x) = l \\
+  H(l) = \pairexcst{v_h}{v_t} \\
   g = \{l \in H | l \notin F \cup R \cup locs_{V,H}(e_2)\}\\
   V[x_h \mapsto v_h, x_t \mapsto v_t],H,R,F \cup g \; \vdash e_2 \Downarrow v, H',F' \\
 }{
@@ -300,7 +303,7 @@ The type system takes into account of garbaged collected cells by returning pote
 \inferr{
   \Sigma; \Gamma, x : \irl{bool} \sststile{q'}{q} \ifexcst{x}{e_t}{e_f} : B
 }{
-  \Sigma; \Gamma \sststile{q'}{q} e_t : B &
+  \Sigma; \Gamma \sststile{q'}{q} e_t : B \\
   \Sigma; \Gamma \sststile{q'}{q} e_f : B
 }(\text{L:Cond})
 
@@ -328,14 +331,14 @@ The type system takes into account of garbaged collected cells by returning pote
 \inferr{
   \Sigma; \Gamma, x : L^p(A) \sststile{q'}{q} \listcaseexcst{x}{e_1}{x_h}{x_t}{e_2} : B
 }{
-  \Sigma; \Gamma \sststile{q'}{q} e_1 : B &
+  \Sigma; \Gamma \sststile{q'}{q} e_1 : B \\
   \Sigma; \Gamma, x_h : A, x_t : L^p(A) \sststile{q'}{q + p + 1} e_2 : B
 }(\text{L:MatL})
 
 \inferr{
   \Sigma; \Gamma_1, \Gamma_2 \sststile{q'}{q} \irl{let}(e_1; x : \tau.e_2) : B
 }{
-  \Sigma; \Gamma_1 \sststile{p}{q} e_1 : A &
+  \Sigma; \Gamma_1 \sststile{p}{q} e_1 : A \\
   \Sigma; \Gamma_2, x : A \sststile{q'}{p} e_2 : B
 }(\text{L:Let})
 \end{mathpar}
@@ -346,12 +349,12 @@ We simplify the soundness proof of the type system for the general metric to one
 (No function types for now)
 
 \begin{theorem}[Soundness]
-\label{a} let $H \vDash V : \Gamma$ and $\Sigma; \Gamma \sststile{q'}{q} e : B$
-If $  V,H,R,F \; \vdash e \Downarrow v, H', F'$, then 
-\begin{align}
-%   |F|  &\le \Phi_{V,H}(\Gamma) +q\\
-  |F| - |F'| &\le \Phi_{V,H}(\Gamma) +q - (\Phi_{H'}(v:B) + q')
-\end{align}
+\label{a} let $H \vDash V : \Gamma$. If $\Sigma; \Gamma \sststile{q'}{q} e : B$
+and $  V,H,R,F \; \vdash e \Downarrow v, H', F'$, then 
+\begin{enumerate}
+  \item $|F| - |F'| \le \Phi_{V,H}(\Gamma) +q - (\Phi_{H'}(v:B) + q')$
+  \item $locs_{V,H}(e) \cap (R \cup F) = \emptyset$
+\end{enumerate}
 \end{theorem}
 
 \begin{proof}
@@ -452,10 +455,10 @@ Induction on the evaluation judgement.\\
   &\quad = \Phi_{V,H}(\Gamma') + \Phi_H(\pairexcst{v_h}{v_t}^L : L^p(A)) + q + 1 - (\Phi_{H'}(v:B) + q') \tag{Lemma 4.1.1}\\
   &\quad = \Phi_{V,H}(\Gamma', z : L^p(A)) + q + 1 - (\Phi_{H'}(v:B) + q') \tag{def of $\Phi_{V,H}$}\\
   &\quad = \Phi_{V,H}(\Gamma) + q + 1 - (\Phi_{H'}(v:B) + q') \tag{Lemma 4.1.1}\\
-  &\text{Looking at $z$, we have: }\\
-  &locs_{V,H}(z) \nsubseteq R \cup locs_{V,H}(e_2) \tag{Heap linearity}\\
+  &\text{Looking at $x$, we have: }\\
+  &locs_{V,H}(x) \nsubseteq R \cup locs_{V,H}(e_2) \tag{Heap linearity}\\
   &\text{Then,}\\
-  &locs_{V,H}(z) \subseteq g \tag{def of $g$}\\
+  &locs_{V,H}(x) \subseteq g \tag{def of $g$}\\
   &\text{Furthermore,}\\
   &|locs_{V,H}(z)| \ge 1 \tag{def of $locs_{V,H}$}\\
   &|g| \ge 1 \tag{$locs_{V,H} \subseteq g$}\\
