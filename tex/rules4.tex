@@ -12,6 +12,8 @@
 \usepackage{mathpartir}
 \usepackage{turnstile}
 \usepackage{fancyvrb}
+\usepackage[shortlabels]{enumerate}
+\allowdisplaybreaks
 
 \input{generic-defns}
 \input{syn-defns}
@@ -149,11 +151,12 @@ by the current expression.\\
 Below defines the size of reachable values and space for roots:
 
 \begin{align*}
-  &reach_{H}((V, x.e)) = \bigcup\limits_{y \in FV(e) \setminus x} reach_H(V(y)) \\
-  &reach_{H}(l) = \{l\} \cup reach_{H}(H(l))\\
-  &reach_{H}(\pairexcst{v_1}{v_2}) = reach_{H}(v_1) \cup reach_{H}(v_2)\\
-  &reach_{H}(\_) = \emptyset\\\\
-  &locs_{V,H}(e) = \bigcup\limits_{x \in FV(e)} reach_H(V(x))\\\\
+%   &reach_{H}((V, x.e)) = \bigcup\limits_{y \in FV(e) \setminus x} reach_H(V(y)) \\
+%   &reach_{H}(l) = \{l\} \cup reach_{H}(H(l))\\
+%   &reach_{H}(\pairexcst{v_1}{v_2}) = reach_{H}(v_1) \cup reach_{H}(v_2)\\
+%   &reach_{H}(\_) = \emptyset\\\\
+%   &locs_{V,H}(e) = \bigcup\limits_{x \in FV(e)} reach_H(V(x))\\\\
+  &locs_{V,H}(e) = \bigcup\limits_{x \in FV(e)} \{l \in H \mid \exists l' \in root(x). H \vDash p : l' \leadsto l\}\\\\
   &size(\pairexcst{v_1}{v_2}) = size(v_1) + size(v_2)\\
   &size(\_) = 1\\\\
   &copy(H,L,\pairexcst{v_1}{v_2}) =\\
@@ -387,7 +390,8 @@ Next, we define the judgements \fbox{H \vDash p : l \leadsto l'} for path formua
   H \vDash (l,l') : l \leadsto l'
 }{
   H(l) = v \\
-  l' \in root(v)
+  l' \in root(v)\\
+  l' \in H
 }(\text{Edge})
 
 \inferr{
@@ -417,6 +421,7 @@ Next, we define the judgements \fbox{H \vDash p : l \leadsto l'} for path formua
 }{
   H(l) = v\\
   l' \in root(v) \\
+  l' \in H
   H \vDash p \equiv q : l' \leadsto l''
 }(\text{Eq})
 \end{mathpar}
@@ -425,10 +430,10 @@ Note that it is \emph{not} the case that $id_l \equiv (l,l) : l \leadsto l$, sin
 Next, we define the predicates $\ms{linear}_H$ and $\ms{no\_alias}$: 
 \begin{description}
 \item [$\ms{linear}_H(R_1,R_2)$: ]\\
-$\forall l_1 \in R_1, l_2 \in R_2$, if $H \vDash p : l_1 \leadsto l$ and $H \vDash q : l_2 \leadsto l$, then $H \vDash p \equiv q : l_1 \leadsto l$.
+$\forall l \in H$, $\forall l_1 \in R_1, l_2 \in R_2$, let $H \vDash p : l_1 \leadsto l$ and $H \vDash q : l_2 \leadsto l$, then $l_1 = l_2$ and $H \vDash p \equiv q : l_1 \leadsto l$.
 \item[$\na{V}{H}$: ] \\
-$\forall l \in H$, $\forall x,y \in \overline V$, let $r_x = root(\overline V(x))$, $r_y = root(\overline V(y))$. Then:
-\begin{enumerate}
+$\forall l \in H$, $\forall x,y \in \overline V$, x \ne y. Let $r_x = root(\overline V(x))$, $r_y = root(\overline V(y))$. Then:
+\begin{enumerate}[(1)]
 \item $\ms{set}(root(H(l))),\ms{set}(r_x), \ms{set}(r_y)$
 \item $r_x \cap r_y = \emptyset$
 \item $\ms{linear}_H(r_x,r_x)$, $\ms{linear}_H(r_y,r_y)$, and $\ms{linear}_H(r_x,r_y)$
@@ -533,29 +538,80 @@ Induction on the evaluation judgement.\\
   Similar to E:Cond*
   \item[Case 13: E:MatCons]
   \begin{align*}
-  &V(x) = l \tag{ad.}\\
+  &V(x) = (l,\irl{alive}) \tag{ad.}\\
   &H(l) = \pairexcst{v_h}{v_t} \tag{ad.}\\
   &\Gamma = \Gamma', x : L^p(A) \tag{ad.}\\
   &\Sigma; \Gamma', x_h : A, x_t : L^p(A) \sststile{q'}{q + p + 1} e_2 : B \tag{ad.}\\
-  &\text{let } V' = V[x_h \mapsto v_h, x_t \mapsto v_t]\\
-  &V',H,R,F \cup g \; \vdash e_2 \Downarrow v_2, H_2, F' \tag{ad.} \\
+  &V'',H,R,F \cup g \; \vdash e_2 \Downarrow v_2, H_2, F' \tag{ad.} \\
   &H \vDash V(x) : L^p(A) \tag{def of W.D.E}\\
   &H''\vDash v_h : A,\; H'' \vDash v_t : L^p(A) \tag{ad.}\\
   &H\vDash v_h : A,\; H \vDash v_t : L^p(A) \tag{???}\\
-  &H \vDash V' : \Gamma', x_h : A, x_t : L^p(A) \tag{def of W.D.E}\\
+  &H \vDash V'' : \Gamma', x_h : A, x_t : L^p(A) \tag{def of W.D.E}\\
   &\text{Suppose }  \na{V}{H}, R \cap locs_{V,H}(e) = \emptyset, \text{ and } F \cap locs_{V,H}(e) = \emptyset\\
   &\text{NTS }  |F| - |F'| \le \Phi_{V,H}(\Gamma) +q - (\Phi_{H'}(v:B) + q') \text{ and } \na{V}{H'}\\
   &g \cap locs_{V',H}(e_2) = \emptyset \tag{def. of $g$}\\
   &(F \cup g) \cap locs_{V',H}(e_2) = \emptyset\\
-  
+  &\text{WTS } \na{V''}{H}\\
+  &\text{let } l \in H \text{ arbitrary }, y, z \in \overline V'' \text{ arbitrary },  r_y = root(\overline V''(y)), r_z = root(\overline V''(z))\\
+  &\quad\textbf{case: } y \notin \{x_h,x_t\}, z \notin \{x_h,x_t\}\\
+  &\quad y,z \in \overline V \tag{def of $V''$}\\
+  &\quad (1) - (3) \text{ holds } \tag{Sp.}\\
+  &\quad\textbf{case: } y = x_h, z \notin \{x_h,x_t\}\\
+  &\quad \ms{set}(root(\pairexcst{v_h}{v_t})) \tag{Sp.}\\
+  &\quad \ms{set}(root(v_h)) \tag{def of $\ms{set}$}\\
+  &\quad \ms{set}(r_y) \tag{def of $V''$}\\
+  &\quad z \in \overline V \tag{def of $V''$}\\
+  &\quad \ms{set}(r_z) \tag{Sp.}\\
+  &\quad \text{hence we have (1)}\\
+  &\quad \text{Suppose } l' \in r_y \cap r_z\\
+  &\quad l' \in H \tag{$H \vDash V'' :  \Gamma', x_h : A, x_t : L^p(A)$}\\
+  &\quad H \vDash id_{l'} : l' \leadsto l' \tag{Id}\\
+  &\quad H \vDash (l,l') : l \leadsto l' \tag{Edge}\\
+  &\quad H \vDash id_{l'} \equiv (l,l') : l' \leadsto l' \tag{$\ms{linear}_H(r_x,r_z)$}\\
+  &\quad \text{contradiction, hence} r_y \cap r_z = \emptyset,  \tag{hence we have (2)}\\
+  &\quad \text{let } l' \in H \text{ arbitrary }, l_1,l_2 \in r_y \tag{ arbitrary }\\
+  &\quad \text{suppose } H \vDash p : l_1 \leadsto l', H \vDash q : l_2 \leadsto l'\\
+  &\quad H \vDash (l,l_1) : l \leadsto l_1 \text{ and }  H \vDash (l,l_2) : l \leadsto l_2 \tag{Edge}\\
+  &\quad H \vDash p \circ (l,l_1) : l \leadsto l' \text{ and }  H \vDash q \circ (l,l_2) : l \leadsto l' \tag{Comp}\\
+  &\quad H \vDash p \circ (l,l_1) \equiv q \circ (l,l_2) : l \leadsto l' \tag{$\ms{linear}_H(r_x,r_x)$}\\
+  &\quad H \vDash p \equiv q : l_1 \leadsto l' \tag{inversion on Eq}\\
+  &\quad \text{hence we have } \ms{linear}_H(r_y,r_y)\\
+  &\quad \ms{linear}_H(r_z,r_z) \tag{Sp.}\\
+  &\quad \text{let } l' \in H \text{ arbitrary }, l_1 \in r_y, l_2 \in r_z \tag{ arbitrary }\\
+  &\quad \text{suppose } H \vDash p : l_1 \leadsto l', H \vDash q : l_2 \leadsto l'\\
+  &\quad H \vDash (l,l_1) : l \leadsto l_1 \tag{Edge}\\
+  &\quad H \vDash p \circ (l,l_1) : l \leadsto l' \tag{Comp}\\
+  &\quad l = l_2 \tag{$\ms{linear}_H(r_x,r_z)$}\\
+  &\quad \text{contradiction since } r_x \cap r_z = \emptyset\\
+  &\quad \text{hence we have } \ms{linear}_H(r_y,r_z)\\
+  &\quad \text{hence we have (3)}\\
+  &\quad\textbf{case: } y = x_t, z \notin \{x_h,x_t\}\\
+  &\quad\textbf{case: } y = \notin \{x_h,x_t\}, z = x_h\\
+  &\quad\textbf{case: } y = \notin \{x_h,x_t\}, z = x_t\\
+  &\quad \text{all symmetric to previous case}\\
+  &\quad\textbf{case: } y = x_h, z = x_t\\
+  &\quad \text{we get (1) the same way as the previous case}\\
+  &\quad \ms{set}(root(\pairexcst{v_h}{v_t})) \tag{(1)}\\
+  &\quad \ms{set}(root(v_h) \uplus root(v_t)) \tag{def of $root$}\\
+  &\quad root(v_h) \cap root(v_t) = \emptyset \tag{def of $\ms{set}$}\\
+  &\quad r_y \cap r_z = \emptyset \tag{def of $r_y,r_z$}\\
+  &\quad \text{we get (3) the same way as the previous case}\\
+  &\quad \text{hence we have } \na{V''}{H}\\
   &|F \cup g| - |F'| \le  \Phi_{V,H}(\Gamma',x_h:A,x_t:L^p(A)) + q + p + 1 - (\Phi_{H'}(v:B) + q') \tag{IH}\\
   &\quad = \Phi_{V,H}(\Gamma') + \Phi_H(v_h:A) + \Phi_H(v_t:L^p(A)) + p + q + 1 - (\Phi_{H'}(v:B) + q') \tag{def of $\Phi_{V,H}$}\\
   &\quad = \Phi_{V,H}(\Gamma') + \Phi_H(\pairexcst{v_h}{v_t}^L : L^p(A)) + q + 1 - (\Phi_{H'}(v:B) + q') \tag{Lemma 4.1.1}\\
   &\quad = \Phi_{V,H}(\Gamma', z : L^p(A)) + q + 1 - (\Phi_{H'}(v:B) + q') \tag{def of $\Phi_{V,H}$}\\
   &\quad = \Phi_{V,H}(\Gamma) + q + 1 - (\Phi_{H'}(v:B) + q') \tag{Lemma 4.1.1}\\
-  &(l,n+1) \in F \cup g \text{ and } \nexists! (l',k) \in F \cup g. l' = l \land k \neq n + 1 \tag{IH 2.}\\
-  &(l,n+1) \notin F \tag{by construction}\\
-  &(l,n+1) \in g\\
+  &\text{suppose } l \in locs_{V',H}(e_2) \\
+  &\exists x' \in FV(e_2) \cap \overline V'', l' \in root(\overline V''(x')). x \ne x', H \vDash p : l' \leadsto l \tag{def. of $locs_{V,H}$}\\
+  &\quad\textbf{case: } x' \notin \{x_h,x_t\}\\
+  &\quad \text{contradiction by} \na{V}{H}\\ 
+  &\quad\textbf{case: } x' = x_h\\
+  &\quad H \vDash p \circ (l,l') : l \leadsto l\\
+  &\quad H \vDash id_l : l \leadsto l\\
+  &\quad \text{contradiction since } \ms{linear}_H(r_x,r_x)\\
+  &\text{hence we have } l \notin locs_{V'',H}(e_2)\\
+  &l \in g \tag{def of $g$}\\
   &|g| \ge 1\\
   &|F \cup g| - |F'|\\
   &\quad = |F| + |g| - |F'| \tag{$F,g$ disjoint}\\
