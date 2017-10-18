@@ -71,7 +71,8 @@
 \newcommand{\inferrr}[3]{\inferrule[#1]{#2}{#3}}
 \newcommand{\paircaseabt}[4]{\irl{case}(#2,#3.#4)}
 \newcommand{\paircasecst}[4]{\irl{case} \; #1\; \{(#2;#3) \hookrightarrow #4\}}
-\newcommand{\na}[2]{\mathsf{no\_alias}(#1,#2)}
+\newcommand{\na}[1]{\mathsf{no\_alias}(#1)}
+\newtheorem{lemma}[theorem]{Lemma}
 
 \title{15-312 Assignment \hwnumber}
 \author{\myname\\(\myandrewid)}
@@ -135,11 +136,11 @@ Model dynamics using judgement of the form:
 \]
 
 \noindent
-Where $V : \ms{Var} \to \ms{Val} \times \ms{State}$, $H : \ms{Loc} \to \ms{Val}$, and $R : \{\ms{Loc}\}$. This can be read as: under stack $V$, heap $H$, roots $R$,
+Where $V : \ms{Var} \to \ms{Val} \times \ms{State}$, $H : \ms{Loc} \to \ms{Val}$, $R \subseteq \ms{Loc}$, and $F \subseteq \ms{Loc}$. This can be read as: under stack $V$, heap $H$, roots $R$,
 freelist $F$, the expression $e$ evaluates to $v$, and engenders a new heap $H'$ and freelist $F'$.\\
 
 \noindent
-Note that the stack maps each variable to a value $v$ \emph{and} a state $s$. If $s$ is \irl{alive}, then $v$ can still be used, while $\irl{dead}$ indicates that $v$ is already used and cannot be used again. We write $\overline V = \{x \in V \mid V(x) = (\underline{\hspace{10px}},\irl{alive}) \}$ for the variables in $V$ that are alive.\\ 
+Note that the stack maps each variable to a value $v$ \emph{and} a state $s$. If $s$ is \irl{alive}, then $v$ can still be used, while $\irl{dead}$ indicates that $v$ is already used and cannot be used again. We write $\overline V = \{x \in V \mid V(x) = (\_,\irl{alive}) \}$ for the variables in $V$ that are alive.\\ 
 
 \noindent
 Roots represents the set of locations required to compute the continuation \emph{excluding} the current expression.
@@ -292,6 +293,15 @@ Below defines the size of reachable values and space for roots:
   V,H,R,F \; \vdash \irl{let}(e_1; x : \tau.e_2) \Downarrow v_2,H_2,F_2
 }
 \end{mathpar}
+\section{Operation semantics}
+In order to prove the soundess of the type system, we also define a simplified operational semantics that does not account for garbage collection. 
+
+\[
+\fbox{$V,H \vdash e \Downarrow v, H'$}
+\]
+
+This can be read as: under stack $V$, heap $H$ the expression $e$ evaluates to $v$, and engenders a new heap $H'$\\
+
 \section{Type rules}
 
 The type system takes into account of garbaged collected cells by returning potential locally in a match construct. Since we are interested in the number of heap cells, all constants are assumed to be nonnegative.
@@ -366,6 +376,9 @@ The type system takes into account of garbaged collected cells by returning pote
 }(\text{L:Let})
 \end{mathpar}
 
+Now if we take $\dagger :  L^p(A) \mapsto L(A)$ as the map that erases resource annotations, 
+ we obtain a simpler typing judgement $\fbox{\Sigma^{\dagger}; \Gamma^{\dagger} \vdash e : B^{\dagger}}$.
+
 \section{Paths and aliasing}
 
 In order prove soundness of the type system, we need some auxiliary judgements to defining properties of a heap. Below we define $root : Val \to \{\{Loc\}\}$ that maps stack values its the root \emph{multiset}, the multiset of locations that's already on the stack. 
@@ -427,30 +440,35 @@ Next, we define the judgements \fbox{H \vDash p : l \leadsto l'} for path formua
 \end{mathpar}
 Note that it is \emph{not} the case that $id_l \equiv (l,l) : l \leadsto l$, since the former is an actual identity, while the latter is an infinite loop in the heap: $H(l) = l$.  
 
-Next, we define the predicates $\ms{linear}_H$ and $\ms{no\_alias}$: 
+Next, we define the predicates $\ms{forest}(H)$ and $\ms{no\_alias}$: 
 \begin{description}
-\item [$\ms{linear}_H(R_1,R_2)$: ]\\
-$\forall l \in H$, $\forall l_1 \in R_1, l_2 \in R_2$, let $H \vDash p : l_1 \leadsto l$ and $H \vDash q : l_2 \leadsto l$, then $l_1 = l_2$ and $H \vDash p \equiv q : l_1 \leadsto l$.
-\item[$\na{V}{H}$: ] \\
-$\forall l \in H$, $\forall x,y \in \overline V$, x \ne y. Let $r_x = root(\overline V(x))$, $r_y = root(\overline V(y))$. Then:
+\item [$\ms{forest}(H)$: ]\\
+$\forall l,l_1,l_2 \in H$, if $H \vDash p : l_1 \leadsto l$ and $H \vDash q : l_2 \leadsto l$, then $l_1 = l_2$ and $H \vDash p \equiv q : l_1 \leadsto l$.
+\item[$\na{V}$: ] \\
+$\forall x,y \in \overline V$, x \ne y. \text{ Let } $r_x = root(\overline V(x))$, $r_y = root(\overline V(y))$. Then:
 \begin{enumerate}[(1)]
-\item $\ms{set}(root(H(l))),\ms{set}(r_x), \ms{set}(r_y)$
+\item $\ms{set}(r_x), \ms{set}(r_y)$
 \item $r_x \cap r_y = \emptyset$
-\item $\ms{linear}_H(r_x,r_x)$, $\ms{linear}_H(r_y,r_y)$, and $\ms{linear}_H(r_x,r_y)$
 \end{enumerate}
 \end{description}
+If the induced graph of heap $H$ is a forest, then it is a disjoint union of directed trees, and there is at most one path from one loaction in $H$ to another following the pointers.
 \section{Soundness for heap allocation}
 
 We simplify the soundness proof of the type system for the general metric to one with monotonic resource.
 (No function types for now)
 
+\begin{lemma}
+\label{a} If $\Sigma; \Gamma \sststile{q'}{q} e : B$, then $\Sigma^{\dagger}; \Gamma^{\dagger} \sststile{q'}{q} e : B^{\dagger}$.
+\end{lemma}
+\begin{lemma}
+For all stacks $V$ and heaps $H$, if $\na{V}$, $\ms{forest}(H)$, $\Sigma^{\dagger}; \Gamma^{\dagger} \sststile{q'}{q} e : B^{\dagger}$, $F \cap R = \emptyset$, $H \vDash V : \Gamma$, and $V,H,R,F \; \vdash e \Downarrow v, H', F'$, then $F' \cap R = \emptyset$ and $\ms{forest}(H')$.
+\end{lemma}
 \begin{theorem}[Soundness]
-\label{a} let $H \vDash V : \Gamma$. If $\Sigma; \Gamma \sststile{q'}{q} e : B$
-and $V,H,R,F \; \vdash e \Downarrow v, H', F'$, then 
+\label{a} let $H \vDash V : \Gamma$, $\Sigma; \Gamma \sststile{q'}{q} e : B$,
+and $V,H \; \vdash e \Downarrow v, H'$. Then $\forall C \in \mathbb{Q}^{+}$ and $\forall F \subseteq \ms{Loc}$ with $|F| \ge \Phi_{V,H}(\Gamma) + q + C$, there exists $F' \subseteq \ms{Loc}$ s.t. if $\na{V}{H}$, $R \cap locs_{V,H}(e) = \emptyset$, \text{ and } $F \cap locs_{V,H}(e) = \emptyset$, then
 \begin{enumerate}
-  \item \text{If } $\na{V}{H}$, $R \cap locs_{V,H}(e) = \emptyset$, \text{ and } $F \cap locs_{V,H}(e) = \emptyset$, 
-        \text{ then } $|F| - |F'| \le \Phi_{V,H}(\Gamma) +q - (\Phi_{H'}(v:B) + q')$ and $\na{V}{H'}$.
-%   \item \text{If } R \cap locs_{V,H}(e) = \emptyset \text{ then } R \cap locs_{V,H}(
+  \item $V,H,R,F \vdash e \Downarrow v, H', F'$
+  \item $|F'| \ge \Phi_{H'}(v:B) + q' + C$
 \end{enumerate}
 \end{theorem}
 
