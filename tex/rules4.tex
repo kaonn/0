@@ -139,7 +139,7 @@ Where $V : \ms{Var} \to \ms{Val} \times \ms{State}$, $H : \ms{Loc} \to \ms{Val}$
 freelist $F$, the expression $e$ evaluates to $v$, and engenders a new heap $H'$ and freelist $F'$.\\
 
 \noindent
-Note that the stack maps each variable to a value $v$ \emph{and} a state $s$. If $s$ is \irl{alive}, then $v$ can still be used, while $\irl{dead}$ indicates that $v$ is already used and cannot be used again. We write $\overline V = \{x \in V | V(x) = (\underline{\hspace{10px}},\irl{alive}) \}$ for the variables in $V$ that are alive.\\ 
+Note that the stack maps each variable to a value $v$ \emph{and} a state $s$. If $s$ is \irl{alive}, then $v$ can still be used, while $\irl{dead}$ indicates that $v$ is already used and cannot be used again. We write $\overline V = \{x \in V \mid V(x) = (\underline{\hspace{10px}},\irl{alive}) \}$ for the variables in $V$ that are alive.\\ 
 
 \noindent
 Roots represents the set of locations required to compute the continuation \emph{excluding} the current expression.
@@ -196,7 +196,7 @@ Below defines the size of reachable values and space for roots:
 
 \infern{
   V(x) = \irl{T}\\
-  g = \{l \in H | l \notin F \cup R \cup locs_{V,H}(e_1)\}\\
+  g = \{l \in H \mid l \notin F \cup R \cup locs_{V,H}(e_1)\}\\
   V,H,R,F \cup g\; \vdash e_1 \Downarrow v, H',F'
 }{
   V,H,R,F \; \vdash \ifexabt{x}{e_1}{e_2} \Downarrow v, H',F'
@@ -204,7 +204,7 @@ Below defines the size of reachable values and space for roots:
 
 \infern{
   V(x) = \irl{F}\\
-  g = \{l \in H | l \notin F \cup R \cup locs_{V,H}(e_2)\}\\
+  g = \{l \in H \mid l \notin F \cup R \cup locs_{V,H}(e_2)\}\\
   V,H,R,F \cup g \; \vdash e_2 \Downarrow v, H',F'
 }{
   V,H,R,F \; \vdash \ifexabt{x}{e_1}{e_2} \Downarrow v, H' ,F'
@@ -239,7 +239,7 @@ Below defines the size of reachable values and space for roots:
 
 \infern{
   V(x) = \pairexcst{v_1}{v_2}\\
-  g = \{l \in H | l \notin F \cup R \cup locs_{V,H}(e)\}\\
+  g = \{l \in H \mid l \notin F \cup R \cup locs_{V,H}(e)\}\\
   V[x_1 \mapsto v_1, x_2 \mapsto v_2],H,R,F \cup g \; \vdash e \Downarrow v,H',F'
 }{
   V,H,R,F \; \vdash \paircasecst{x}{x_1}{x_2}{e} \Downarrow v, H' ,F'
@@ -264,7 +264,7 @@ Below defines the size of reachable values and space for roots:
 
 \infern{
   V(x) = \irl{Null}\\
-  g = \{l \in H | l \notin F \cup R \cup locs_{V',H}(e_1)\}\\
+  g = \{l \in H \mid l \notin F \cup R \cup locs_{V',H}(e_1)\}\\
   V,H,R,F \cup g \; \vdash e_1 \Downarrow v, H',F' \\
 }{
   V,H,R,F \; \vdash \listcaseexcst{x}{e_1}{x_h}{x_t}{e_2} \Downarrow v,H',F'
@@ -273,9 +273,9 @@ Below defines the size of reachable values and space for roots:
 \infern{
   V(x) = (l,\irl{alive}) \\
   H(l) = \pairexcst{v_h}{v_t} \\
-  g = \{l \in H | l \notin F \cup R \cup locs_{V',H}(e_2)\}\\
   V' = V\{x \mapsto (l,\irl{dead})\}\\
   V'' = V'[x_h \mapsto (v_h,\irl{alive}), x_t \mapsto (v_t,\irl{alive})]\\
+  g = \{l \in H \mid l \notin F \cup R \cup locs_{V'',H}(e_2)\}\\
   V'',H,R,F \cup g \; \vdash e_2 \Downarrow v, H',F' \\
 }{
   V,H,R,F \; \vdash \listcaseexcst{x}{e_1}{x_h}{x_t}{e_2} \Downarrow v,H',F'
@@ -286,7 +286,7 @@ Below defines the size of reachable values and space for roots:
   V,H,R',F \vdash e_1 \Downarrow v_1,H_1,F_1\\
   V' = V[x \mapsto v_1]\\
   R'' = R \cup locs_{V',H_1}(e_2)\\
-  g = \{ l \in H_1 | l \notin R'' \cup F_1 \}\\
+  g = \{ l \in H_1 \mid l \notin R'' \cup F_1 \}\\
   V',H_1,R, F_1 \cup g \vdash e_2 \Downarrow v_2,H_2,F_2 \\
 }{
   V,H,R,F \; \vdash \irl{let}(e_1; x : \tau.e_2) \Downarrow v_2,H_2,F_2
@@ -549,8 +549,6 @@ Induction on the evaluation judgement.\\
   &H \vDash V'' : \Gamma', x_h : A, x_t : L^p(A) \tag{def of W.D.E}\\
   &\text{Suppose }  \na{V}{H}, R \cap locs_{V,H}(e) = \emptyset, \text{ and } F \cap locs_{V,H}(e) = \emptyset\\
   &\text{NTS }  |F| - |F'| \le \Phi_{V,H}(\Gamma) +q - (\Phi_{H'}(v:B) + q') \text{ and } \na{V}{H'}\\
-  &g \cap locs_{V',H}(e_2) = \emptyset \tag{def. of $g$}\\
-  &(F \cup g) \cap locs_{V',H}(e_2) = \emptyset\\
   &\text{WTS } \na{V''}{H}\\
   &\text{let } l \in H \text{ arbitrary }, y, z \in \overline V'' \text{ arbitrary },  r_y = root(\overline V''(y)), r_z = root(\overline V''(z))\\
   &\quad\textbf{case: } y \notin \{x_h,x_t\}, z \notin \{x_h,x_t\}\\
@@ -568,7 +566,7 @@ Induction on the evaluation judgement.\\
   &\quad H \vDash id_{l'} : l' \leadsto l' \tag{Id}\\
   &\quad H \vDash (l,l') : l \leadsto l' \tag{Edge}\\
   &\quad H \vDash id_{l'} \equiv (l,l') : l' \leadsto l' \tag{$\ms{linear}_H(r_x,r_z)$}\\
-  &\quad \text{contradiction, hence} r_y \cap r_z = \emptyset,  \tag{hence we have (2)}\\
+  &\quad \text{contradiction, hence } r_y \cap r_z = \emptyset,  \tag{hence we have (2)}\\
   &\quad \text{let } l' \in H \text{ arbitrary }, l_1,l_2 \in r_y \tag{ arbitrary }\\
   &\quad \text{suppose } H \vDash p : l_1 \leadsto l', H \vDash q : l_2 \leadsto l'\\
   &\quad H \vDash (l,l_1) : l \leadsto l_1 \text{ and }  H \vDash (l,l_2) : l \leadsto l_2 \tag{Edge}\\
@@ -597,6 +595,19 @@ Induction on the evaluation judgement.\\
   &\quad r_y \cap r_z = \emptyset \tag{def of $r_y,r_z$}\\
   &\quad \text{we get (3) the same way as the previous case}\\
   &\quad \text{hence we have } \na{V''}{H}\\
+  &\text{let } l' \in locs_{V'',H}(e_2) \text{ arbitrary }\\
+  &\quad \exists! x' \in \overline V''. \exists! l'' \in root(\overline V''(x')). H \vDash p : l'' \leadsto l' \tag{def of $locs_{V,H}$}\\
+  &\quad \textbf{case: } x' \notin \{x_h,x_t\}\\
+  &\quad x \in \overline V \tag{def of $V''$}\\
+  &\quad l' \in locs_{V,H}(e) \tag{def of $locs_{V,H}$}\\
+  &\quad \textbf{case: } x' = x_h\\
+  &\quad H \vDash (l,l'') : l \leadsto l'' \tag{Edge}\\
+  &\quad H \vDash p \circ (l,l'') : l \leadsto l' \tag{Comp}\\
+  &\quad l' \in locs_{V,H}(e) \tag{def of $locs_{V,H}$}\\
+  &\text{thus we have } locs_{V''H}(e_2) \subseteq locs_{V,H}(e)\\
+  &F \cap locs_{V'',H}(e_2) = \emptyset \tag{Sp.}\\
+  &g \cap locs_{V'',H}(e_2) = \emptyset \tag{def. of $g$}\\
+  &(F \cup g) \cap locs_{V'',H}(e_2) = \emptyset\\
   &|F \cup g| - |F'| \le  \Phi_{V,H}(\Gamma',x_h:A,x_t:L^p(A)) + q + p + 1 - (\Phi_{H'}(v:B) + q') \tag{IH}\\
   &\quad = \Phi_{V,H}(\Gamma') + \Phi_H(v_h:A) + \Phi_H(v_t:L^p(A)) + p + q + 1 - (\Phi_{H'}(v:B) + q') \tag{def of $\Phi_{V,H}$}\\
   &\quad = \Phi_{V,H}(\Gamma') + \Phi_H(\pairexcst{v_h}{v_t}^L : L^p(A)) + q + 1 - (\Phi_{H'}(v:B) + q') \tag{Lemma 4.1.1}\\
