@@ -293,14 +293,41 @@ Below defines the size of reachable values and space for roots:
   V,H,R,F \; \vdash \irl{let}(e_1; x : \tau.e_2) \Downarrow v_2,H_2,F_2
 }
 \end{mathpar}
-\section{Operation semantics}
+\section{Operational semantics}
 In order to prove the soundess of the type system, we also define a simplified operational semantics that does not account for garbage collection. 
 
 \[
 \fbox{$V,H \vdash e \Downarrow v, H'$}
 \]
 
-This can be read as: under stack $V$, heap $H$ the expression $e$ evaluates to $v$, and engenders a new heap $H'$\\
+This can be read as: under stack $V$, heap $H$ the expression $e$ evaluates to $v$, and engenders a new heap $H'$. We write the representative rules.
+
+\begin{mathpar}
+\infern{
+  v = \pairexcst{V(x_1)}{V(x_2)}\\
+  H',l = copy(H,L,v)\\
+}{
+  V,H \; \vdash \consexcst{x_1}{x_2} \Downarrow l,H'
+}
+
+\infern{
+  V(x) = (l,\irl{alive}) \\
+  H(l) = \pairexcst{v_h}{v_t} \\
+  V' = V\{x \mapsto (l,\irl{dead})\}\\
+  V'' = V'[x_h \mapsto (v_h,\irl{alive}), x_t \mapsto (v_t,\irl{alive})]\\
+  V'',H \; \vdash e_2 \Downarrow v, H' \\
+}{
+  V,H \; \vdash \listcaseexcst{x}{e_1}{x_h}{x_t}{e_2} \Downarrow v,H'
+}
+
+\infern{
+  V,H \vdash e_1 \Downarrow v_1,H_1\\
+  V' = V[x \mapsto v_1]\\
+  V',H_1\vdash e_2 \Downarrow v_2,H_2\\
+}{
+  V,H \; \vdash \irl{let}(e_1; x : \tau.e_2) \Downarrow v_2,H_2
+}
+\end{mathpar}
 
 \section{Type rules}
 
@@ -451,8 +478,8 @@ $\forall x,y \in \overline V$, x \ne y. \text{ Let } $r_x = root(\overline V(x))
 \item $r_x \cap r_y = \emptyset$
 \end{enumerate}
 \end{description}
-If the induced graph of heap $H$ is a forest, then it is a disjoint union of directed trees, and there is at most one path from one loaction in $H$ to another following the pointers.
-\section{Soundness for heap allocation}
+If the induced graph of heap $H$ is a forest, then it is a disjoint union of arborescences (directed trees), and there is at most one path from one loaction in $H$ to another by following the pointers.
+\section{Soundness for garbage collection semantics}
 
 We simplify the soundness proof of the type system for the general metric to one with monotonic resource.
 (No function types for now)
@@ -465,7 +492,7 @@ For all stacks $V$ and heaps $H$, if $\na{V}$, $\ms{forest}(H)$, $\Sigma^{\dagge
 \end{lemma}
 \begin{theorem}[Soundness]
 \label{a} let $H \vDash V : \Gamma$, $\Sigma; \Gamma \sststile{q'}{q} e : B$,
-and $V,H \; \vdash e \Downarrow v, H'$. Then $\forall C \in \mathbb{Q}^{+}$ and $\forall F \subseteq \ms{Loc}$ with $|F| \ge \Phi_{V,H}(\Gamma) + q + C$, there exists $F' \subseteq \ms{Loc}$ s.t. if $\na{V}{H}$, $R \cap locs_{V,H}(e) = \emptyset$, \text{ and } $F \cap locs_{V,H}(e) = \emptyset$, then
+and $V,H \; \vdash e \Downarrow v, H'$. Then $\forall C \in \mathbb{Q}^{+}$ and $\forall F \subseteq \ms{Loc}$ with $|F| \ge \Phi_{V,H}(\Gamma) + q + C$,  if $\na{V}$, $R \cap locs_{V,H}(e) = \emptyset$, \text{ and } $F \cap locs_{V,H}(e) = \emptyset$, then there exists $F' \subseteq \ms{Loc}$ s.t.
 \begin{enumerate}
   \item $V,H,R,F \vdash e \Downarrow v, H', F'$
   \item $|F'| \ge \Phi_{H'}(v:B) + q' + C$
