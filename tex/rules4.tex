@@ -170,9 +170,9 @@ Below defines the size of reachable values and space for roots:
 \begin{mathpar}
 
 \infern
-{ x \in dom(V)
+{ V(x) = (v, \irl{alive})\\
 }
-{V,H,R,F \; \vdash x \Downarrow V(x),H,F}
+{V,H,R,F \; \vdash x \Downarrow v,H,F}
 
 \infern
 {
@@ -404,79 +404,80 @@ The type system takes into account of garbaged collected cells by returning pote
 \end{mathpar}
 
 Now if we take $\dagger :  L^p(A) \mapsto L(A)$ as the map that erases resource annotations, 
- we obtain a simpler typing judgement $\fbox{\Sigma^{\dagger}; \Gamma^{\dagger} \vdash e : B^{\dagger}}$.
+ we obtain a simpler typing judgement \fbox{$\Sigma^{\dagger}; \Gamma^{\dagger} \vdash e : B^{\dagger}$}.
 
 \section{Paths and aliasing}
 
-In order prove soundness of the type system, we need some auxiliary judgements to defining properties of a heap. Below we define $root : Val \to \{\{Loc\}\}$ that maps stack values its the root \emph{multiset}, the multiset of locations that's already on the stack. 
+In order prove soundness of the type system, we need some auxiliary judgements to defining properties of a heap. Below we define $reach : Val \to \{\{Loc\}\}$ that maps stack values its the root \emph{multiset}, the multiset of locations that's already on the stack. 
 \begin{align*}
-&root(\pairexcst{v_1}{v_2}) = root(v_1) \uplus root(v_2)\\
-&root(l) = \{l\}\\
-&root(\_) = \emptyset
+&reach_H(\pairexcst{v_1}{v_2}) = reach_H(v_1) \uplus reach_H(v_2)\\
+&reach_H(l) = \{l\} \cup reach_H(H(l))\\
+&reach_H(\_) = \emptyset
 \end{align*}
 For a multiset $S$, we write $\mu : S \to \mathbb{N}^+$ for the multiplicity function of $S$, which maps each element to the count of its occurence. If $\forall s \in S. \mu(s) = 1$, then $S$ is a property set, and we denote it by $\ms{set}(S)$.
 
-Next, we define the judgements \fbox{H \vDash p : l \leadsto l'} for path formuation and \fbox{H \vDash p = p' : l \leadsto l'} for path equality. A path can be thought of as a sequence of locations that is traversable by following pointers in the heap.\\
+% Next, we define the judgements \fbox{H \vDash p : l \leadsto l'} for path formuation and \fbox{H \vDash p = p' : l \leadsto l'} for path equality. A path can be thought of as a sequence of locations that is traversable by following pointers in the heap.\\
+% 
+% \fbox{H \vDash p : l \leadsto l'}
+% \begin{mathpar}
+% \inferr{
+%   H \vDash id_l : l \leadsto l
+% }{
+%   l \in H
+% }(\text{Id})
+% 
+% \inferr{
+%   H \vDash (l,l') : l \leadsto l'
+% }{
+%   H(l) = v \\
+%   l' \in root(v)\\
+%   l' \in H
+% }(\text{Edge})
+% 
+% \inferr{
+%   H \vDash q \circ p : l \leadsto l''
+% }{
+%   H \vDash p : l \leadsto l'\\
+%   H \vDash q : l' \leadsto l''
+% }(\text{Comp})
+% \end{mathpar}
+% 
+% \fbox{H \vDash p = p' : l \leadsto l'}
+% \begin{mathpar}
+% \inferr{
+%   H \vDash p  \circ id_l \equiv p : l \leadsto l'
+% }{
+%   H \vDash p : l \leadsto l'
+% }(\text{LeftID})
+% 
+% \inferr{
+%   H \vDash id_{l'} \circ p \equiv p : l \leadsto l'
+% }{
+%   H \vDash p : l \leadsto l'
+% }(\text{RightID})
+% 
+% \inferr{
+%   H \vDash p \circ (l,l') \equiv q \circ (l,l') : l \leadsto l''
+% }{
+%   H(l) = v\\
+%   l' \in root(v) \\
+%   l' \in H
+%   H \vDash p \equiv q : l' \leadsto l''
+% }(\text{Eq})
+% \end{mathpar}
+% Note that it is \emph{not} the case that $id_l \equiv (l,l) : l \leadsto l$, since the former is an actual identity, while the latter is an infinite loop in the heap: $H(l) = l$.  
 
-\fbox{H \vDash p : l \leadsto l'}
-\begin{mathpar}
-\inferr{
-  H \vDash id_l : l \leadsto l
-}{
-  l \in H
-}(\text{Id})
-
-\inferr{
-  H \vDash (l,l') : l \leadsto l'
-}{
-  H(l) = v \\
-  l' \in root(v)\\
-  l' \in H
-}(\text{Edge})
-
-\inferr{
-  H \vDash q \circ p : l \leadsto l''
-}{
-  H \vDash p : l \leadsto l'\\
-  H \vDash q : l' \leadsto l''
-}(\text{Comp})
-\end{mathpar}
-
-\fbox{H \vDash p = p' : l \leadsto l'}
-\begin{mathpar}
-\inferr{
-  H \vDash p  \circ id_l \equiv p : l \leadsto l'
-}{
-  H \vDash p : l \leadsto l'
-}(\text{LeftID})
-
-\inferr{
-  H \vDash id_{l'} \circ p \equiv p : l \leadsto l'
-}{
-  H \vDash p : l \leadsto l'
-}(\text{RightID})
-
-\inferr{
-  H \vDash p \circ (l,l') \equiv q \circ (l,l') : l \leadsto l''
-}{
-  H(l) = v\\
-  l' \in root(v) \\
-  l' \in H
-  H \vDash p \equiv q : l' \leadsto l''
-}(\text{Eq})
-\end{mathpar}
-Note that it is \emph{not} the case that $id_l \equiv (l,l) : l \leadsto l$, since the former is an actual identity, while the latter is an infinite loop in the heap: $H(l) = l$.  
-
-Next, we define the predicates $\ms{forest}(H)$ and $\ms{no\_alias}$: 
+Next, we define the predicates $\ms{no\_alias}$: 
 \begin{description}
-\item [$\ms{forest}(H)$: ]\\
-$\forall l,l_1,l_2 \in H$, if $H \vDash p : l_1 \leadsto l$ and $H \vDash q : l_2 \leadsto l$, then $l_1 = l_2$ and $H \vDash p \equiv q : l_1 \leadsto l$.
-\item[$\na{V}$: ] \\
-$\forall x,y \in \overline V$, x \ne y. \text{ Let } $r_x = root(\overline V(x))$, $r_y = root(\overline V(y))$. Then:
+% \item [$\ms{forest}(H)$: ]\\
+% $\forall l,l_1,l_2 \in H$, if $H \vDash p : l_1 \leadsto l$ and $H \vDash q : l_2 \leadsto l$, then $l_1 = l_2$ and $H \vDash p \equiv q : l_1 \leadsto l$.
+\item[$\na{V,H}$: ] \\
+$\forall x,y \in \overline V$, $x \ne y$. \text{ Let } $r_x = reach_H(\overline V(x))$, $r_y = reach_H(\overline V(y))$. Then:
 \begin{enumerate}[(1)]
 \item $\ms{set}(r_x), \ms{set}(r_y)$
 \item $r_x \cap r_y = \emptyset$
 \end{enumerate}
+\item[$\ms{no\_ref}(V,H,v)$: ] There is no such $x \in \overline V$ s.t. $l \in reach_{H}(v) \cap \bigcup_{x \in \overline V} reach_{H}(V(x))$.\\
 \end{description}
 If the induced graph of heap $H$ is a forest, then it is a disjoint union of arborescences (directed trees), and there is at most one path from one loaction in $H$ to another by following the pointers.
 \section{Soundness for garbage collection semantics}
@@ -485,13 +486,77 @@ We simplify the soundness proof of the type system for the general metric to one
 (No function types for now)
 
 \begin{lemma}
-\label{a} If $\Sigma; \Gamma \sststile{q'}{q} e : B$, then $\Sigma^{\dagger}; \Gamma^{\dagger} \sststile{q'}{q} e : B^{\dagger}$.
+\label{a} If $\Sigma; \Gamma \sststile{q'}{q} e : B$, then $\Sigma^{\dagger}; \Gamma^{\dagger} \vdash e : B^{\dagger}$.
 \end{lemma}
+
 \begin{lemma}
-For all stacks $V$ and heaps $H$, if $\na{V}$, $\ms{forest}(H)$, $\Sigma^{\dagger}; \Gamma^{\dagger} \sststile{q'}{q} e : B^{\dagger}$, $F \cap R = \emptyset$, $H \vDash V : \Gamma$, and $V,H,R,F \; \vdash e \Downarrow v, H', F'$, then $F' \cap R = \emptyset$ and $\ms{forest}(H')$.
+If $V,H,R,F \; \vdash e \Downarrow v, H', F'$, then $\forall x \in V$, $reach_H(V(x)) = reach_{H'}(V(x))$.
 \end{lemma}
+
+\begin{lemma}
+For all stacks $V$ and heaps $H$, if $\na{V,H}$, $\Sigma^{\dagger}; \Gamma^{\dagger} \vdash e : B^{\dagger}$, $F \cap R = \emptyset$, $(F \cup R) \cap locs_{V,H}(e) = \emptyset$, $H \vDash V : \Gamma$, and $V,H,R,F \; \vdash e \Downarrow v, H', F'$, then $\ms{set}(reach_{H'}(v))$, $R \cap reach_{H'}(v) = \emptyset$, $F' \cap R = \emptyset$, $\ms{no\_ref}(V,H,v)$, and $\na{V,H'}$.
+\end{lemma}
+
+\begin{proof}
+Nested induction on the evaluation judgement and the typing judgement.\\
+\begin{description}
+  \item [Case 7: E:Let]
+  \begin{align*}
+  &V,H,R,F \; \vdash \irl{let}(e_1; x : \tau.e_2) \Downarrow v_2,H_2,F_2 \tag{case}\\
+  &V,H,R',F \vdash e_1 \Downarrow v_1,H_1,F_1 \tag{ad.}\\
+  &\Sigma; \Gamma_1,\Gamma_2 \sststile{q'}{q} \irl{let}(e_1; x : \tau.e_2) : B \tag{case}\\
+  &\Sigma; \Gamma_1 \sststile{p}{q} e_1 : A \tag{ad.}\\
+  &\Sigma^{\dagger}; \Gamma_1^{\dagger} \vdash e_1 : A^{\dagger} \tag{Lemma 1.1}\\
+  &\Sigma; \Gamma_2, x : A \sststile{q'}{p} e_2 : B \tag{ad.}\\
+  &\text{Suppose } \na{V,H}, F \cap R = \emptyset set, (F \cup R) \cap locs_{V,H}(e) = \emptyset, \text{ and } H \vDash V : \Gamma\\
+  &H \vDash V : \Gamma_1 \tag{def of W.D.E}\\
+  &F \cap R' = \emptyset \text{ since } F \cap locs_{V,H}(e) = \emptyset\\
+  &R' \cap locs_{V,H}(e_1) = \emptyset \tag{$\na{V,H}$}\\
+  &(F \cup R') \cap locs_{V,H}(e_1) = \emptyset \tag{Sp.}\\
+  &\text{By IH, } \ms{set}(reach_{H_1}(v_1)), R' \cap reach_{H_1}(v_1) = \emptyset, F_1 \cap R' = \emptyset, \text{ and } \na{V,H_1}\\
+  &
+  \end{align*}
+  \item [Case 13: E:MatCons]
+  \begin{align*}
+  &V(x) = (l,\irl{alive}) \tag{ad.}\\
+  &H(l) = \pairexcst{v_h}{v_t} \tag{ad.}\\
+  &\Gamma = \Gamma', x : L^p(A) \tag{ad.}\\
+  &\Sigma; \Gamma', x_h : A, x_t : L^p(A) \sststile{q'}{q + p + 1} e_2 : B \tag{ad.}\\
+  &V'',H,R,F \cup g \; \vdash e_2 \Downarrow v_2, H_2, F' \tag{ad.} \\
+  &\text{Suppose }  \na{V,H}, F \cap R = \emptyset, \text{ and } H \vDash V : \Gamma\\
+  &H \vDash V(x) : L^p(A) \tag{def of W.D.E}\\
+  &H''\vDash v_h : A,\; H'' \vDash v_t : L^p(A) \tag{ad.}\\
+  &H\vDash v_h : A,\; H \vDash v_t : L^p(A) \tag{???}\\
+  &H \vDash V'' : \Gamma', x_h : A, x_t : L^p(A) \tag{def of W.D.E}\\
+  &\text{NTS } \na{V'',H}\\
+  &\text{Let } x_1, x_2 \in \overline V'', x_1 \ne x_2, r_{x_1} = reach_H(\overline V''(x_1)), r_{x_2} = reach_H(\overline V''(x_2))\\
+  &\quad \textbf{case: } x_1 \notin \{x_h,x_t\}, x_2 \notin \{x_h,x_t\}\\
+  &\quad (1), (2) \text{ from } \na{V,H}\\
+  &\quad \textbf{case: } x_1 = x_h, x_2 \notin \{x_h,x_t\}\\
+  &\quad \ms{set}(r_{x_1}) \text{ since } \ms{set}(H(l)) \text{ from } \na{V,H}\\
+  &\quad \ms{set}(r_{x_2}) \text{since } \na{V,H}\\
+  &\quad \text{AFSOC, suppose } l' \in r_{x_1} \cap r_{x_2}\\
+  &\quad \text{but } reach_H(\overline V(x)) \cap r_{x_2} = \emptyset, \text{ contradiction} \tag{def of $reach$}\\
+  &\quad \text{hence } r_{x_1} \cap r_{x_2} = \emptyset\\
+  &\quad \textbf{case: } x_1 = x_h, x_2 = x_t\\
+  &\quad \ms{set}(r_{x_1}) \text{ since } \ms{set}(H(l)) \text{ from } \na{V,H}\\
+  &\quad \ms{set}(r_{x_2}) \text{ since } \ms{set}(H(l)) \text{ from } \na{V,H}\\
+  &\quad \text{AFSOC, suppose } l' \in r_{x_1} \cap r_{x_2}\\
+  &\quad \text{but then } \mu_{reach_H(l)}(l') \ge 2, \text{ and } \ms{set}(H(l)) does not hold.\\
+  &\quad \text{hence } r_{x_1} \cap r_{x_2} = \emptyset\\
+  &\quad \textbf{case: otherwise} \\
+  &\quad \text{similar to the above}\\
+  &\text{Thus we have } \na{V'',H}\\
+  &(F \cup g) \cap R = \emptyset \text{ since } F \cap R = \emptyset \tag{def of $g$}\\
+  &\text{By IH, } \ms{set}(reach_{H'}(v)), F' \cap R = \emptyset, \text{ and } \na{V'',H'}\\
+  &\text{NTS } \na{V,H'}\\
+  &\text{Follows from Lemma... }\\
+  \end{align*}
+  \end{description}
+\end{proof}
+
 \begin{theorem}[Soundness]
-\label{a} let $H \vDash V : \Gamma$, $\Sigma; \Gamma \sststile{q'}{q} e : B$,
+\label{b} let $H \vDash V : \Gamma$, $\Sigma; \Gamma \sststile{q'}{q} e : B$,
 and $V,H \; \vdash e \Downarrow v, H'$. Then $\forall C \in \mathbb{Q}^{+}$ and $\forall F \subseteq \ms{Loc}$ with $|F| \ge \Phi_{V,H}(\Gamma) + q + C$,  if $\na{V}$, $R \cap locs_{V,H}(e) = \emptyset$, \text{ and } $F \cap locs_{V,H}(e) = \emptyset$, then there exists $F' \subseteq \ms{Loc}$ s.t.
 \begin{enumerate}
   \item $V,H,R,F \vdash e \Downarrow v, H', F'$
@@ -676,6 +741,7 @@ Induction on the evaluation judgement.\\
   &|F| - |F'| \le \Phi_{V,H}(\Gamma) + q + 1 - |g| - (\Phi_{H'}(v:B) + q')\\
   &\quad \le \Phi_{V,H}(\Gamma) + q - (\Phi_{H'}(v:B) + q') \tag{$|g| \ge 1$}\\
   \end{align*}
+  \end{description}
 \end{proof}
 
 
