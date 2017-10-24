@@ -175,7 +175,8 @@ $\forall x,y \in \overline V$, $x \ne y$. \text{ Let } $r_x = reach_H(\overline 
 \item[$\ms{no\_ref}(V,H,v)$: ] $(reach_{H}(v)) \cap (\bigcup_{x \in \overline V} reach_{H}(V(x))) = \emptyset$.
 \item[$\dist{\mathcal{C}}$: ] $\forall X,Y \in \mathcal{C}$. $X \cap Y = \emptyset$ 
 \end{description}
-If the induced graph of heap $H$ is a forest, then it is a disjoint union of arborescences (directed trees), and there is at most one path from one loaction in $H$ to another by following the pointers.
+
+For a stack $V$ and a heap $H$, whenever $\na{V,H}$ holds, visually, one can think of the situation as the following: the induced graph of heap $H$ with variables on the stack as additional leaf nodes is a forest: a disjoint union of arborescences (directed trees); consequently, there is at most one path from a live variable on the stack $V$ to a location in $H$ by following the pointers.
 
 Next, we define $locs_{V,H}$ using the previous notion of reachability. $size$ calculates the number of cells a value occupies. $copy(H,L,v)$ takes a heap $H$, a set of locations $L$, and a value $v$, and returns a new heap $H'$ and a location $l$ such that $l$ maps to $v$ in $H'$.
 \begin{align*}
@@ -489,7 +490,10 @@ Nested induction on the evaluation judgement and the typing judgement.\\
   &\quad l \notin R \tag{since  $R \subseteq R'$}\\
   &\text{Thus }  R \cap locs_{V',H_1}(e_2) = \emptyset\\
   &(F_1 \cup  g) \cap R = \emptyset \tag{ by def of  $g$ and  $\dist{\{R',F_1,reach_{H_1}(v_1)\}}$}\\
+  &\text{Hence } \dist{\{R, F_1 \cup g, locs_{V',H_1}(e_2)\}}\\
   &H \vDash V : \Gamma_2 \tag{def of W.D.E}\\
+  &\text{NTS } \na{V',H_1}\\
+  &\text{TODO}\\
   &V',H_1,R, F_1 \cup g \vdash e_2 \Downarrow v_2,H_2,F_2 \tag{ad.}\\
   &\text{By IH, } \ms{set}(reach_{H_2}(v_2)), \dist{\{R,F_2,reach_{H_2}(v_2)\}}, \nr{V',H_2,v_2},\text{ and } \na{V',H_2}\\
   &\nr{V,H_2,v_2} \text{ and } \na{V,H_2} \tag{$\overline V \subseteq \overline V'$}\\
@@ -508,21 +512,21 @@ Nested induction on the evaluation judgement and the typing judgement.\\
   &H \vDash V'' : \Gamma', x_h : A, x_t : L(A) \tag{def of W.D.E}\\
   &\text{NTS } \na{V'',H}\\
   &\text{Let } x_1, x_2 \in \overline V'', x_1 \ne x_2, r_{x_1} = reach_H(\overline V''(x_1)), r_{x_2} = reach_H(\overline V''(x_2))\\
-  &\quad \textbf{case: } x_1 \notin \{x_h,x_t\}, x_2 \notin \{x_h,x_t\}\\
+  & \textbf{case: } x_1 \notin \{x_h,x_t\}, x_2 \notin \{x_h,x_t\}\\
   &\quad (1), (2) \text{ from } \na{V,H}\\
-  &\quad \textbf{case: } x_1 = x_h, x_2 \notin \{x_h,x_t\}\\
+  & \textbf{case: } x_1 = x_h, x_2 \notin \{x_h,x_t\}\\
   &\quad \ms{set}(r_{x_1}) \tag{ since $\ms{set}(H(l))$ from  $\na{V,H}$}\\
   &\quad \ms{set}(r_{x_2}) \tag{since  $\na{V,H}$}\\
   &\quad \text{AFSOC, suppose } l' \in r_{x_1} \cap r_{x_2}\\
   &\quad \text{but } reach_H(\overline V(x)) \cap r_{x_2} = \emptyset, \text{ contradiction} \tag{def of $reach$}\\
   &\quad \text{hence } r_{x_1} \cap r_{x_2} = \emptyset\\
-  &\quad \textbf{case: } x_1 = x_h, x_2 = x_t\\
+  & \textbf{case: } x_1 = x_h, x_2 = x_t\\
   &\quad \ms{set}(r_{x_1}) \text{ since } \ms{set}(H(l)) \text{ from } \na{V,H}\\
   &\quad \ms{set}(r_{x_2}) \text{ since } \ms{set}(H(l)) \text{ from } \na{V,H}\\
   &\quad \text{AFSOC, suppose } l' \in r_{x_1} \cap r_{x_2}\\
   &\quad \text{but then } \mu_{reach_H(l)}(l') \ge 2, \text{ and } \ms{set}(H(l)) \text{ does not hold}.\\
   &\quad \text{hence } r_{x_1} \cap r_{x_2} = \emptyset\\
-  &\quad \textbf{case: otherwise} \\
+  & \textbf{case: otherwise} \\
   &\quad \text{similar to the above}\\
   &\text{Thus we have } \na{V'',H}\\
   &(F \cup g) \cap R = \emptyset \tag{ since $F \cap R = \emptyset$ and by def of $g$}\\
@@ -550,7 +554,7 @@ Nested induction on the evaluation judgement and the typing judgement.\\
   &\text{NTS } \nr{V,H',v}\\
   &\text{Let } l' \in reach_{H'}(\overline V(x)) \text{ be arb }\\
   &l' \in reach_H(l) \tag{Lemma 1.2, ad.}\\
-  &\text{Then } l' \in reach_{H'}(v_h) \text{ or } l' in reach_{H'}(v_t) \tag{def of $reach$}\\
+  &\text{Then } l' \in reach_{H'}(v_h) \text{ or } l' \in reach_{H'}(v_t) \tag{def of $reach$}\\
   &\text{Wlog } l' \in reach_{H'}(v_h)\\
   &l' \in reach_{H'}(V''(x_h)) \tag{def of $V''$}\\
   &l' \notin reach_{H'}(v) \tag{$\nr{V'',H',v}$}\\
@@ -558,15 +562,15 @@ Nested induction on the evaluation judgement and the typing judgement.\\
   &(reach_{H'}(v)) \cap (\bigcup_{x' \in \overline V} reach_{H'}(V(x'))) = \emptyset\\
   &\nr{V,H',v}\\
   &\text{NTS } \na{V,H'}\\
-  &\text{Let } x_1, x_2 \in \overline V, x_1 \ne x_2, r_{x_1} = reach_H(\overline V(x_1)), r_{x_2} = reach_H(\overline V(x_2))\\
-  &\quad \textbf{case: } x_1 \ne x, x_2 \ne x\\
+  &\text{Let } x_1, x_2 \in \overline V, x_1 \ne x_2, r_{x_1} = reach_H(\overline V(x_1)), r_{x_2} = reach_H(\overline V(x_2)) \text{ be arb.}\\
+  &\textbf{case: } x_1 \ne x, x_2 \ne x\\
   &\quad (1), (2) \tag{$\na{V'',H'}$}\\
   &\quad \textbf{case: } x_1 = x, x_2 \ne x\\
   &\quad \ms{set}(r_{x_1}) \tag{$\na{V'',H'}$}\\
   &\quad \ms{set}(r_{x_2}) \tag{$\na{V'',H'}$}\\
-  &\quad \textbf{case: otherwise}\\ 
+  &\textbf{case: otherwise}\\ 
   &\quad \text{similar to above}\\
-  &\na{V,H'}\\
+  &\text{Thus } \na{V,H'}\\
   &\text{Thus } \nr{V,H',v} \text{ and } \na{V,H'}\\
   \end{align*}
   \end{description}
@@ -574,7 +578,7 @@ Nested induction on the evaluation judgement and the typing judgement.\\
 
 \begin{theorem}[Soundness]
 \label{b} let $H \vDash V : \Gamma$, $\Sigma; \Gamma \sststile{q'}{q} e : B$,
-and $V,H \; \vdash e \Downarrow v, H'$. Then $\forall C \in \mathbb{Q}^{+}$ and $\forall F \subseteq \ms{Loc}$ with $|F| \ge \Phi_{V,H}(\Gamma) + q + C$,  if $\na{V}$, $R \cap locs_{V,H}(e) = \emptyset$, \text{ and } $F \cap locs_{V,H}(e) = \emptyset$, then there exists $F' \subseteq \ms{Loc}$ s.t.
+and $V,H \; \vdash e \Downarrow v, H'$. Then $\forall C \in \mathbb{Q}^{+}$ and $\forall F,R \subseteq \ms{Loc}$,  if $\na{V,H}$, $\dist{\{R,F,locs_{V,H}(e)\}}$, and $|F| \ge \Phi_{V,H}(\Gamma) + q + C$, then there exists $F' \subseteq \ms{Loc}$ s.t.
 \begin{enumerate}
   \item $V,H,R,F \vdash e \Downarrow v, H', F'$
   \item $|F'| \ge \Phi_{H'}(v:B) + q' + C$
@@ -620,24 +624,40 @@ Induction on the evaluation judgement.\\
   Similar to E:CondT
   \item[Case 7: E:Let]
   \begin{align*}
-  &V,H,R',F \vdash e_1 \Downarrow v_1,H_1,F_1 \tag{ad.}\\
+  &V,H \; \vdash e \Downarrow v_2,H_2 \tag{case}\\
+  &V,H \vdash e_1 \Downarrow v_1,H_1 \tag{ad.}\\
   &\Sigma; \Gamma_1 \sststile{p}{q} e_1 : A \tag{ad.}\\
   &H \vDash V : \Gamma_1 \tag{$\Gamma_1 \subseteq \Gamma$}\\
-  &|F| - |F_1| \le \Phi_{V,H}(\Gamma_1) +q - (\Phi_{H_1}(v_1:A) + p) \tag{IH}\\
-  &V',H_1,R, F_1 \cup g \vdash e_2 \Downarrow v_2,H_2,F_2 \tag{ad.}\\
+  &\text{Let } C \in \mathbb{Q}^+, F,R \subseteq \ms{Loc} \text{ be arb.}\\
+  &\text{Suppose }  \na{V,H}, \dist{\{R,F,locs_{V,H}(e)\}}, \text{ and } |F| \ge \Phi_{V,H}(\Gamma) + q + C\\
+  &\text{NTF } F' \text{ s.t. }\\
+  &\quad 1. V,H,R,F \vdash e \Downarrow v_2, H_2,F' \text{ and }\\ 
+  &\quad 2. |F'| \ge \Phi_{H_2}(v_2:B) + q' + C\\
+  &\text{Let } R' = R \cup locs_{V,H}(\irl{lam}(x : \tau.e_2))\\
+  &\dist{\{R',F,locs_{V,H}(e_1)\}} \tag{Similar to case in Lemma 1.2}\\
+  &\text{Instantiate IH with } C = C + \Phi_{V,H}(\Gamma_2), F = F, R = R', \text{ we get } F'' \text{ s.t. }\\
+  &\quad 1. V,H,R',F \vdash e_1 \Downarrow v_1, H_1,F'' \text{ and }\\ 
+  &\quad 2. |F''| \ge \Phi_{H_1}(v_1:A) + p + C + \Phi_{V',H_1}(\Gamma_2)\\
+  &\text{Where } |F| \ge \Phi_{V,H}(\Gamma_1) + q + C + \Phi_{V,H}(\Gamma_2) \text{ since }  |F| \ge \Phi_{V,H}(\Gamma) + q + C\\ 
+  &\text{For the second premise: }\\
   &\Sigma; \Gamma_2, x : A \sststile{q'}{p} e_2 : B \tag{ad.}\\
   &H_1 \vDash v_1 : A \text{ and } \tag{Theorem 3.3.4}\\ 
   &H_1 \vDash V : \Gamma_2 \tag{???}\\
   &H_1 \vDash V' : \Gamma_2, x : A \tag{def of $\vDash$}\\
-  &|F_1 \cup g| - |F_2| \le  \Phi_{V',H_1}(\Gamma_2, x:A) +p - (\Phi_{H_2}(v_2:B) + q') \tag{IH}\\
-  &|F_1| - |F_2| \le \Phi_{V',H_1}(\Gamma_2,x:A) + p - (\Phi_{H_2}(v_2:B) + q')\\
-  &\text{summing the inequalities:}\\
-  &|F| - |F_1| + |F_1| - |F_2| \le \Phi_{V,H}(\Gamma_1) +q - (\Phi_{H_1}(v_1:A) + p) + \Phi_{V',H_1}(\Gamma_2,x:A) + p - (\Phi_{H_2}(v_2:B) + q')\\
-  &|F| - |F_2| \le \Phi_{V,H}(\Gamma_1) +q - \Phi_{H_1}(v_1:A) + \Phi_{V',H_1}(\Gamma_2,x:A) - (\Phi_{H_2}(v_2:B) + q')\\
-  &\quad = \Phi_{V,H}(\Gamma_1) + \Phi_{V',H_1}(\Gamma_2) + q - \Phi_{H_1}(v_1:A) + \Phi_{V',H_1}(x:A) - (\Phi_{H_2}(v_2:B) + q') \tag{def of $\Phi_{V,H}$}\\nn 
-  &\quad = \Phi_{V,H}(\Gamma_1) + \Phi_{V,H}(\Gamma_2) + q - \Phi_{H_1}(v_1:A) + \Phi_{V',H_1}(x:A) - (\Phi_{H_2}(v_2:B) + q') \tag{Lemma 4.3.3}\\
-  &\quad = \Phi_{V,H}(\Gamma) + q - \Phi_{H_1}(v_1:A) + \Phi_{H_1}(v_1:A) - (\Phi_{H_2}(v_2:B) + q') \tag{def of $\Phi_{V,H}$}\\
-  &\quad = \Phi_{V,H}(\Gamma) + q - (\Phi_{H_2}(v_2:B) + q') \\
+  &V',H_1 \vdash e_2 \Downarrow v_2,H_2 \tag{ad.}\\
+  &\text{Let } g = \{l \in H_1 \mid l \notin F_1 \cup R \cup locs_{V',H_1}(e_2)\}\\ 
+  &\text{Then we have } \na{V',H_1} \text{ and } \dist{\{R, F'' \cup g, locs_{V',H_1}(e_2)\}} \tag{similar to case in Lemma 1.2}\\
+  &\text{Instantiate IH with } C = C, F = F'' \cup g, R = R, \text{ we get } F^{(3)} \text{ s.t. }\\
+  &\quad 1. V',H_1,R, F'' \cup g \vdash e_2 \Downarrow v_2,H_2,F^{(3)} \\
+  &\quad 2. |F^{(3)}| \ge \Phi_{H_2}(v_2:B) + q' + C\\
+  &\text{Where we verify the precondition } |F'' \cup g| \ge \Phi_{V',H_1}(\Gamma_2,x:A) + p + C\\
+  &\quad |F'' \cup g | \ge |F''|\\
+  &\quad \quad \ge \Phi_{H_1}(v_1:A) + p + C + \Phi_{V,H}(\Gamma_2) \tag{IH}\\ 
+  &\quad \quad = \Phi_{H_1}(v_1:A) + p + C + \Phi_{V',H_1}(\Gamma_2) \tag{Lemma 4.3.3}\\ 
+  &\quad \quad = \Phi_{V',H_1}(\Gamma_2,x:A) + p + C \tag{def of $\Phi$}\\
+  &\text{Take } F' = F^{(3)}\\
+  &V,H,R,F \vdash e \Downarrow v_2, H_2,F' \text{ and } \tag{E:Let}\\ 
+  &|F'| \ge \Phi_{H_2}(v_2:B) + q' + C \tag{from IH}\\
   \end{align*}
   \item[Case 8: E:Pair]
   Similar to E:Const*
@@ -669,94 +689,39 @@ Induction on the evaluation judgement.\\
   &H(l) = \pairexcst{v_h}{v_t} \tag{ad.}\\
   &\Gamma = \Gamma', x : L^p(A) \tag{ad.}\\
   &\Sigma; \Gamma', x_h : A, x_t : L^p(A) \sststile{q'}{q + p + 1} e_2 : B \tag{ad.}\\
-  &V'',H,R,F \cup g \; \vdash e_2 \Downarrow v_2, H_2, F' \tag{ad.} \\
+  &V'',H \; \vdash e_2 \Downarrow v, H' \tag{ad.}\\
+  &\text{Let } C \in \mathbb{Q}^+, F,R \subseteq \ms{Loc} \text{ be arb.}\\
   &H \vDash V(x) : L^p(A) \tag{def of W.D.E}\\
   &H''\vDash v_h : A,\; H'' \vDash v_t : L^p(A) \tag{ad.}\\
   &H\vDash v_h : A,\; H \vDash v_t : L^p(A) \tag{???}\\
   &H \vDash V'' : \Gamma', x_h : A, x_t : L^p(A) \tag{def of W.D.E}\\
-  &\text{Suppose }  \na{V}{H}, R \cap locs_{V,H}(e) = \emptyset, \text{ and } F \cap locs_{V,H}(e) = \emptyset\\
-  &\text{NTS }  |F| - |F'| \le \Phi_{V,H}(\Gamma) +q - (\Phi_{H'}(v:B) + q') \text{ and } \na{V}{H'}\\
-  &\text{WTS } \na{V''}{H}\\
-  &\text{let } l \in H \text{ arbitrary }, y, z \in \overline V'' \text{ arbitrary },  r_y = root(\overline V''(y)), r_z = root(\overline V''(z))\\
-  &\quad\textbf{case: } y \notin \{x_h,x_t\}, z \notin \{x_h,x_t\}\\
-  &\quad y,z \in \overline V \tag{def of $V''$}\\
-  &\quad (1) - (3) \text{ holds } \tag{Sp.}\\
-  &\quad\textbf{case: } y = x_h, z \notin \{x_h,x_t\}\\
-  &\quad \ms{set}(root(\pairexcst{v_h}{v_t})) \tag{Sp.}\\
-  &\quad \ms{set}(root(v_h)) \tag{def of $\ms{set}$}\\
-  &\quad \ms{set}(r_y) \tag{def of $V''$}\\
-  &\quad z \in \overline V \tag{def of $V''$}\\
-  &\quad \ms{set}(r_z) \tag{Sp.}\\
-  &\quad \text{hence we have (1)}\\
-  &\quad \text{Suppose } l' \in r_y \cap r_z\\
-  &\quad l' \in H \tag{$H \vDash V'' :  \Gamma', x_h : A, x_t : L^p(A)$}\\
-  &\quad H \vDash id_{l'} : l' \leadsto l' \tag{Id}\\
-  &\quad H \vDash (l,l') : l \leadsto l' \tag{Edge}\\
-  &\quad H \vDash id_{l'} \equiv (l,l') : l' \leadsto l' \tag{$\ms{linear}_H(r_x,r_z)$}\\
-  &\quad \text{contradiction, hence } r_y \cap r_z = \emptyset,  \tag{hence we have (2)}\\
-  &\quad \text{let } l' \in H \text{ arbitrary }, l_1,l_2 \in r_y \tag{ arbitrary }\\
-  &\quad \text{suppose } H \vDash p : l_1 \leadsto l', H \vDash q : l_2 \leadsto l'\\
-  &\quad H \vDash (l,l_1) : l \leadsto l_1 \text{ and }  H \vDash (l,l_2) : l \leadsto l_2 \tag{Edge}\\
-  &\quad H \vDash p \circ (l,l_1) : l \leadsto l' \text{ and }  H \vDash q \circ (l,l_2) : l \leadsto l' \tag{Comp}\\
-  &\quad H \vDash p \circ (l,l_1) \equiv q \circ (l,l_2) : l \leadsto l' \tag{$\ms{linear}_H(r_x,r_x)$}\\
-  &\quad H \vDash p \equiv q : l_1 \leadsto l' \tag{inversion on Eq}\\
-  &\quad \text{hence we have } \ms{linear}_H(r_y,r_y)\\
-  &\quad \ms{linear}_H(r_z,r_z) \tag{Sp.}\\
-  &\quad \text{let } l' \in H \text{ arbitrary }, l_1 \in r_y, l_2 \in r_z \tag{ arbitrary }\\
-  &\quad \text{suppose } H \vDash p : l_1 \leadsto l', H \vDash q : l_2 \leadsto l'\\
-  &\quad H \vDash (l,l_1) : l \leadsto l_1 \tag{Edge}\\
-  &\quad H \vDash p \circ (l,l_1) : l \leadsto l' \tag{Comp}\\
-  &\quad l = l_2 \tag{$\ms{linear}_H(r_x,r_z)$}\\
-  &\quad \text{contradiction since } r_x \cap r_z = \emptyset\\
-  &\quad \text{hence we have } \ms{linear}_H(r_y,r_z)\\
-  &\quad \text{hence we have (3)}\\
-  &\quad\textbf{case: } y = x_t, z \notin \{x_h,x_t\}\\
-  &\quad\textbf{case: } y = \notin \{x_h,x_t\}, z = x_h\\
-  &\quad\textbf{case: } y = \notin \{x_h,x_t\}, z = x_t\\
-  &\quad \text{all symmetric to previous case}\\
-  &\quad\textbf{case: } y = x_h, z = x_t\\
-  &\quad \text{we get (1) the same way as the previous case}\\
-  &\quad \ms{set}(root(\pairexcst{v_h}{v_t})) \tag{(1)}\\
-  &\quad \ms{set}(root(v_h) \uplus root(v_t)) \tag{def of $root$}\\
-  &\quad root(v_h) \cap root(v_t) = \emptyset \tag{def of $\ms{set}$}\\
-  &\quad r_y \cap r_z = \emptyset \tag{def of $r_y,r_z$}\\
-  &\quad \text{we get (3) the same way as the previous case}\\
-  &\quad \text{hence we have } \na{V''}{H}\\
-  &\text{let } l' \in locs_{V'',H}(e_2) \text{ arbitrary }\\
-  &\quad \exists! x' \in \overline V''. \exists! l'' \in root(\overline V''(x')). H \vDash p : l'' \leadsto l' \tag{def of $locs_{V,H}$}\\
-  &\quad \textbf{case: } x' \notin \{x_h,x_t\}\\
-  &\quad x \in \overline V \tag{def of $V''$}\\
-  &\quad l' \in locs_{V,H}(e) \tag{def of $locs_{V,H}$}\\
-  &\quad \textbf{case: } x' = x_h\\
-  &\quad H \vDash (l,l'') : l \leadsto l'' \tag{Edge}\\
-  &\quad H \vDash p \circ (l,l'') : l \leadsto l' \tag{Comp}\\
-  &\quad l' \in locs_{V,H}(e) \tag{def of $locs_{V,H}$}\\
-  &\text{thus we have } locs_{V''H}(e_2) \subseteq locs_{V,H}(e)\\
-  &F \cap locs_{V'',H}(e_2) = \emptyset \tag{Sp.}\\
-  &g \cap locs_{V'',H}(e_2) = \emptyset \tag{def. of $g$}\\
-  &(F \cup g) \cap locs_{V'',H}(e_2) = \emptyset\\
-  &|F \cup g| - |F'| \le  \Phi_{V,H}(\Gamma',x_h:A,x_t:L^p(A)) + q + p + 1 - (\Phi_{H'}(v:B) + q') \tag{IH}\\
-  &\quad = \Phi_{V,H}(\Gamma') + \Phi_H(v_h:A) + \Phi_H(v_t:L^p(A)) + p + q + 1 - (\Phi_{H'}(v:B) + q') \tag{def of $\Phi_{V,H}$}\\
-  &\quad = \Phi_{V,H}(\Gamma') + \Phi_H(\pairexcst{v_h}{v_t}^L : L^p(A)) + q + 1 - (\Phi_{H'}(v:B) + q') \tag{Lemma 4.1.1}\\
-  &\quad = \Phi_{V,H}(\Gamma', z : L^p(A)) + q + 1 - (\Phi_{H'}(v:B) + q') \tag{def of $\Phi_{V,H}$}\\
-  &\quad = \Phi_{V,H}(\Gamma) + q + 1 - (\Phi_{H'}(v:B) + q') \tag{Lemma 4.1.1}\\
-  &\text{suppose } l \in locs_{V',H}(e_2) \\
-  &\exists x' \in FV(e_2) \cap \overline V'', l' \in root(\overline V''(x')). x \ne x', H \vDash p : l' \leadsto l \tag{def. of $locs_{V,H}$}\\
-  &\quad\textbf{case: } x' \notin \{x_h,x_t\}\\
-  &\quad \text{contradiction by} \na{V}{H}\\ 
-  &\quad\textbf{case: } x' = x_h\\
-  &\quad H \vDash p \circ (l,l') : l \leadsto l\\
-  &\quad H \vDash id_l : l \leadsto l\\
-  &\quad \text{contradiction since } \ms{linear}_H(r_x,r_x)\\
-  &\text{hence we have } l \notin locs_{V'',H}(e_2)\\
-  &l \in g \tag{def of $g$}\\
-  &|g| \ge 1\\
-  &|F \cup g| - |F'|\\
-  &\quad = |F| + |g| - |F'| \tag{$F,g$ disjoint}\\
-  &\text{Hence,}\\
-  &|F| + |g| - |F'| \le  \Phi_{V,H}(\Gamma) + q + 1 - (\Phi_{H'}(v:B) + q')\\
-  &|F| - |F'| \le \Phi_{V,H}(\Gamma) + q + 1 - |g| - (\Phi_{H'}(v:B) + q')\\
-  &\quad \le \Phi_{V,H}(\Gamma) + q - (\Phi_{H'}(v:B) + q') \tag{$|g| \ge 1$}\\
+  &\text{Suppose }  \na{V,H}, \dist{\{R,F,locs_{V,H}(e)\}}, \text{ and } |F| \ge \Phi_{V,H}(\Gamma) + q + C\\
+  &\text{NTF } F' \text{ s.t. }\\
+  &\quad 1. V,H,R,F \vdash e \Downarrow v, H',F' \text{ and }\\ 
+  &\quad 2. |F'| \ge \Phi_{H'}(v:B) + q' + C\\
+  &\text{Let } g = \{l \in H \mid l \notin F \cup R \cup locs_{V'',H}(e_2)\}\\
+  &\text{We want to $g$ nonempty, in particular, that } l \in g\\
+  &\quad l \notin F \cup R \tag{$\dist{\{R,F,locs_{V,H}(e)\}}$}\\
+  &\quad \text{AFSOC } l \in locs_{V'',H}(e_2)\\
+  &\quad \text{Then } l \in reach_H(\overline V'' (x')) \text{ for some } x' \ne x\\
+  &\quad x' \in \{x_h,x_t\} \tag{since $reach_H(\overline V (x')) \cap reach_H(\overline (Vx)) = \emptyset$ from $\na{V,H}$}\\
+  &\quad \text{WLOG let } x' = x_h\\
+  &\quad \text{But then } \mu_{reach_H(\overline V(x))}(l) \ge 2 \text{ and } \ms{set}(reach_(\overline V(x))) \text{ doesn't hold}\\
+  &\quad l \notin locs_{V'',H}(e_2)\\
+  &\text{Hence } l \in g\\
+	&\text{Next, we have } \na{V'',H} \text{ and } \dist{\{R,F \cup g,locs_{V'',H}(e_2)\}} \tag{similar to case in Lemma 1.2}\\
+	&\text{By IH with } C' = C, F'' = F \cup g \text{ and the above conditions, we have: } F^{(3)} \text{ s.t.}\\
+	&\quad 1. V'',H,R,F\cup g \vdash e_2 \Downarrow v,H',F^{(3)}\\
+	&\quad 2. |F^{(3)}| \ge \Phi_{H'}(v:B) + q' + C\\
+	&\text{Where we also verify the precondition that } |F''| \ge \Phi_{V'',H}(\Gamma',x_h:A,x_t:L^p(A)) + q + p + 1 + C':\\
+	&\quad |F''| = |F \cup g|\\
+	&\quad \quad = |F| + |g| \tag{$F$ and $g$ disjoint}\\
+	&\quad \quad \ge \Phi_{V,H}(\Gamma) + q + C + |g| \tag{Sp.}\\
+	&\quad \quad = \Phi_{V,H}(\Gamma',x_h:A,x_t:L^p(A)) + p + q + C + |g| \tag{Lemma 4.1.1}\\
+	&\quad \quad = \Phi_{V,H}(\Gamma',x_h:A,x_t:L^p(A)) + p + q + C + 1 \tag{$g$ nonempty}\\
+	&\text{Now take } F' = F^{(3)}\\
+	&V,H,R,F \; \vdash e \Downarrow v,H',F' \tag{E:MatCons}\\
+	&|F'| \ge \Phi_{H'}(v:B) + q' + C \tag{From the IH}\\
   \end{align*}
   \end{description}
 \end{proof}
