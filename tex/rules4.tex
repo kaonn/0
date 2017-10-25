@@ -12,7 +12,6 @@
 \usepackage{mathpartir}
 \usepackage{turnstile}
 \usepackage{fancyvrb}
-\usepackage[shortlabels]{enumerate}
 \allowdisplaybreaks
 
 \input{generic-defns}
@@ -59,7 +58,7 @@
 \newcounter{rule}
 \setcounter{rule}{0}
 \newcommand{\rn}
-  {\addtocounter{rule}{1}(\arabic{rule})}
+  {\addtocounter{rule}{1}(\arabic{rule})}	
 
 \newcounter{infercount}
 \setcounter{infercount}{1}
@@ -721,7 +720,7 @@ Induction on the evaluation judgement.\\
 	&\quad \quad = \Phi_{V,H}(\Gamma',x_h:A,x_t:L^p(A)) + p + q + C + 1 \tag{$g$ nonempty}\\
 	&\text{Now take } F' = F^{(3)}\\
 	&V,H,R,F \; \vdash e \Downarrow v,H',F' \tag{E:MatCons}\\
-	&|F'| \ge \Phi_{H'}(v:B) + q' + C \tag{From the IH}\\
+  &|F'| \ge \Phi_{H'}(v:B) + q' + C \tag{From the IH}\\
   \end{align*}
   \end{description}
 \end{proof}
