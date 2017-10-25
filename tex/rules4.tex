@@ -12,6 +12,7 @@
 \usepackage{mathpartir}
 \usepackage{turnstile}
 \usepackage{fancyvrb}
+
 \allowdisplaybreaks
 
 \input{generic-defns}
@@ -139,8 +140,11 @@ Model dynamics using judgement of the form:
 Where $V : \ms{Var} \to \ms{Val} \times \ms{State}$, $H : \ms{Loc} \to \ms{Val}$, $R \subseteq \ms{Loc}$, and $F \subseteq \ms{Loc}$. This can be read as: under stack $V$, heap $H$, roots $R$,
 freelist $F$, the expression $e$ evaluates to $v$, and engenders a new heap $H'$ and freelist $F'$.\\
 
+\noindent 
+For a partial map $f : A \to B$, we write $dom$ for the defined values of $f$. Sometimes we shorten $x \in dom(f)$ to $x \in f$. We write $f[x \mapsto y]$ for the extension of $f$ where $x$ is mapped to $y$, with the constraint that $x \notin dom(f)$. We write $f\{x \mapsto y\}$ for the update map, which is the same as the extension map, except that $x$ is remapped to $y$ when $x \in dom(f)$. Write $C \lhd f : C \to B$ for the domain restriction of $f$ to $C$ where $C \subseteq A$. Write $C \unlhd f : (A \setminus C) \to B$ for the domain anti-restriction of $f$ to $C$.\\
+
 \noindent
-Note that the stack maps each variable to a value $v$ \emph{and} a state $s$. If $s$ is \irl{alive}, then $v$ can still be used, while $\irl{dead}$ indicates that $v$ is already used and cannot be used again. We write $\overline V = \{x \in V \mid V(x) = (\_,\irl{alive}) \}$ for the variables in $V$ that are alive, and $V^{\star} : V {\restriction_{\overline V}} \to \ms{Val}$ for the associated restricted map $x \mapsto fst(V(x))$ which projects out the value component of live variables.\\ 
+Note that the stack maps each variable to a value $v$ \emph{and} a state $s$. If $s$ is \irl{alive}, then $v$ can still be used, while $\irl{dead}$ indicates that $v$ is already used and cannot be used again. We write $\overline V = \{x \in V \mid V(x) = (\_,\irl{alive}) \}$ for the variables in $V$ that are alive, and $V^{\star} : \overline V \to \ms{Val}$ for the associated restricted map $x \mapsto fst(V(x))$ which projects out the value component of live variables.\\ 
 
 \noindent
 Roots represents the set of locations required to compute the continuation \emph{excluding} the current expression.
@@ -167,7 +171,7 @@ Next, we define the predicates $\ms{no\_alias}$, $\ms{no\_ref}$, and $\ms{disjoi
 % $\forall l,l_1,l_2 \in H$, if $H \vDash p : l_1 \leadsto l$ and $H \vDash q : l_2 \leadsto l$, then $l_1 = l_2$ and $H \vDash p \equiv q : l_1 \leadsto l$.
 \item[$\na{V,H}$: ] \\
 $\forall x,y \in \overline V$, $x \ne y$. \text{ Let } $r_x = reach_H(\overline V(x))$, $r_y = reach_H(\overline V(y))$. Then:
-\begin{enumerate}[(1)]
+\begin{enumerate}
 \item $\ms{set}(r_x), \ms{set}(r_y)$
 \item $r_x \cap r_y = \emptyset$
 \end{enumerate}
@@ -314,10 +318,11 @@ Next, we define $locs_{V,H}$ using the previous notion of reachability. $size$ c
 \infern{
   R' = R \cup locs_{V,H}(\irl{lam}(x : \tau.e_2))\\
   V,H,R',F \vdash e_1 \Downarrow v_1,H_1,F_1\\
-  V' = V[x \mapsto v_1]\\
+  V' = V\{z \mapsto (l,\irl{dead}) \mid z \in FV(e_1) \land V(z) = (l,\_)\}\\
+  V'' = V'[x \mapsto (v_1, \irl{alive})]\\
   R'' = R \cup locs_{V',H_1}(e_2)\\
   g = \{ l \in H_1 \mid l \notin R'' \cup F_1 \}\\
-  V',H_1,R, F_1 \cup g \vdash e_2 \Downarrow v_2,H_2,F_2 \\
+  V'',H_1,R, F_1 \cup g \vdash e_2 \Downarrow v_2,H_2,F_2 \\
 }{
   V,H,R,F \; \vdash \irl{let}(e_1; x : \tau.e_2) \Downarrow v_2,H_2,F_2
 }
@@ -454,12 +459,33 @@ Induction on the evaluation judgement.
 
 
 \begin{lemma}
-For all stacks $V$ and heaps $H$, if  $V,H,R,F \; \vdash e \Downarrow v, H', F'$, $\Sigma^{\dagger}; \Gamma^{\dagger} \vdash e : B^{\dagger}$, $H \vDash V : \Gamma$, $\na{V,H}$, and $\dist{\{R,F,locs_{V,H}(e)\}}$, then $\ms{set}(reach_{H'}(v))$, $\dist{\{R,F',reach_{H'}(v)\}}$, $\ms{no\_ref}(V,H,v)$, and $\na{V,H'}$.
+For all stacks $V$ and heaps $H$, if  $V,H,R,F \; \vdash e \Downarrow v, H', F'$, $\Sigma^{\dagger}; \Gamma^{\dagger} \vdash e : B^{\dagger}$, $H \vDash V : \Gamma$, $\na{V,H}$, and $\dist{\{R,F,locs_{V,H}(e)\}}$, then $\ms{set}(reach_{H'}(v))$, $\dist{\{R,F',reach_{H'}(v)\}}$, $\ms{no\_ref}(FV(e) \unlhd V ,H,v)$, and $\na{V,H'}$.
 \end{lemma}
 
 \begin{proof}
 Nested induction on the evaluation judgement and the typing judgement.\\
 \begin{description}
+  \item[Case 1: E:Var]
+  \begin{align}
+  &
+  \end{align}
+  \item[Case 2: E:Const*]
+  Due to similarity, we show only for E:ConstI
+  \begin{align*}
+  
+  \end{align*}
+  \item[Case 4: E:App]
+  \item[Case 5: E:CondT]
+  \begin{align*}
+  &\Gamma = \Gamma', x : \irl{bool} \tag{ad.}\\
+  &H \vDash V : \Gamma' \tag{def of W.F.E}\\
+  &\Sigma; \Gamma' \sststile{q'}{q} e_t : B \tag{ad.}\\
+  &V,H,R,F \cup g\; \vdash e_t \Downarrow v, H',F' \tag{ad.}\\
+  &|F \cup g| - |F'| \le \Phi_{V,H}(\Gamma) +q - (\Phi_{H'}(v:B) + q') \tag{IH}\\
+  &|F| - |F'| \le \Phi_{V,H}(\Gamma) +q - (\Phi_{H'}(v:B) + q') \\
+  \end{align*}
+  \item[Case 6: E:CondF] 
+  Similar to E:CondT
   \item [Case 7: E:Let]
   \begin{align*}
   &V,H,R,F \; \vdash \irl{let}(e_1; x : \tau.e_2) \Downarrow v_2,H_2,F_2 \tag{case}\\
