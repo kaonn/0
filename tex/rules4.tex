@@ -73,6 +73,7 @@
 \newcommand{\paircasecst}[4]{\irl{case} \; #1\; \{(#2;#3) \hookrightarrow #4\}}
 \newcommand{\na}[1]{\mathsf{no\_alias}(#1)}
 \newcommand{\nr}[1]{\mathsf{no\_ref}(#1)}
+\newcommand{\safe}[1]{\mathsf{safe}(#1)}
 \newcommand{\dist}[1]{\mathsf{disjoint}(#1)}
 \newtheorem{lemma}[theorem]{Lemma}
 
@@ -175,12 +176,15 @@ $\forall x,y \in \overline V$, $x \ne y$. \text{ Let } $r_x = reach_H(\overline 
 \item $\ms{set}(r_x), \ms{set}(r_y)$
 \item $r_x \cap r_y = \emptyset$
 \end{enumerate}
-\item[$\ms{no\_ref}(V,H,v)$: ] $(reach_{H}(v)) \cap (\bigcup_{x \in \overline V} reach_{H}(V(x))) = \emptyset$.
+\item[$\ms{no\_ref}(V,H,v)$: ] $\forall x \in \overline V$. $reach_{H}(V^{\star}(x)) \cap reach_{H}(v) = \emptyset$.
+\item [$\ms{safe}(V,H,F)$: ] $\forall x \in \overline V$. $reach_{H}(V^{\star}(x)) \cap F = \emptyset$
 \item[$\dist{\mathcal{C}}$: ] $\forall X,Y \in \mathcal{C}$. $X \cap Y = \emptyset$ 
 \end{description}
 
-For a stack $V$ and a heap $H$, whenever $\na{V,H}$ holds, visually, one can think of the situation as the following: the induced graph of heap $H$ with variables on the stack as additional leaf nodes is a forest: a disjoint union of arborescences (directed trees); consequently, there is at most one path from a live variable on the stack $V$ to a location in $H$ by following the pointers.
+\noindent
+For a stack $V$ and a heap $H$, whenever $\na{V,H}$ holds, visually, one can think of the situation as the following: the induced graph of heap $H$ with variables on the stack as additional leaf nodes is a forest: a disjoint union of arborescences (directed trees); consequently, there is at most one path from a live variable on the stack $V$ to a location in $H$ by following the pointers.\\
 
+\noindent
 Next, we define $locs_{V,H}$ using the previous notion of reachability. $size$ calculates the number of cells a value occupies. $copy(H,L,v)$ takes a heap $H$, a set of locations $L$, and a value $v$, and returns a new heap $H'$ and a location $l$ such that $l$ maps to $v$ in $H'$.
 \begin{align*}
   &locs_{V,H}(e) = \bigcup\limits_{x \in FV(e)} reach_H(V(x))\\\\
@@ -191,10 +195,10 @@ Next, we define $locs_{V,H}$ using the previous notion of reachability. $size$ c
   &\quad\quad\mathsf{ where }\; |L_1| = size(v_1) \;,|L_2| = size(v_2)\\
   &\quad\mathsf{let }\; H_1 = copy(H,L_1,v_1) \\
   &\quad\mathsf{let }\; H_2 = copy(H_1,L_2,v_2) \;\mathsf{in}\\
-  &\quad H_2[l \mapsto v]\\
+  &\quad H_2\{l \mapsto v\}\\
   &copy(H,L,v) =\\
   &\quad\mathsf{let }\; l \in H\; \mathsf{in}\\
-  &\quad H[l \mapsto v]\\
+  &\quad H\{l \mapsto v\}\\
 \end{align*}
 
 \section{Garbage collection semantics}
@@ -271,9 +275,11 @@ Next, we define $locs_{V,H}$ using the previous notion of reachability. $size$ c
 }
 
 \infern{
-  V(x) = \pairexcst{v_1}{v_2}\\
+  V(x) = (\pairexcst{v_1}{v_2},\irl{alive})\\
   g = \{l \in H \mid l \notin F \cup R \cup locs_{V,H}(e)\}\\
-  V[x_1 \mapsto v_1, x_2 \mapsto v_2],H,R,F \cup g \; \vdash e \Downarrow v,H',F'
+  V' = V\{x \mapsto (\pairexcst{v_1}{v_2},\irl{dead})\}\\
+  V'' = V'[x_1 \mapsto (v_1,\irl{alive}), x_2 \mapsto (v_2, \irl{alive})]\\
+  V'',H,R,F \cup g \; \vdash e \Downarrow v,H',F'
 }{
   V,H,R,F \; \vdash \paircasecst{x}{x_1}{x_2}{e} \Downarrow v, H' ,F'
 }
@@ -286,19 +292,19 @@ Next, we define $locs_{V,H}$ using the previous notion of reachability. $size$ c
 }
 
 \infern{
-  v = \pairexcst{V(x_1)}{V(x_2)}\\
+  v = \pairexcst{V^{\star}(x_1)}{V^{\star}(x_2)}\\
   L \sqcup \{l\}\subseteq F\\
   |L| = size_H(v)\\
   F' = F \setminus (L \sqcup \{l\})\\
   H' = copy(H,L,v)\\
-  H'' = H'[l \mapsto v]
+  H'' = H'\{l \mapsto v\}
 }{
   V,H,R,F \; \vdash \consexcst{x_1}{x_2} \Downarrow l,H'' ,F'
 }
 
 \infern{
   V(x) = \irl{Null}\\
-  g = \{l \in H \mid l \notin F \cup R \cup locs_{V',H}(e_1)\}\\
+  g = \{l \in H \mid l \notin F \cup R \cup locs_{V,H}(e_1)\}\\
   V,H,R,F \cup g \; \vdash e_1 \Downarrow v, H',F' \\
 }{
   V,H,R,F \; \vdash \listcaseexcst{x}{e_1}{x_h}{x_t}{e_2} \Downarrow v,H',F'
@@ -320,7 +326,7 @@ Next, we define $locs_{V,H}$ using the previous notion of reachability. $size$ c
   V,H,R',F \vdash e_1 \Downarrow v_1,H_1,F_1\\
   V' = V\{z \mapsto (l,\irl{dead}) \mid z \in FV(e_1) \land V(z) = (l,\_)\}\\
   V'' = V'[x \mapsto (v_1, \irl{alive})]\\
-  R'' = R \cup locs_{V',H_1}(e_2)\\
+  R'' = R \cup locs_{V'',H_1}(e_2)\\
   g = \{ l \in H_1 \mid l \notin R'' \cup F_1 \}\\
   V'',H_1,R, F_1 \cup g \vdash e_2 \Downarrow v_2,H_2,F_2 \\
 }{
@@ -459,33 +465,39 @@ Induction on the evaluation judgement.
 
 
 \begin{lemma}
-For all stacks $V$ and heaps $H$, if  $V,H,R,F \; \vdash e \Downarrow v, H', F'$, $\Sigma^{\dagger}; \Gamma^{\dagger} \vdash e : B^{\dagger}$, $H \vDash V : \Gamma$, $\na{V,H}$, and $\dist{\{R,F,locs_{V,H}(e)\}}$, then $\ms{set}(reach_{H'}(v))$, $\dist{\{R,F',reach_{H'}(v)\}}$, $\ms{no\_ref}(FV(e) \unlhd V ,H,v)$, and $\na{V,H'}$.
+For all stacks $V$ and heaps $H$, if  $V,H,R,F \; \vdash e \Downarrow v, H', F'$, $\Sigma; \Gamma \vdash e : B^{\dagger}$, $H \vDash V : \Gamma$, $\na{FV(e) \lhd V,H}$, $\safe{FV(e) \lhd V,H,F}$, and $\dist{\{R,F,locs_{V,H}(e)\}}$, then $\ms{set}(reach_{H'}(v))$, $\dist{\{R,F',reach_{H'}(v)\}}$, and $\na{FV(e) \lhd V,H'}$.
 \end{lemma}
 
 \begin{proof}
 Nested induction on the evaluation judgement and the typing judgement.\\
 \begin{description}
   \item[Case 1: E:Var]
-  \begin{align}
-  &
-  \end{align}
+  \begin{align*}
+  &\text{Suppose } H \vDash V : \Gamma, \na{V,H}, \safe{FV(e) \lhd V,H,F}, \dist{\{R,F,locs_{V,H}(e)\}}\\
+  &\ms{set}(reach_{H}(v)) \tag{$\na{V,H}$}\\
+  &\dist{\{R,F,reach_{H}(v)\}} \tag{$\dist{\{R,F,locs_{V,H}(e)\}}$}\\
+  &\na{V,H} \tag{Sp.}\\
+  &\text{NTS } \nr{FV(e) \unlhd V, H, v)}\\
+  &\text{Let } x' \in dom(\overline{FV(e) \unlhd V}) \text{ be arb.}\\
+  &x' \in dom(\overline{\{x\} \unlhd V})\\
+  &x' \ne x\\
+  &x' \in \overline V\\
+  &x \in \overline V \tag{Ad.}\\
+  &reach_H(V(x')) \cap reach_H(V(x)) = \emptyset \tag{$\na{V,H}$}\\
+  &\text{Thus } \nr{FV(e) \unlhd V, H, v)}
+  \end{align*}
   \item[Case 2: E:Const*]
   Due to similarity, we show only for E:ConstI
   \begin{align*}
-  
+  &\text{Suppose } H \vDash V : \Gamma, \na{V,H}, \safe{FV(e) \lhd V,H,F},\dist{\{R,F,locs_{V,H}(e)\}}\\
+  &\ms{set}(reaach_{H}(v)) \tag{$reach_H(v) = \emptyset$}\\
+  &\dist{\{R,F,\emptyset\}} \tag{$\dist{R,F}$}\\
+  &\nr{FV(e) \unlhd V,H,v} \tag{$reach_H(v) = \emptyset$}\\
+  &\na{V,H}
   \end{align*}
   \item[Case 4: E:App]
-  \item[Case 5: E:CondT]
-  \begin{align*}
-  &\Gamma = \Gamma', x : \irl{bool} \tag{ad.}\\
-  &H \vDash V : \Gamma' \tag{def of W.F.E}\\
-  &\Sigma; \Gamma' \sststile{q'}{q} e_t : B \tag{ad.}\\
-  &V,H,R,F \cup g\; \vdash e_t \Downarrow v, H',F' \tag{ad.}\\
-  &|F \cup g| - |F'| \le \Phi_{V,H}(\Gamma) +q - (\Phi_{H'}(v:B) + q') \tag{IH}\\
-  &|F| - |F'| \le \Phi_{V,H}(\Gamma) +q - (\Phi_{H'}(v:B) + q') \\
-  \end{align*}
-  \item[Case 6: E:CondF] 
-  Similar to E:CondT
+  \item[Case 5: E:CondT] Similar to E:MatNil
+  \item[Case 6: E:CondF] Similar to E:CondT
   \item [Case 7: E:Let]
   \begin{align*}
   &V,H,R,F \; \vdash \irl{let}(e_1; x : \tau.e_2) \Downarrow v_2,H_2,F_2 \tag{case}\\
@@ -493,18 +505,19 @@ Nested induction on the evaluation judgement and the typing judgement.\\
   &\Sigma; \Gamma_1,\Gamma_2 \vdash \irl{let}(e_1; x : \tau.e_2) : B \tag{case}\\
   &\Sigma; \Gamma_1 \vdash e_1 : A \tag{ad.}\\
   &\Sigma; \Gamma_2, x : A \vdash e_2 : B \tag{ad.}\\
-  &\text{Suppose } \na{V,H}, \dist{\{R,F,locs_{V,H}(e)\}}, \text{ and } H \vDash V : \Gamma\\
+  &\text{Suppose } \na{V,H}, \dist{\{R,F,locs_{V,H}(e)\}}, \safe{FV(e) \lhd V,H,F} \text{ and } H \vDash V : \Gamma\\
   &H \vDash V : \Gamma_1 \tag{def of W.D.E}\\
   &F \cap R' = \emptyset \tag{$F \cap locs_{V,H}(e) = \emptyset$ and $locs_{V,H}(e_1) \subseteq locs_{V,H}(e)$}\\
   &R' \cap locs_{V,H}(e_1) = \emptyset \tag{$\na{V,H}$}\\
   &F \cap locs_{V,H}(e_1) = \emptyset \tag{Sp.}\\
   &\text{Thus we have } \dist{R',F,locs_{V,H}(e_1)}\\
-  &\text{By IH, } \ms{set}(reach_{H_1}(v_1)), \dist{\{R',F_1,reach_{H_1}(v_1)\}}, \nr{V,H,v},\text{ and } \na{V,H_1}\\
+  &\safe{FV(e_1) \lhd V,H,F} \tag{$FV(e_1) \subseteq FV(e)$}\\
+  &\text{By IH, } \ms{set}(reach_{H_1}(v_1)), \dist{\{R',F_1,reach_{H_1}(v_1)\}}, \text{ and } \na{V,H_1}\\
   &(F_1 \cup g) \cap R = \emptyset \tag{ since  $F_1 \cap R' = \emptyset$ together with def. of $g$ and $R'$ }\\
-  &\text{NTS } R \cap locs_{V',H_1}(e_2) = \emptyset\\
-  &\text{Let } l \in locs_{V',H_1}(e_2) \text{ be arb.}\\
-  &\textbf{case: } l \in reach_{H_1}(V'(x')) \text{ for some $x' \in FV(e_2)$ where } x' \ne x\\
-  &\quad x' \in V \tag{def of $V'$}\\
+  &\text{NTS } R \cap locs_{V'',H_1}(e_2) = \emptyset\\
+  &\text{Let } l \in locs_{V'',H_1}(e_2) \text{ be arb.}\\
+  &\textbf{case: } l \in reach_{H_1}(V''(x')) \text{ for some $x' \in FV(e_2)$ where } x' \ne x\\
+  &\quad x' \in V \tag{def of $V''$}\\
   &\quad l \in reach_{H}(V(x')) \tag{Lemma 1.2}\\
   &\quad x' \in FV(e) \tag{def of $FV$}\\
   &\quad l \in locs_{V,H}(e) \tag{def of $locs_{V,H}$}\\
@@ -513,15 +526,83 @@ Nested induction on the evaluation judgement and the typing judgement.\\
   &\quad l \in reach_{H_1}(v_1) \tag{def of $V'$}\\
   &\quad l \notin R' \tag{$\dist{\{R',F_1,reach_{H_1}(v_1)\}}$}\\
   &\quad l \notin R \tag{since  $R \subseteq R'$}\\
-  &\text{Thus }  R \cap locs_{V',H_1}(e_2) = \emptyset\\
+  &\text{Thus }  R \cap locs_{V'',H_1}(e_2) = \emptyset\\
   &(F_1 \cup  g) \cap R = \emptyset \tag{ by def of  $g$ and  $\dist{\{R',F_1,reach_{H_1}(v_1)\}}$}\\
-  &\text{Hence } \dist{\{R, F_1 \cup g, locs_{V',H_1}(e_2)\}}\\
+  &\text{Hence } \dist{\{R, F_1 \cup g, locs_{V'',H_1}(e_2)\}}\\
   &H \vDash V : \Gamma_2 \tag{def of W.D.E}\\
-  &\text{NTS } \na{V',H_1}\\
-  &\text{TODO}\\
+  &\text{NTS } \safe{FV(e_2) \lhd V'', H_1, F_1 \cup g}\\
+  &\text{Let } x' \in dom(\overline{FV(e_2) \lhd V''}) \text{ be arb.}\\
+  &\textbf{case: } x' \ne x\\
+  &\quad x' \in FV(\irl{lam}(x : \tau.e_2) \tag{def of $FV$}\\
+  &\quad reach_{H}(V''^{\star}(x')) \subseteq R' \tag{def of $R'$}\\
+  &\quad reach_{H}(V''^{\star}(x')) \cap F_1 = \emptyset \tag{\dist{\{R',F_1\}}}\\
+  &\quad reach_{H}(V''^{\star}(x')) \cap (F_1 \cup g) = \emptyset \tag{def of $g$}\\
+  &\quad reach_{H_1}(V''^{\star}(x')) \cap (F_1 \cup g) = \emptyset \tag{Lemma 1.2}\\
+  &\textbf{case: } x' = x\\
+  &\quad reach_{H}(V''^{\star}(x)) \cap F_1 = \emptyset \tag{\dist{\{F_1,reach_{H}(v_1)\}}}\\
+  &\quad reach_{H}(V''^{\star}(x)) \cap (F_1 \cup g) = \emptyset \tag{def of $g$}\\
+  &\quad reach_{H_1}(V''^{\star}(x)) \cap (F_1 \cup g) = \emptyset \tag{Lemma 1.2}\\
+  &\text{Thus } \safe{FV(e_2) \lhd V'', H_1, F_1 \cup g}\\
+  &\text{NTS } \na{V'',H_1}\\
+  &\text{Let } x_1, x_2 \in \overline V'', x_1 \ne x_2, r_{x_1} = reach_H(V''^{\star}(x_1)), r_{x_2} = reach_H(V''^{\star}(x_2))\\
+  &\textbf{case: } x_1 \ne x, x_2 \ne x\\
+  &\text{Have } (1),(2) \tag{$\na{V,H}$}\\
+  &\textbf{case: } x_1 = x, x_2 \ne x\\
+  &\quad \ms{set}(r_{x_1}) \tag{$\ms{set}(reach_{H_1}(v_1))$}\\
+  &\quad \ms{set}(r_{x_2}) \tag{$\na{V,H}$}\\
+  &\quad x_2 \notin FV(e_1) \tag{def of $V'$}\\
+  &\quad x_2 \in FV(\irl{lam}(x : \tau.e_2) \tag{def of $FV$}\\
+  &\quad r_{x_2} \subseteq R' \tag{def of $R'$}
+  &\quad r_{x_1} \cap r_{x_2} = \emptyset \tag{$\dist{\{R',reach_{H'}(v_1)\}}$, Lemma 1.2}\\
+  &\text{Thus } \na{V'',H_1}\\
   &V',H_1,R, F_1 \cup g \vdash e_2 \Downarrow v_2,H_2,F_2 \tag{ad.}\\
-  &\text{By IH, } \ms{set}(reach_{H_2}(v_2)), \dist{\{R,F_2,reach_{H_2}(v_2)\}}, \nr{V',H_2,v_2},\text{ and } \na{V',H_2}\\
-  &\nr{V,H_2,v_2} \text{ and } \na{V,H_2} \tag{$\overline V \subseteq \overline V'$}\\
+  &\text{By IH, } \ms{set}(reach_{H_2}(v_2)), \dist{\{R,F_2,reach_{H_2}(v_2)\}}, \na{V'',H_2}\\
+  &\text{NTS } \na{V,H_2}\\
+  
+  \end{align*}
+  \item[Case 8: E:Pair]
+  Similar to E:Var
+  \item[Case 9: E:MatP]
+  Similar to E:MatCons
+  \item[Case 10: E:Nil]
+  Similar to E:Const*
+  \item[Case 11: E:Cons]
+  \begin{align*}
+  &V,H,R,F \; \vdash e \Downarrow l,H'',F' \tag{case}\\
+  &\text{Suppose } H \vDash V : \Gamma, \na{V,H}, \safe{FV(e) \lhd V,H,F} \dist{\{R,F,locs_{V,H}(e)\}}\\
+  &\ms{set}(V^{\star}(x_1)),\ms{set}(V^{\star}(x_2)) \tag{$\na{V,H}$}\\
+  &\ms{set}(reach_H(v)) \tag{def of $\ms{set}$}\\
+  &\ms{set}(reach_H''(v)) \tag{Lemma 1.2}\\
+  &l \notin reach_H''(V) \tag{$l \in F$ and $\safe{V,H,F}$}\\
+  &\ms{set}(reach_H''(l)) \tag{def of $\ms{set}$ and $reach$}\\
+  &\text{NTS } \dist{\{R,F',reach_{H''}(l)\}}\\
+  &R \cap F' = \emptyset \tag{$F' \subseteq F$}\\
+  &l \notin R \tag{$l \in F$}\\
+  &R \cap reach_{H''}(v) = \emptyset \tag{$R \cap locs_{V,H}(e) = \emptyset$}\\
+  &R \cap reach_{H''}(l) = \emptyset \tag {def of $reach$}\\
+  &l \notin F' \tag{similar}\\
+  &\text{Thus } \dist{\{R,F',reach_{H''}(l)\}}\\
+  &\text{NTS } \nr{FV(e) \unlhd V, H', l}\\
+  &\text{Let } x \in \overline{FV(e) \unlhd V} \text{ be arb.}\\
+  &l \notin reach_{H''}(V^{\star}(x)) \tag{$\safe{V,H,F}$}\\
+  &reach_{H''}(V^{\star}(x)) \cap reach_{H''}(v) = \emptyset \tag{$x \notin \{x_1,x_2\}$ and $\na{V,H}$}\\
+  &\text{Thus } \nr{FV(e) \unlhd V, H', l}\\
+  &\na{V,H''} \tag{Lemma 1.2}\\
+  \end{align*}
+  \item[Case 12: E:MatNil]
+  \begin{align*}
+  &\text{Suppose } H \vDash V : \Gamma, \na{V,H}, \safe{FV(e) \lhd V,H,F} \dist{\{R,F,locs_{V,H}(e)\}}\\
+  &\Sigma; \Gamma' \vdash e_1 : B \tag{ad.}\\
+  &V,H,R,F \cup g \; \vdash e_1 \Downarrow v, H',F' \tag{ad.}\\
+  &H \vDash V : \Gamma' \tag{def of W.D.E}\\
+  &\text{WTS } \safe{FV(e_1) \lhd V,H,F \cup g}\\
+  &\text{Let } x' \in \overline{FV(e_1) \lhd V} \text{ be arb.}\\
+  &reach_{H}(V^{\star}(x)) \cap F = \emptyset \tag{$FV(e_1) \subseteq FV(e)$ and $\safe{FV(e) \lhd V,H,F}$}\\
+  &reach_H(V^{\star}(x)) \cap g = \emptyset \tag{def of $g$}\\
+  &\text{Thus } \safe{FV(e_1) \lhd V,H,F \cup g}\\
+  &\dist{\{R,F \cup g,locs_{V,H}(e_1)\}} \tag{def of $g$ and $locs_{V,H}(e_1) \subseteq locs_{V,H}(e)$}\\
+  &\ms{set}(reach_{H'}(v)), \dist{\{R,F',reach_{H'}(v)\}},\nr{FV(e_1) \unlhd V,H',v} \na{V,H'} \tag{IH}\\
+  &\nr{FV(e) \unlhd V,H',v} \tag{$FV(e_1) \subseteq FV(e)$}\\
   \end{align*}
   \item [Case 13: E:MatCons]
   \begin{align*}
