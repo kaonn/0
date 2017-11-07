@@ -73,6 +73,8 @@
 \newcommand{\paircasecst}[4]{\irl{case} \; #1\; \{(#2;#3) \hookrightarrow #4\}}
 \newcommand{\na}[1]{\mathsf{no\_alias}(#1)}
 \newcommand{\nr}[1]{\mathsf{no\_ref}(#1)}
+\newcommand{\stable}[1]{\mathsf{stable}(#1)}
+\newcommand{\set}[1]{\mathsf{set}(#1)}
 \newcommand{\safe}[1]{\mathsf{safe}(#1)}
 \newcommand{\dist}[1]{\mathsf{disjoint}(#1)}
 \newtheorem{lemma}[theorem]{Lemma}
@@ -80,19 +82,28 @@
 \title{15-312 Assignment \hwnumber}
 \author{\myname\\(\myandrewid)}
 \date{\today}
+\setlength{\parindent}{0pt}
 
 \begin{document}
 \maketitle
+\pagenumbering{gobble}
+
+\section{Introduction}
+
+\noindent
+In this paper, we propose a model for deriving asymptotically tight bounds for first order functional programs. We choose a fragment of OCaml as the target language. The abstract and concrete syntax of the language is show below. Note that we only allow first order functions of type $\tau_1 to \tau_2$, where $\tau_1$ and $\tau_2$ are base types: unit, bool, product, or lists. 
 
 \[
 \begin{array}{r l l l l}
-\ms{Type} & \tau \,\,\,\,\, ::= \\
+\ms{Base\; types} & \tau \,\,\,\,\, ::= \\
 	& \irl{nat}                	 			& \irl{nat}											& \text{naturals}\\
 	& \unittyabt                	 			& \unittycst										& \text{unit}\\
   & \booltyabt                       & \booltycst                    & \text{boolean}\\
   & \prodtyabt{\tau_1}{\tau_2}       & \prodtycst{\tau_1}{\tau_2}    & \text{product}\\
-	&\irl{arr}(\tau_1;\tau_2) 				& \arrtycst{\tau_1}{\tau_2} 									& \text{function}\\
-  &\listtyabt{\tau}		& \listtycst{\tau}											& \text{list}\\
+  &\listtyabt{\tau}		& L(\tau)											& \text{list}\\
+  \\
+\ms{First\; order\; types} & \rho \,\,\,\,\, ::= \\
+	&\irl{arr}(\tau_1;\tau_2) 				& \arrtycst{\tau_1}{\tau_2} 									& \text{first order function}\\
 	 \\
 \ms{Exp}
         & e   \,\,\,\,\, ::= \\
@@ -134,18 +145,15 @@
 
 Model dynamics using judgement of the form:
 \[
-\fbox{$V,H,R,F \; \vdash e \Downarrow v, H', F'$}
+\fbox{$V,H,R,F \; \vdash_{\Sigma} e \Downarrow v, H', F'$}
 \]
 
 \noindent
 Where $V : \ms{Var} \to \ms{Val} \times \ms{State}$, $H : \ms{Loc} \to \ms{Val}$, $R \subseteq \ms{Loc}$, and $F \subseteq \ms{Loc}$. This can be read as: under stack $V$, heap $H$, roots $R$,
-freelist $F$, the expression $e$ evaluates to $v$, and engenders a new heap $H'$ and freelist $F'$.\\
+freelist $F$, and signature $\Sigma$, the expression $e$ evaluates to $v$, and engenders a new heap $H'$ and freelist $F'$. Because the signature $\Sigma$ for the set of the first order functions does not change during evaluation, we drop the subscript $\Sigma$ from $\vdash_{\Sigma}$ when the context of evaluation is clear. It is convenient to think of the evaluation judgement $\vdash$ as being indexed by a family of signatures $\Sigma$'s, each of which is a set of ``top-level'' first-order declarations to be used during evaluation.\\
 
 \noindent 
-For a partial map $f : A \to B$, we write $dom$ for the defined values of $f$. Sometimes we shorten $x \in dom(f)$ to $x \in f$. We write $f[x \mapsto y]$ for the extension of $f$ where $x$ is mapped to $y$, with the constraint that $x \notin dom(f)$. We write $f\{x \mapsto y\}$ for the update map, which is the same as the extension map, except that $x$ is remapped to $y$ when $x \in dom(f)$. Write $C \lhd f : C \to B$ for the domain restriction of $f$ to $C$ where $C \subseteq A$. Write $C \unlhd f : (A \setminus C) \to B$ for the domain anti-restriction of $f$ to $C$.\\
-
-\noindent
-Note that the stack maps each variable to a value $v$ \emph{and} a state $s$. If $s$ is \irl{alive}, then $v$ can still be used, while $\irl{dead}$ indicates that $v$ is already used and cannot be used again. We write $\overline V = \{x \in V \mid V(x) = (\_,\irl{alive}) \}$ for the variables in $V$ that are alive, and $V^{\star} : \overline V \to \ms{Val}$ for the associated restricted map $x \mapsto fst(V(x))$ which projects out the value component of live variables.\\ 
+For a partial map $f : A \to B$, we write $dom$ for the defined values of $f$. Sometimes we shorten $x \in dom(f)$ to $x \in f$. We write $f[x \mapsto y]$ for the extension of $f$ where $x$ is mapped to $y$, with the constraint that $x \notin dom(f)$. \\
 
 \noindent
 Roots represents the set of locations required to compute the continuation \emph{excluding} the current expression.
@@ -153,7 +161,7 @@ We can think of roots as the heap allocations necessary to compute the context w
 by the current expression.\\
 
 \noindent
-In order prove soundness of the type system, we need some auxiliary judgements to defining properties of a heap. Below we define $reach : Val \to \{\{Loc\}\}$ that maps stack values its the root \emph{multiset}, the multiset of locations that's already on the stack. 
+In order prove soundness of the type system, we need some auxiliary judgements to defining properties of a heap. Below we define $reach : Val \to \{\{\ms{Loc}\}\}$ that maps stack values its the root \emph{multiset}, the multiset of locations that's already on the stack. 
 
 \noindent
 Next we define reachability of values:
@@ -163,33 +171,41 @@ Next we define reachability of values:
 &reach_H(l) = \{l\} \uplus reach_H(H(l))\\
 &reach_H(\_) = \emptyset
 \end{align*}
-For a multiset $S$, we write $\mu_S : S \to \mathbb{N}$ for the multiplicity function of $S$, which maps each element to the count of its occurence. If $\forall s \in S. \mu(s) = 1$, then $S$ is a property set, and we denote it by $\ms{set}(S)$. Addtionally, $A \uplus B$ denotes counting union of sets where $\mu_{A \uplus B} (s) = \mu_A (s) + \mu_B (s)$, and $A \cup B$ denotes the usual union where $\mu_{A \cup B}(s) = \max{(\mu_A(s),\mu_B(s))}$. For the disjoint union of sets $A$ and $B$, we write $A \sqcup B$.\\
+For a multiset $S$, we write $\mu_S : S \to \mathbb{N}$ for the multiplicity function of $S$, which maps each element to the count of its occurence. If $\mu_S(x) \ge 1$ for a multiset $S$, then we write $x \in S$ as in the usual set membership relation. If for all  $s \in S$, $\mu(s) = 1$, then $S$ is a property set, and we denote it by $\ms{set}(S)$. Addtionally, $A \uplus B$ denotes counting union of sets where $\mu_{A \uplus B} (s) = \mu_A (s) + \mu_B (s)$, and $A \cup B$ denotes the usual union where $\mu_{A \cup B}(s) = \max{(\mu_A(s),\mu_B(s))}$. For the disjoint union of sets $A$ and $B$, we write $A \sqcup B$.\\
 
 \noindent
-Next, we define the predicates $\ms{no\_alias}$, $\ms{no\_ref}$, and $\ms{disjoint}$:
+Next, we define the predicates $\ms{no\_alias}$, $\ms{stable}$, and $\ms{disjoint}$:
 \begin{description}
 % \item [$\ms{forest}(H)$: ]\\
 % $\forall l,l_1,l_2 \in H$, if $H \vDash p : l_1 \leadsto l$ and $H \vDash q : l_2 \leadsto l$, then $l_1 = l_2$ and $H \vDash p \equiv q : l_1 \leadsto l$.
 \item[$\na{V,H}$: ] \\
-$\forall x,y \in \overline V$, $x \ne y$. \text{ Let } $r_x = reach_H(\overline V(x))$, $r_y = reach_H(\overline V(y))$. Then:
+$\forall x,y \in V$, $x \ne y$. \text{ Let } $r_x = reach_H(V(x))$, $r_y = reach_H(V(y))$. Then:
 \begin{enumerate}
 \item $\ms{set}(r_x), \ms{set}(r_y)$
 \item $r_x \cap r_y = \emptyset$
 \end{enumerate}
-\item[$\ms{no\_ref}(V,H,v)$: ] $\forall x \in \overline V$. $reach_{H}(V^{\star}(x)) \cap reach_{H}(v) = \emptyset$.
-\item [$\ms{safe}(V,H,F)$: ] $\forall x \in \overline V$. $reach_{H}(V^{\star}(x)) \cap F = \emptyset$
+\item[$\ms{stable}(R,H,H')$: ] $\forall l \in R$. $H(l) = H'(l)$.
+\item [$\ms{safe}(V,H,F)$: ] $\forall x \in V$. $reach_{H}(V(x)) \cap F = \emptyset$
 \item[$\dist{\mathcal{C}}$: ] $\forall X,Y \in \mathcal{C}$. $X \cap Y = \emptyset$ 
 \end{description}
 
-\noindent
 For a stack $V$ and a heap $H$, whenever $\na{V,H}$ holds, visually, one can think of the situation as the following: the induced graph of heap $H$ with variables on the stack as additional leaf nodes is a forest: a disjoint union of arborescences (directed trees); consequently, there is at most one path from a live variable on the stack $V$ to a location in $H$ by following the pointers.\\
 
-\noindent
-Next, we define $locs_{V,H}$ using the previous notion of reachability. $size$ calculates the number of cells a value occupies. $copy(H,L,v)$ takes a heap $H$, a set of locations $L$, and a value $v$, and returns a new heap $H'$ and a location $l$ such that $l$ maps to $v$ in $H'$.
-\begin{align*}
+First, we define $FV(e)$, the multiset of free variables of $e$. It is defined inductively over the structure of $e$; the only unusual thing is that multiple occurences of a free variable $x$ in $e$ will be reflected in the multiplicity of $FV(e)$.\\
+
+Next, we define $locs_{V,H}$ using the previous notion of reachability. 
+\begin{equation*}
   &locs_{V,H}(e) = \bigcup\limits_{x \in FV(e)} reach_H(V(x))\\\\
+\end{equation*}
+
+$size$ calculates the number of cells a value occupies.
+\begin{align*}
   &size(\pairexcst{v_1}{v_2}) = size(v_1) + size(v_2)\\
-  &size(\_) = 1\\\\
+  &size(\_) = 1
+\end{align*}
+
+$copy(H,L,v)$ takes a heap $H$, a set of locations $L$, and a value $v$, and returns a new heap $H'$ and a location $l$ such that $l$ maps to $v$ in $H'$.
+\begin{align*}
   &copy(H,L,\pairexcst{v_1}{v_2}) =\\
   &\quad\mathsf{let }\; L_1 \sqcup L_2 \subseteq L\\
   &\quad\quad\mathsf{ where }\; |L_1| = size(v_1) \;,|L_2| = size(v_2)\\
@@ -206,7 +222,7 @@ Next, we define $locs_{V,H}$ using the previous notion of reachability. $size$ c
 \begin{mathpar}
 
 \infern
-{ V(x) = (v, \irl{alive})\\
+{ V(x) = v\\
 }
 {V,H,R,F \; \vdash x \Downarrow v,H,F}
 
@@ -232,17 +248,17 @@ Next, we define $locs_{V,H}$ using the previous notion of reachability. $size$ c
 }
 
 \infern{
-  V(x) = \irl{T}\\
+  V = V'[x \mapsto \irl{T}]\\
   g = \{l \in H \mid l \notin F \cup R \cup locs_{V,H}(e_1)\}\\
-  V,H,R,F \cup g\; \vdash e_1 \Downarrow v, H',F'
+  V',H,R,F \cup g\; \vdash e_1 \Downarrow v, H',F'
 }{
   V,H,R,F \; \vdash \ifexabt{x}{e_1}{e_2} \Downarrow v, H',F'
 }
 
 \infern{
-  V(x) = \irl{F}\\
+  V = V'[x \mapsto \irl{F}]\\
   g = \{l \in H \mid l \notin F \cup R \cup locs_{V,H}(e_2)\}\\
-  V,H,R,F \cup g \; \vdash e_2 \Downarrow v, H',F'
+  V',H,R,F \cup g \; \vdash e_2 \Downarrow v, H',F'
 }{
   V,H,R,F \; \vdash \ifexabt{x}{e_1}{e_2} \Downarrow v, H' ,F'
 }
@@ -250,17 +266,8 @@ Next, we define $locs_{V,H}$ using the previous notion of reachability. $size$ c
 % function
 
 \infern{
-  l \in F\\
-  F' = F \setminus \{l\}\\
-  H' = H[l \mapsto (V,x.e)]
-}{
-  V,H,R,F \; \vdash \irl{lam}(x : \tau.e) \Downarrow l,H' ,F'
-}
-
-\infern{
-  V(f) = (V_1, x.e) \\
-  V(x) = v_1 \\
-  V_1[x \mapsto v_1], H, R \; \vdash e \Downarrow v, H',F'
+  V = V'[x \mapsto v']\\
+  V'[y_f \mapsto v'],H,R,F \; \vdash e_f \Downarrow v,H',F'\\
 }{
   V,H,R,F \; \vdash \appcst{f}{x} \Downarrow v,H',F'
 }
@@ -275,10 +282,9 @@ Next, we define $locs_{V,H}$ using the previous notion of reachability. $size$ c
 }
 
 \infern{
-  V(x) = (\pairexcst{v_1}{v_2},\irl{alive})\\
+  V = V'[x \mapsto \pairexcst{v_1}{v_2}]\\
   g = \{l \in H \mid l \notin F \cup R \cup locs_{V,H}(e)\}\\
-  V' = V\{x \mapsto (\pairexcst{v_1}{v_2},\irl{dead})\}\\
-  V'' = V'[x_1 \mapsto (v_1,\irl{alive}), x_2 \mapsto (v_2, \irl{alive})]\\
+  V'' = V'[x_1 \mapsto v_1, x_2 \mapsto v_2]\\
   V'',H,R,F \cup g \; \vdash e \Downarrow v,H',F'
 }{
   V,H,R,F \; \vdash \paircasecst{x}{x_1}{x_2}{e} \Downarrow v, H' ,F'
@@ -289,10 +295,17 @@ Next, we define $locs_{V,H}$ using the previous notion of reachability. $size$ c
 \infern{
 }{
   V,H,R,F \; \vdash \nilexabt \Downarrow \irl{val(Null)},H,F
+} 
+
+\infern{
+  g = reach_H(v)\\
+  V,H,R,F \cup g \; \vdash e \Downarrow v,H',F'
+}{
+  V[x \mapsto v],H,R,F \; \vdash \irl{drop}(x;e) \Downarrow v,H',F'
 }
 
 \infern{
-  v = \pairexcst{V^{\star}(x_1)}{V^{\star}(x_2)}\\
+  v = \pairexcst{V(x_1)}{V(x_2)}\\
   L \sqcup \{l\}\subseteq F\\
   |L| = size_H(v)\\
   F' = F \setminus (L \sqcup \{l\})\\
@@ -304,17 +317,20 @@ Next, we define $locs_{V,H}$ using the previous notion of reachability. $size$ c
 
 \infern{
   V(x) = \irl{Null}\\
+  V' \subseteq V\\
+  dom(V') = FV(e_1)\\
   g = \{l \in H \mid l \notin F \cup R \cup locs_{V,H}(e_1)\}\\
-  V,H,R,F \cup g \; \vdash e_1 \Downarrow v, H',F' \\
+  V',H,R,F \cup g \; \vdash e_1 \Downarrow v, H',F' \\
 }{
   V,H,R,F \; \vdash \listcaseexcst{x}{e_1}{x_h}{x_t}{e_2} \Downarrow v,H',F'
 }
 
 \infern{
-  V(x) = (l,\irl{alive}) \\
+  V(x) =  l\\
   H(l) = \pairexcst{v_h}{v_t} \\
-  V' = V\{x \mapsto (l,\irl{dead})\}\\
-  V'' = V'[x_h \mapsto (v_h,\irl{alive}), x_t \mapsto (v_t,\irl{alive})]\\
+  V' \subseteq V\\
+  dom(V') = FV(e_2) \setminus \{x_h,x_t\} \\
+  V'' = V'[x_h \mapsto v_h, x_t \mapsto v_t]\\
   g = \{l \in H \mid l \notin F \cup R \cup locs_{V'',H}(e_2)\}\\
   V'',H,R,F \cup g \; \vdash e_2 \Downarrow v, H',F' \\
 }{
@@ -322,16 +338,19 @@ Next, we define $locs_{V,H}$ using the previous notion of reachability. $size$ c
 }
 
 \infern{
-  R' = R \cup locs_{V,H}(\irl{lam}(x : \tau.e_2))\\
-  V,H,R',F \vdash e_1 \Downarrow v_1,H_1,F_1\\
-  V' = V\{z \mapsto (l,\irl{dead}) \mid z \in FV(e_1) \land V(z) = (l,\_)\}\\
-  V'' = V'[x \mapsto (v_1, \irl{alive})]\\
-  R'' = R \cup locs_{V'',H_1}(e_2)\\
-  g = \{ l \in H_1 \mid l \notin R'' \cup F_1 \}\\
-  V'',H_1,R, F_1 \cup g \vdash e_2 \Downarrow v_2,H_2,F_2 \\
+  V = V_1 \sqcup V_2\\
+  dom(V_1) = FV(e_1)\\
+  dom(V_2) = FV(\irl{lam}(x : \tau. e_2))\\
+  R' = R \cup locs_{V_2,H}(\irl{lam}(x : \tau.e_2))\\
+  V_1,H,R',F \vdash e_1 \Downarrow v_1,H_1,F_1\\
+  V_2' = V_2[x \mapsto v_1]\\
+  g = \{ l \in H_1 \mid l \notin F_1 \cup R \cup locs_{V_2',H_1}(e_2) \}\\
+  V_2',H_1,R, F_1 \cup g \vdash e_2 \Downarrow v_2,H_2,F_2 \\
 }{
   V,H,R,F \; \vdash \irl{let}(e_1; x : \tau.e_2) \Downarrow v_2,H_2,F_2
 }
+
+
 \end{mathpar}
 \section{Operational semantics}
 In order to prove the soundess of the type system, we also define a simplified operational semantics that does not account for garbage collection. 
@@ -345,25 +364,30 @@ This can be read as: under stack $V$, heap $H$ the expression $e$ evaluates to $
 \begin{mathpar}
 \infern{
   v = \pairexcst{V(x_1)}{V(x_2)}\\
+  (L \sqcup \{l\}) \cap dom(H) = \emptyset\\
   H',l = copy(H,L,v)\\
 }{
   V,H \; \vdash \consexcst{x_1}{x_2} \Downarrow l,H'
 }
 
 \infern{
-  V(x) = (l,\irl{alive}) \\
+  V(x) = l \\
   H(l) = \pairexcst{v_h}{v_t} \\
-  V' = V\{x \mapsto (l,\irl{dead})\}\\
-  V'' = V'[x_h \mapsto (v_h,\irl{alive}), x_t \mapsto (v_t,\irl{alive})]\\
+  V' \subseteq V\\
+  dom(V') = FV(e_2) \setminus \{x_h,x_t\}\\
+  V'' = V'[x_h \mapsto v_h, x_t \mapsto v_t]\\
   V'',H \; \vdash e_2 \Downarrow v, H' \\
 }{
   V,H \; \vdash \listcaseexcst{x}{e_1}{x_h}{x_t}{e_2} \Downarrow v,H'
 }
 
 \infern{
-  V,H \vdash e_1 \Downarrow v_1,H_1\\
-  V' = V[x \mapsto v_1]\\
-  V',H_1\vdash e_2 \Downarrow v_2,H_2\\
+  V = V_1 \sqcup V_2\\
+  dom(V_1) = FV(e_1)\\
+  dom(V_2) = FV(\irl{lam}(x : \tau. e_2))\\
+  V_1,H \vdash e_1 \Downarrow v_1,H_1\\
+  V_2' = V_2[x \mapsto v_1]\\
+  V_2',H_1\vdash e_2 \Downarrow v_2,H_2\\
 }{
   V,H \; \vdash \irl{let}(e_1; x : \tau.e_2) \Downarrow v_2,H_2
 }
@@ -441,12 +465,18 @@ The type system takes into account of garbaged collected cells by returning pote
   \Sigma; \Gamma_1 \sststile{p}{q} e_1 : A \\
   \Sigma; \Gamma_2, x : A \sststile{q'}{p} e_2 : B
 }(\text{L:Let})
+
+\inferr{
+  \Sigma; \Gamma, x : A \sststile{q'}{q} \irl{drop}(x;e) : B
+}{
+  \Sigma; \Gamma \sststile{q'}{q} e : B
+}(\text{L:Drop})
 \end{mathpar}
 
 Now if we take $\dagger :  L^p(A) \mapsto L(A)$ as the map that erases resource annotations, 
  we obtain a simpler typing judgement \fbox{$\Sigma^{\dagger}; \Gamma^{\dagger} \vdash e : B^{\dagger}$}.
 
-
+\newpage
 \section{Soundness for garbage collection semantics}
 
 We simplify the soundness proof of the type system for the general metric to one with monotonic resource.
@@ -456,16 +486,35 @@ We simplify the soundness proof of the type system for the general metric to one
 \label{a} If $\Sigma; \Gamma \sststile{q'}{q} e : B$, then $\Sigma^{\dagger}; \Gamma^{\dagger} \vdash e : B^{\dagger}$.
 \end{lemma}
 
-\begin{lemma}
-If $V,H,R,F \; \vdash e \Downarrow v, H', F'$, then $\forall x \in V$, $reach_H(V(x)) = reach_{H'}(V(x))$.
+\begin{lemma}\label{itm:linear}
+\label{a} If $\Sigma; \Gamma \sststile{q'}{q} e : B$, then $\set{FV(e)}$ and $dom(\Gamma) = FV(e)$.
 \end{lemma}
+
 \begin{proof}
-Induction on the evaluation judgement.
+Induction on the typing judgement.
 \end{proof}
 
+\begin{lemma}\label{itm:stable}
+For all values $v$, heaps $H$, $H'$, set of locations $R$, if $reach_H(v) \subseteq R$ and $\stable{R,H,H'}$, then $reach_H(v) = reach_{H'}(v)$.
+\end{lemma}
 
-\begin{lemma}
-For all stacks $V$ and heaps $H$, if  $V,H,R,F \; \vdash e \Downarrow v, H', F'$, $\Sigma; \Gamma \vdash e : B^{\dagger}$, $H \vDash V : \Gamma$, $\na{FV(e) \lhd V,H}$, $\safe{FV(e) \lhd V,H,F}$, and $\dist{\{R,F,locs_{V,H}(e)\}}$, then $\ms{set}(reach_{H'}(v))$, $\dist{\{R,F',reach_{H'}(v)\}}$, and $\na{FV(e) \lhd V,H'}$.
+\begin{proof}
+Induction on the structure of $v$.
+\end{proof}
+
+\begin{lemma}\label{itm:na}
+For all stacks $V$ and heaps $H$, let  $V,H,R,F \; \vdash e \Downarrow v, H', F'$, $\Sigma; \Gamma \vdash e : B$, and $H \vDash V : \Gamma$. Then given the following: 
+\begin{enumerate}
+\item $dom(V) = FV(e)$
+\item $\na{V,H}$, and
+\item $\dist{\{R,F,locs_{V,H}(e)\}}$
+\end{enumerate} 
+We have the follwoing: 
+\begin{enumerate}
+\item $\ms{set}(reach_{H'}(v))$
+\item $\dist{\{R,F',reach_{H'}(v)\}}$, and
+\item $\stable{R,H,H'}$
+\end{enumerate}
 \end{lemma}
 
 \begin{proof}
@@ -473,27 +522,20 @@ Nested induction on the evaluation judgement and the typing judgement.\\
 \begin{description}
   \item[Case 1: E:Var]
   \begin{align*}
-  &\text{Suppose } H \vDash V : \Gamma, \na{V,H}, \safe{FV(e) \lhd V,H,F}, \dist{\{R,F,locs_{V,H}(e)\}}\\
+  &\text{Suppose } H \vDash V : \Gamma, dom(V) = FV(e), \na{V,H}, \dist{\{R,F,locs_{V,H}(e)\}}\\
   &\ms{set}(reach_{H}(v)) \tag{$\na{V,H}$}\\
   &\dist{\{R,F,reach_{H}(v)\}} \tag{$\dist{\{R,F,locs_{V,H}(e)\}}$}\\
   &\na{V,H} \tag{Sp.}\\
-  &\text{NTS } \nr{FV(e) \unlhd V, H, v)}\\
-  &\text{Let } x' \in dom(\overline{FV(e) \unlhd V}) \text{ be arb.}\\
-  &x' \in dom(\overline{\{x\} \unlhd V})\\
-  &x' \ne x\\
-  &x' \in \overline V\\
-  &x \in \overline V \tag{Ad.}\\
-  &reach_H(V(x')) \cap reach_H(V(x)) = \emptyset \tag{$\na{V,H}$}\\
-  &\text{Thus } \nr{FV(e) \unlhd V, H, v)}
+  &\stable{R,H,H'} \tag{$H = H'$}
   \end{align*}
   \item[Case 2: E:Const*]
   Due to similarity, we show only for E:ConstI
   \begin{align*}
-  &\text{Suppose } H \vDash V : \Gamma, \na{V,H}, \safe{FV(e) \lhd V,H,F},\dist{\{R,F,locs_{V,H}(e)\}}\\
+  &\text{Suppose } H \vDash V : \Gamma, dom(V) = FV(e), \na{V,H},\dist{\{R,F,locs_{V,H}(e)\}}\\
   &\ms{set}(reaach_{H}(v)) \tag{$reach_H(v) = \emptyset$}\\
   &\dist{\{R,F,\emptyset\}} \tag{$\dist{R,F}$}\\
-  &\nr{FV(e) \unlhd V,H,v} \tag{$reach_H(v) = \emptyset$}\\
-  &\na{V,H}
+  &\na{V,H} \tag{Sp.}\\
+  &\stable{R,H,H'} \tag{$H = H'$}
   \end{align*}
   \item[Case 4: E:App]
   \item[Case 5: E:CondT] Similar to E:MatNil
@@ -504,60 +546,86 @@ Nested induction on the evaluation judgement and the typing judgement.\\
   &V,H,R',F \vdash e_1 \Downarrow v_1,H_1,F_1 \tag{ad.}\\
   &\Sigma; \Gamma_1,\Gamma_2 \vdash \irl{let}(e_1; x : \tau.e_2) : B \tag{case}\\
   &\Sigma; \Gamma_1 \vdash e_1 : A \tag{ad.}\\
-  &\Sigma; \Gamma_2, x : A \vdash e_2 : B \tag{ad.}\\
-  &\text{Suppose } \na{V,H}, \dist{\{R,F,locs_{V,H}(e)\}}, \safe{FV(e) \lhd V,H,F} \text{ and } H \vDash V : \Gamma\\
-  &H \vDash V : \Gamma_1 \tag{def of W.D.E}\\
-  &F \cap R' = \emptyset \tag{$F \cap locs_{V,H}(e) = \emptyset$ and $locs_{V,H}(e_1) \subseteq locs_{V,H}(e)$}\\
-  &R' \cap locs_{V,H}(e_1) = \emptyset \tag{$\na{V,H}$}\\
+  &\text{Suppose } H \vDash V : \Gamma, dom(V) = FV(e), \na{V,H}, \dist{\{R,F,locs_{V,H}(e)\}}\\ 
+  &H \vDash V_1 : \Gamma_1 \tag{def of W.D.E and Lemma $~\ref{itm:linear}$}\\
+  &\text{By IH, we have invariant on } J_1\\
+  &\text{NTS (1) - (3) to instantiate invariant on } J_1\\
+  &\emph{(1)}\quad dom(V_1) = FV(e_1) \tag{def of $V_1$}\\
+  &\emph{(2)}\quad \na{V_1,H} \tag{$\na{V,H}$ and $V_1 \subseteq V$}\\
+  &\emph{(3)}\quad \dist{R',F,locs_{V,H}(e_1)}\\
+  &F \cap R' = \emptyset \tag{$F \cap locs_{V,H}(e) = \emptyset$ and $locs_{V_2,H}(\irl{lam}(x : \tau. e_2)) \subseteq locs_{V,H}(e)$}\\
+  &FV(e_1) \cap FV(\irl{lam}(x : \tau. e_2)) = \emptyset \tag{Lemma ~\ref{itm:linear}}\\
+  &locs_{V,H}(e_1) \cap locs_{V_2,H}(\irl{lam}(x : \tau. e_2)) = \emptyset \tag{$\na{V,H}$}\\
+  &R' \cap locs_{V,H}(e_1) = \emptyset \tag{$\dist{\{R,locs_{V,H}(e)\}}$}\\
   &F \cap locs_{V,H}(e_1) = \emptyset \tag{Sp.}\\
   &\text{Thus we have } \dist{R',F,locs_{V,H}(e_1)}\\
-  &\safe{FV(e_1) \lhd V,H,F} \tag{$FV(e_1) \subseteq FV(e)$}\\
-  &\text{By IH, } \ms{set}(reach_{H_1}(v_1)), \dist{\{R',F_1,reach_{H_1}(v_1)\}}, \text{ and } \na{V,H_1}\\
-  &(F_1 \cup g) \cap R = \emptyset \tag{ since  $F_1 \cap R' = \emptyset$ together with def. of $g$ and $R'$ }\\
-  &\text{NTS } R \cap locs_{V'',H_1}(e_2) = \emptyset\\
-  &\text{Let } l \in locs_{V'',H_1}(e_2) \text{ be arb.}\\
-  &\textbf{case: } l \in reach_{H_1}(V''(x')) \text{ for some $x' \in FV(e_2)$ where } x' \ne x\\
-  &\quad x' \in V \tag{def of $V''$}\\
-  &\quad l \in reach_{H}(V(x')) \tag{Lemma 1.2}\\
-  &\quad x' \in FV(e) \tag{def of $FV$}\\
-  &\quad l \in locs_{V,H}(e) \tag{def of $locs_{V,H}$}\\
-  &\quad l \notin R \tag{$\dist{\{R,F,locs_{V,H}(e)\}}$}\\
-  &\textbf{case : } l \in reach_{H_1}(V'(x))\\
-  &\quad l \in reach_{H_1}(v_1) \tag{def of $V'$}\\
-  &\quad l \notin R' \tag{$\dist{\{R',F_1,reach_{H_1}(v_1)\}}$}\\
-  &\quad l \notin R \tag{since  $R \subseteq R'$}\\
-  &\text{Thus }  R \cap locs_{V'',H_1}(e_2) = \emptyset\\
-  &(F_1 \cup  g) \cap R = \emptyset \tag{ by def of  $g$ and  $\dist{\{R',F_1,reach_{H_1}(v_1)\}}$}\\
-  &\text{Hence } \dist{\{R, F_1 \cup g, locs_{V'',H_1}(e_2)\}}\\
-  &H \vDash V : \Gamma_2 \tag{def of W.D.E}\\
-  &\text{NTS } \safe{FV(e_2) \lhd V'', H_1, F_1 \cup g}\\
-  &\text{Let } x' \in dom(\overline{FV(e_2) \lhd V''}) \text{ be arb.}\\
-  &\textbf{case: } x' \ne x\\
-  &\quad x' \in FV(\irl{lam}(x : \tau.e_2) \tag{def of $FV$}\\
-  &\quad reach_{H}(V''^{\star}(x')) \subseteq R' \tag{def of $R'$}\\
-  &\quad reach_{H}(V''^{\star}(x')) \cap F_1 = \emptyset \tag{$\dist{\{R',F_1\}}$}\\
-  &\quad reach_{H}(V''^{\star}(x')) \cap (F_1 \cup g) = \emptyset \tag{def of $g$}\\
-  &\quad reach_{H_1}(V''^{\star}(x')) \cap (F_1 \cup g) = \emptyset \tag{Lemma 1.2}\\
-  &\textbf{case: } x' = x\\
-  &\quad reach_{H}(V''^{\star}(x)) \cap F_1 = \emptyset \tag{$\dist{\{F_1,reach_{H}(v_1)\}}$}\\
-  &\quad reach_{H}(V''^{\star}(x)) \cap (F_1 \cup g) = \emptyset \tag{def of $g$}\\
-  &\quad reach_{H_1}(V''^{\star}(x)) \cap (F_1 \cup g) = \emptyset \tag{Lemma 1.2}\\
-  &\text{Thus } \safe{FV(e_2) \lhd V'', H_1, F_1 \cup g}\\
-  &\text{NTS } \na{V'',H_1}\\
-  &\text{Let } x_1, x_2 \in \overline V'', x_1 \ne x_2, r_{x_1} = reach_H(V''^{\star}(x_1)), r_{x_2} = reach_H(V''^{\star}(x_2))\\
+  &\text{By IH, }\\
+  &\emph{(1)}\quad \ms{set}(reach_{H_1}(v_1))\\
+  &\emph{(2)}\quad \dist{\{R',F_1,reach_{H_1}(v_1)\}}\\
+  &\emph{(3)}\quad \stable{R',H,H_1}\\
+  &V_2',H_1,R, F_1 \cup g \vdash e_2 \Downarrow v_2,H_2,F_2 \tag{ad.} \\
+  &\Sigma; \Gamma_2, x : A \vdash e_2 : B \tag{ad.}\\
+  &H_1 \vDash V_2' : (\Gamma_2, x : A) \tag{???}\\
+  &\text{By IH, we have invariant on } J_2\\
+  &\text{NTS (1) - (3) to instantiate invariant on } J_2\\
+  &\emph{(1)}\quad dom(V_2') = FV(e_2) \tag{def of $V_2'$}\\
+  &\emph{(2)}\quad \na{V_2',H_1}\\
+  &\text{Let } x_1, x_2 \in V2', x_1 \ne x_2 \text{ be arb.}\\
   &\textbf{case: } x_1 \ne x, x_2 \ne x\\
-  &\text{Have } (1),(2) \tag{$\na{V,H}$}\\
+  &\quad reach_H(V_2'(x_1)) \subseteq R' \tag{$reach_H(V_2'(x_1)) \subseteq locs_{V_2',H}(\irl{lam}(x : \tau. e_2))$}\\
+  &\quad reach_H(V_2'(x_2)) \subseteq R' \tag{$reach_H(V_2'(x_2)) \subseteq locs_{V_2',H}(\irl{lam}(x : \tau. e_2))$}\\
+  &\quad reach_H(V_2'(x_1)) = reach_{H_1}(V_2'(x_1)),reach_H(V_2'(x_2)) = reach_{H_1}(V_2'(x_2)) \tag{$\stable{R',H,H_1}$ and Lemma $~\ref{itm:stable}$}\\
+  &\quad reach_{H_1}(V_2'(x_1)) = reach_{H}(V(x_1)),reach_{H_1}(V_2'(x_2)) = reach_{H}(V(x_2)) \tag{$\stable{R',H,H_1}$ and Lemma $~\ref{itm:stable}$}\\
+  &\quad \na{V_2',H_1} \tag{$\na{V,H}$}\\
   &\textbf{case: } x_1 = x, x_2 \ne x\\
-  &\quad \ms{set}(r_{x_1}) \tag{$\ms{set}(reach_{H_1}(v_1))$}\\
-  &\quad \ms{set}(r_{x_2}) \tag{$\na{V,H}$}\\
-  &\quad x_2 \notin FV(e_1) \tag{def of $V'$}\\
-  &\quad x_2 \in FV(\irl{lam}(x : \tau.e_2) \tag{def of $FV$}\\
-  &\quad r_{x_2} \subseteq R' \tag{def of $R'$}
-  &\quad r_{x_1} \cap r_{x_2} = \emptyset \tag{$\dist{\{R',reach_{H'}(v_1)\}}$, Lemma 1.2}\\
-  &\text{Thus } \na{V'',H_1}\\
-  &V',H_1,R, F_1 \cup g \vdash e_2 \Downarrow v_2,H_2,F_2 \tag{ad.}\\
-  &\text{By IH, } \ms{set}(reach_{H_2}(v_2)), \dist{\{R,F_2,reach_{H_2}(v_2)\}}, \na{V'',H_2}\\
-  &\text{NTS } \na{V,H_2}\\
+  &\quad reach_{H_1}(V_2'(x_1)) = reach_{H_1}(v_1) \tag{def of $V_2'$}\\
+  &\quad reach_{H_1}(V_2'(x_2)) \subseteq R' \tag{same as above}\\
+  &\quad \ms{set}(reach_{H_1}(v_1)) \tag{IH 1.1}\\
+  &\quad reach_{H_1}(V_2'(x_2)) = reach_{H}(V(x_2)) \tag{same as above}\\
+  &\quad \ms{set}(reach_{H_1}(V_2'(x_2))) \tag{$\na{V,H}$}\\
+  &\quad reach_{H_1}(V_2'(x_1)) \cap reach_{H_1}(V_2'(x_2)) = \emptyset \tag{$\dist{\{R',reach_{H_1}(v_1)\}}$}\\
+  &\text{Thus we have } \na{V_2',H_1}\\
+  &\emph{(3)}\quad \dist{\{R,F_1 \cup g,locs_{V_2',H_1}(e_2)\}}\\
+  &R \cap F_1 = \emptyset \tag{$\dist{\{R', F_1\}}$ from 1.2 and $R \subseteq R'$}\\
+  &R \cap (F_1 \cup g) = \emptyset \tag{def of $g$}\\
+  &\text{NTS } (F_1 \cup g) \cap locs_{V_2',H_1}(e_2) = \emptyset\\
+  &\text{Let } l \in locs_{V_2',H_1}(e_2) \text{ be arb.}\\
+  &l \in reach_{H_1}(V_2'(x')) \text{ for some } x' \in V_2'\\
+  &\textbf{case: } x' \ne x\\
+  &\quad reach_H(V_2(x')) = reach_{H_1}(V_2'(x')) \tag{same as above}\\
+  &\quad reach_{H_1}(V_2'(x')) \subseteq R' \tag{def of $R'$}\\
+  &\quad reach_{H_1}(V_2'(x')) \cap F_1 = \emptyset \tag{$\dist{\{R', F_1\}}$ from 1.2}\\
+  &\text{case: } x' = x\\
+  &\quad reach_{H_1}(V_2'(x')) = reach_{H_1}(v_1) \tag{def of $V_2'$}\\
+  &\quad reach_{H_1}(V_2'(x')) \cap F_1 = \emptyset \tag{$\dist{\{F_1,reach_{H_1}(v_1)\}}$ from 1.2}\\
+  &reach_{H_1}(V_2'(x')) \subseteq locs_{V_2',H_1}(e_2) \tag{def of $locs_{V,H}$}\\
+  &reach_{H_1}(V_2'(x')) \cap g = \emptyset \tag{def of $g$}\\
+  &\text{Thus } reach_{H_1}(V_2'(x')) \cap (F_1 \cup g) = \emptyset\\
+  &\text{NTS } R \cap locs_{V_2',H_1}(e_2) = \emptyset\\
+  &\text{Let } l \in locs_{V_2',H_1}(e_2) \text{ be arb.}\\
+  &l \in reach_{H_1}(V_2'(x')) \text{ for some } x' \in V_2'\\
+  &\textbf{case: } x' \ne x\\
+  &\quad reach_H(V_2(x')) = reach_{H_1}(V_2'(x')) \tag{same as above}\\
+  &\quad l \in locs_{V,H}(e) \tag{def of $locs_{V,H}$}\\
+  &\quad l \notin R \tag{$\dist{\{R,locs_{V,H}(e)\}}$ from 0.3}\\
+  &\textbf{case: } x' = x\\
+  &\quad reach_{H_1}(V_2'(x')) = reach_{H_1}(v_1) \tag{def of $V_2'$}\\
+  &\quad reach_{H_1}(V_2'(x')) \cap R = \emptyset \tag{$\dist{\{R', reach_{H_1}(v_1)\}}$ from 1.2 and $R \subseteq R'$}\\
+  &\text{Thus } reach_{H_1}(V_2'(x')) \cap R = \emptyset\\
+  &\text{Hence we have }\emph{(3)}\quad \dist{R,F_1 \cup g,locs_{V_2',H_1}(e_2)}\\
+  &\text{By instantiating the invariant on } J_2, \text{ we have }\\
+  &\emph{(1)}\quad \ms{set}(reach_{H_2}(v_2))\\
+  &\emph{(2)}\quad \dist{\{R,F_2,reach_{H_2}(v_2)\}}\\
+  &\emph{(3)}\quad \stable{R,H_1,H_2}\\
+  &\text{Lastly, showing (1) - (3) holds for the original case } J_0:\\
+  &\emph{(1)}\quad \ms{set}(reach_{H_2}(v_2)) \tag{By 2.1}\\
+  &\emph{(2)}\quad \dist{\{R,F_2,reach_{H_2}(v_2)\}} \tag{By 2.2}\\
+  &\emph{(3)}\quad \stable{R,H_1,H_2}\\
+  &\text{Let } l \in R \text{ be arb. }\\
+  &H(l) = H_1(l) \tag{$\stable{R',H,H_1}$ from 1.3}\\
+  &H_1(l) = H_2(l) \tag{$\stable{R,H_1,H_2}$ from 2.3}\\
+  &H(l) = H_2(l)\\
+  &\text{Hence } \stable{R,H,H_2}\\
   \end{align*}
   \item[Case 8: E:Pair]
   Similar to E:Var
@@ -568,72 +636,69 @@ Nested induction on the evaluation judgement and the typing judgement.\\
   \item[Case 11: E:Cons]
   \begin{align*}
   &V,H,R,F \; \vdash e \Downarrow l,H'',F' \tag{case}\\
-  &\text{Suppose } H \vDash V : \Gamma, \na{V,H}, \safe{FV(e) \lhd V,H,F} \dist{\{R,F,locs_{V,H}(e)\}}\\
-  &\ms{set}(V^{\star}(x_1)),\ms{set}(V^{\star}(x_2)) \tag{$\na{V,H}$}\\
-  &\ms{set}(reach_H(v)) \tag{def of $\ms{set}$}\\
-  &\ms{set}(reach_H''(v)) \tag{Lemma 1.2}\\
-  &l \notin reach_H''(V) \tag{$l \in F$ and $\safe{V,H,F}$}\\
-  &\ms{set}(reach_H''(l)) \tag{def of $\ms{set}$ and $reach$}\\
-  &\text{NTS } \dist{\{R,F',reach_{H''}(l)\}}\\
-  &R \cap F' = \emptyset \tag{$F' \subseteq F$}\\
-  &l \notin R \tag{$l \in F$}\\
-  &R \cap reach_{H''}(v) = \emptyset \tag{$R \cap locs_{V,H}(e) = \emptyset$}\\
-  &R \cap reach_{H''}(l) = \emptyset \tag {def of $reach$}\\
-  &l \notin F' \tag{similar}\\
-  &\text{Thus } \dist{\{R,F',reach_{H''}(l)\}}\\
-  &\text{NTS } \nr{FV(e) \unlhd V, H', l}\\
-  &\text{Let } x \in \overline{FV(e) \unlhd V} \text{ be arb.}\\
-  &l \notin reach_{H''}(V^{\star}(x)) \tag{$\safe{V,H,F}$}\\
-  &reach_{H''}(V^{\star}(x)) \cap reach_{H''}(v) = \emptyset \tag{$x \notin \{x_1,x_2\}$ and $\na{V,H}$}\\
-  &\text{Thus } \nr{FV(e) \unlhd V, H', l}\\
-  &\na{V,H''} \tag{Lemma 1.2}\\
+  &\text{Suppose } H \vDash V : \Gamma, dom(V) = FV(e), \na{V,H}, \dist{\{R,F,locs_{V,H}(e)\}}\\
+  &\text{NTS (1) - (3) holds after evaluation }\\
+  &\emph{(1)} \quad \ms{set}(reach_{H''}(l))\\
+  &\stable{\{locs_{V,H}(e)\},H,H''} \tag{$\dist{\{F,locs_{V,H}(e)\}}$ and $copy$ only updates $l \in L \subseteq F$}\\
+  &reach_H(V(x_i)) = reach_{H''}(V(x_i)) \tag{$reach_H(V(x_i)) \subseteq locs_{V,H}(e)$ and $~\ref{itm:stable}$ for $i = 1,2$}\\
+  &reach_{H''}(l) = \{l\} \cup reach_{H''}(V(x_1))\cup reach_{H''}(V(x_2)) \tag{def of $reach_H$}\\
+  &\set{reach_{H''}(l)} \tag{$l \notin locs_{V,H}(e)$ and $\na{V,H}$}\\ 
+  &\emph{(2)} \quad \dist{\{R,F',reach_{H''}(l)\}}\\
+  &R \cap F' = \emptyset \tag{$F' \subseteq F$ and $\dist{\{R,F\}}$}\\
+  &R \cap reach_{H''}(l) = \emptyset \tag{$l \in F$ and $\dist{\{R,locs_{V,H}(e)\}}$}\\
+  &F' \cap reach_{H''}(l) = \emptyset\tag{$F' \subseteq F$ and $\dist{\{F,locs_{V,H}(e)\}}$}\\
+  &\text{Thus we have }\emph{(2)} \quad \dist{\{R,F',reach_{H''}(l)\}}\\
+  &\emph{(3)} \quad \stable{R,H,H''} \tag{since copy only updates $l \in L \subseteq F$ and $F \cap R = \emptyset$}\\
   \end{align*}
   \item[Case 12: E:MatNil]
   \begin{align*}
-  &\text{Suppose } H \vDash V : \Gamma, \na{V,H}, \safe{FV(e) \lhd V,H,F} \dist{\{R,F,locs_{V,H}(e)\}}\\
+  &\text{Suppose } H \vDash V : \Gamma, dom(V) = FV(e), \na{V,H}, \dist{\{R,F,locs_{V,H}(e)\}}\\
   &\Sigma; \Gamma' \vdash e_1 : B \tag{ad.}\\
   &V,H,R,F \cup g \; \vdash e_1 \Downarrow v, H',F' \tag{ad.}\\
-  &H \vDash V : \Gamma' \tag{def of W.D.E}\\
-  &\text{WTS } \safe{FV(e_1) \lhd V,H,F \cup g}\\
-  &\text{Let } x' \in \overline{FV(e_1) \lhd V} \text{ be arb.}\\
-  &reach_{H}(V^{\star}(x)) \cap F = \emptyset \tag{$FV(e_1) \subseteq FV(e)$ and $\safe{FV(e) \lhd V,H,F}$}\\
-  &reach_H(V^{\star}(x)) \cap g = \emptyset \tag{def of $g$}\\
-  &\text{Thus } \safe{FV(e_1) \lhd V,H,F \cup g}\\
-  &\dist{\{R,F \cup g,locs_{V,H}(e_1)\}} \tag{def of $g$ and $locs_{V,H}(e_1) \subseteq locs_{V,H}(e)$}\\
-  &\ms{set}(reach_{H'}(v)), \dist{\{R,F',reach_{H'}(v)\}},\nr{FV(e_1) \unlhd V,H',v} \na{V,H'} \tag{IH}\\
-  &\nr{FV(e) \unlhd V,H',v} \tag{$FV(e_1) \subseteq FV(e)$}\\
+  &H \vDash V' : \Gamma' \tag{def of W.D.E}\\
+  &\text{By IH, we have invariant on } J_1\\
+  &\text{NTS (1) - (3) to instantiate invariant on } J_1\\
+  &\emph{(1)}\quad dom(V') = FV(e_1) \tag{def of $V'$}\\
+  &\emph{(2)}\quad \na{V',H} \tag{$\na{V,H}$ and $V' \subseteq V$}\\
+  &\emph{(3)}\quad \dist{\{R,F,locs_{V',H}(e_1)\}} \tag{$\dist{\{R,F,locs_{V,H}(e)\}}$ and $locs_{V',H}(e_1) \subseteq locs_{V,H}(e)$}\\
+  &\text{Instantiating invariant on } J_1,\\
+  &\emph{(1)}\quad \ms{set}(reach_{H'}(v))\\
+  &\emph{(2)}\quad \dist{\{R,F_1,reach_{H'}(v)\}}\\
+  &\emph{(3)}\quad \stable{R,H,H'}
   \end{align*}
   \item [Case 13: E:MatCons]
   \begin{align*}
-  &V(x) = (l,\irl{alive}) \tag{ad.}\\
+  &V(x) = l \tag{ad.}\\
   &H(l) = \pairexcst{v_h}{v_t} \tag{ad.}\\
   &\Gamma = \Gamma', x : L(A) \tag{ad.}\\
   &\Sigma; \Gamma', x_h : A, x_t : L(A) \vdash e_2 : B \tag{ad.}\\
   &V'',H,R,F \cup g \; \vdash e_2 \Downarrow v_2, H_2, F' \tag{ad.} \\
-  &\text{Suppose } H \vDash V : \Gamma, \na{V,H}, \text{ and },\dist{\{F,R,locs_{V,H}(e)\}}\\
+  &\text{Suppose } H \vDash V : \Gamma, dom(V) = FV(e), \na{V,H},\dist{\{F,R,locs_{V,H}(e)\}}\\
   &H \vDash V(x) : L(A) \tag{def of W.D.E}\\
   &H''\vDash v_h : A,\; H'' \vDash v_t : L(A) \tag{ad.}\\
   &H\vDash v_h : A,\; H \vDash v_t : L(A) \tag{???}\\
   &H \vDash V'' : \Gamma', x_h : A, x_t : L(A) \tag{def of W.D.E}\\
-  &\text{NTS } \na{V'',H}\\
-  &\text{Let } x_1, x_2 \in \overline V'', x_1 \ne x_2, r_{x_1} = reach_H(\overline V''(x_1)), r_{x_2} = reach_H(\overline V''(x_2))\\
+  &\text{By IH, we have invariant on } J_1\\
+  &\text{NTS (1) - (3) to instantiate invariant on } J_1\\
+  &\emph{(1)}\quad dom(V'') = FV(e_2) \tag{def of $V''$}\\
+  &\emph{(2)}\quad \na{V'',H} \\
+  &\text{Let } x_1, x_2 \in V'', x_1 \ne x_2, r_{x_1} = reach_H(V''(x_1)), r_{x_2} = reach_H(V''(x_2))\\
   & \textbf{case: } x_1 \notin \{x_h,x_t\}, x_2 \notin \{x_h,x_t\}\\
   &\quad (1), (2) \text{ from } \na{V,H}\\
   & \textbf{case: } x_1 = x_h, x_2 \notin \{x_h,x_t\}\\
-  &\quad \ms{set}(r_{x_1}) \tag{ since $\ms{set}(H(l))$ from  $\na{V,H}$}\\
+  &\quad \ms{set}(r_{x_1}) \tag{ since $\ms{set}(reach_H(V(x)))$ from  $\na{V,H}$}\\
   &\quad \ms{set}(r_{x_2}) \tag{since  $\na{V,H}$}\\
-  &\quad \text{AFSOC, suppose } l' \in r_{x_1} \cap r_{x_2}\\
-  &\quad \text{but } reach_H(\overline V(x)) \cap r_{x_2} = \emptyset, \text{ contradiction} \tag{def of $reach$}\\
+  &\quad x_2 \in FV(e) \tag{def of $FV$}\\
+  &\quad reach_H(V(x)) \cap r_{x_2} = \emptyset \tag{def of $reach$ and $\na{V,H}$}\\
   &\quad \text{hence } r_{x_1} \cap r_{x_2} = \emptyset\\
-  & \textbf{case: } x_1 = x_h, x_2 = x_t\\
-  &\quad \ms{set}(r_{x_1}) \text{ since } \ms{set}(H(l)) \text{ from } \na{V,H}\\
-  &\quad \ms{set}(r_{x_2}) \text{ since } \ms{set}(H(l)) \text{ from } \na{V,H}\\
-  &\quad \text{AFSOC, suppose } l' \in r_{x_1} \cap r_{x_2}\\
-  &\quad \text{but then } \mu_{reach_H(l)}(l') \ge 2, \text{ and } \ms{set}(H(l)) \text{ does not hold}.\\
-  &\quad \text{hence } r_{x_1} \cap r_{x_2} = \emptyset\\
+  &\textbf{case: } x_1 = x_h, x_2 = x_t\\
+  &\quad \ms{set}(r_{x_1}) \text{ since } \ms{set}(reach_{H}(V(x))) \text{ from } \na{V,H}\\
+  &\quad \ms{set}(r_{x_2}) \text{ since } \ms{set}(reach_H(V(x))) \text{ from } \na{V,H}\\
+  &\quad r_{x_1} \cap r_{x_2} = \emptyset \tag{$\ms{set}(reach_H(V(x))$}\\
   & \textbf{case: otherwise} \\
   &\quad \text{similar to the above}\\
   &\text{Thus we have } \na{V'',H}\\
+  &\emph{(3)}\quad \dist{\{R,F \cup g,locs_{V'',H}(e_2)\}}\\
   &(F \cup g) \cap R = \emptyset \tag{ since $F \cap R = \emptyset$ and by def of $g$}\\
   &\text{NTS } R \cap locs_{V'',H}(e_2) = \emptyset\\
   &\text{Let } l' \in locs_{V'',H}(e_2) \text{ be arb.}\\
@@ -645,7 +710,7 @@ Nested induction on the evaluation judgement and the typing judgement.\\
   &\quad l' \notin R \tag{$\dist{\{R,F,locs_{V,H}(e)\}}$}\\
   &\textbf{case: }  l' \in reach_{H}(V''(x_h)) \\
   &\quad l' \in reach_{H}(v_h)\\
-  &\quad l' \in reach_{H}(V^{\star}(x)) \tag{def of $reach$}\\
+  &\quad l' \in reach_{H}(V(x)) \tag{def of $reach$}\\
   &\quad l' \in locs_{V,H}(e) \tag{def of $locs_{V,H}$}\\
   &\quad l' \notin R \tag{since $\dist{\{F,R,locs_{V,H}(e)\}}$}\\
   &\textbf{case: }  l' \in reach_{H}(V''(x_t)) \\
@@ -655,35 +720,24 @@ Nested induction on the evaluation judgement and the typing judgement.\\
   &g \cap locs_{V'',H}(e_2) = \emptyset \tag{def. of $g$}\\
   &(F \cup g) \cap locs_{V'',H}(e_2) = \emptyset\\
   &\text{Thus } \dist{\{R,F \cup g,locs_{V'',H}(e_2)\}}\\
-  &\text{By IH, } \ms{set}(reach_{H'}(v)), \dist{\{R,F',reach_{H'}(v)\}}, \nr{V'',H',v}, \text{ and } \na{V'',H'}\\
-  &\text{NTS } \nr{V,H',v}\\
-  &\text{Let } l' \in reach_{H'}(\overline V(x)) \text{ be arb }\\
-  &l' \in reach_H(l) \tag{Lemma 1.2, ad.}\\
-  &\text{Then } l' \in reach_{H'}(v_h) \text{ or } l' \in reach_{H'}(v_t) \tag{def of $reach$}\\
-  &\text{Wlog } l' \in reach_{H'}(v_h)\\
-  &l' \in reach_{H'}(V''(x_h)) \tag{def of $V''$}\\
-  &l' \notin reach_{H'}(v) \tag{$\nr{V'',H',v}$}\\
-  &(reach_{H'}(v)) \cap (\bigcup_{x' \in \overline V \setminus x} reach_{H'}(V(x'))) = \emptyset \tag{$\nr{V'',H',v}$}\\
-  &(reach_{H'}(v)) \cap (\bigcup_{x' \in \overline V} reach_{H'}(V(x'))) = \emptyset\\
-  &\nr{V,H',v}\\
-  &\text{NTS } \na{V,H'}\\
-  &\text{Let } x_1, x_2 \in \overline V, x_1 \ne x_2, r_{x_1} = reach_H(\overline V(x_1)), r_{x_2} = reach_H(\overline V(x_2)) \text{ be arb.}\\
-  &\textbf{case: } x_1 \ne x, x_2 \ne x\\
-  &\quad (1), (2) \tag{$\na{V'',H'}$}\\
-  &\quad \textbf{case: } x_1 = x, x_2 \ne x\\
-  &\quad \ms{set}(r_{x_1}) \tag{$\na{V'',H'}$}\\
-  &\quad \ms{set}(r_{x_2}) \tag{$\na{V'',H'}$}\\
-  &\textbf{case: otherwise}\\ 
-  &\quad \text{similar to above}\\
-  &\text{Thus } \na{V,H'}\\
-  &\text{Thus } \nr{V,H',v} \text{ and } \na{V,H'}\\
+  &\text{Instantiating invariant on } J_1,\\
+  &\emph{(1)} \quad \ms{set}(reach_{H'}(v))\\
+  &\emph{(2)} \quad\dist{\{R,F',reach_{H'}(v)\}}\\
+  &\emph{(3)} \quad\stable{R,H,H'}\\
   \end{align*}
   \end{description}
 \end{proof}
 
 \begin{theorem}[Soundness]
 \label{b} let $H \vDash V : \Gamma$, $\Sigma; \Gamma \sststile{q'}{q} e : B$,
-and $V,H \; \vdash e \Downarrow v, H'$. Then $\forall C \in \mathbb{Q}^{+}$ and $\forall F,R \subseteq \ms{Loc}$,  if $\na{V,H}$, $\dist{\{R,F,locs_{V,H}(e)\}}$, and $|F| \ge \Phi_{V,H}(\Gamma) + q + C$, then there exists $F' \subseteq \ms{Loc}$ s.t.
+and $V,H \; \vdash e \Downarrow v, H'$. Then $\forall C \in \mathbb{Q}^{+}$ and $\forall F,R \subseteq \ms{Loc}$, if we have the following (existence lemma):
+\begin{enumerate} 
+\item $dom(V) = FV(e)$
+\item $\na{V,H}$
+\item $\dist{\{R,F,locs_{V,H}(e)\}}$, and
+\item $|F| \ge \Phi_{V,H}(\Gamma) + q + C$ 
+\end{enumerate}
+then there exists $F' \subseteq \ms{Loc}$ s.t.
 \begin{enumerate}
   \item $V,H,R,F \vdash e \Downarrow v, H', F'$
   \item $|F'| \ge \Phi_{H'}(v:B) + q' + C$
@@ -691,7 +745,7 @@ and $V,H \; \vdash e \Downarrow v, H'$. Then $\forall C \in \mathbb{Q}^{+}$ and 
 \end{theorem}
 
 \begin{proof}
-Induction on the evaluation judgement.\\
+Nested induction on the evaluation judgement and the typing judgement.\\
 \begin{description}
   \item[Case 1: E:Var]
   \begin{align}
@@ -729,21 +783,26 @@ Induction on the evaluation judgement.\\
   Similar to E:CondT
   \item[Case 7: E:Let]
   \begin{align*}
-  &V,H \; \vdash e \Downarrow v_2,H_2 \tag{case}\\
+  &V,H \vdash e \Downarrow v_2,H_2 \tag{case}\\
   &V,H \vdash e_1 \Downarrow v_1,H_1 \tag{ad.}\\
   &\Sigma; \Gamma_1 \sststile{p}{q} e_1 : A \tag{ad.}\\
-  &H \vDash V : \Gamma_1 \tag{$\Gamma_1 \subseteq \Gamma$}\\
+  &H \vDash V_1 : \Gamma_1 \tag{def of W.D.E}\\
   &\text{Let } C \in \mathbb{Q}^+, F,R \subseteq \ms{Loc} \text{ be arb.}\\
-  &\text{Suppose }  \na{V,H}, \dist{\{R,F,locs_{V,H}(e)\}}, \text{ and } |F| \ge \Phi_{V,H}(\Gamma) + q + C\\
+  &\text{Suppose }  dom(V) = FV(e),\na{V,H}, \dist{\{R,F,locs_{V,H}(e)\}}, \text{ and } |F| \ge \Phi_{V,H}(\Gamma) + q + C\\
   &\text{NTF } F' \text{ s.t. }\\
   &\quad 1. V,H,R,F \vdash e \Downarrow v_2, H_2,F' \text{ and }\\ 
   &\quad 2. |F'| \ge \Phi_{H_2}(v_2:B) + q' + C\\
   &\text{Let } R' = R \cup locs_{V,H}(\irl{lam}(x : \tau.e_2))\\
-  &\dist{\{R',F,locs_{V,H}(e_1)\}} \tag{Similar to case in Lemma 1.2}\\
-  &\text{Instantiate IH with } C = C + \Phi_{V,H}(\Gamma_2), F = F, R = R', \text{ we get } F'' \text{ s.t. }\\
+  &\dist{\{R',F,locs_{V,H}(e_1)\}} \tag{Similar to case in Lemma $~\ref{itm:na}$}\\
+  &\text{Instantiate IH with } C = C + \Phi_{V_2,H}(\Gamma_2), F = F, R = R', \text{ we get existence lemma on } J_1:\\
+  &\text{NTS (1) - (4) to instantiate existence lemma on } J_1\\
+  &\emph{(1)} \quad dom(V_1) = FV(e_1)\\
+  &\emph{(2)} \quad \na{V_1,H}\\
+  &\emph{(3)} \quad \dist{\{R,F,locs_{V,H}(e)\}} \tag{(1) - (3) all verbatim as in Lemma $~\ref{itm:na}$}\\
+  &\emph{(4)} \quad |F| \ge \Phi_{V_1,H}(\Gamma_1) + q + C + \Phi_{V,H}(\Gamma_2) \tag{$|F| \ge \Phi_{V,H}(\Gamma) + q + C$ and $\Phi_{V,H}(\Gamma) \ge \Phi_{V_1,H}(\Gamma_1) + \Phi_{V,H}(\Gamma_2)$}\\
+  &\text{Instantiating existence lemma on } J_1, \text{ we get }  F'' \text{ s.t. }\\
   &\quad 1. V,H,R',F \vdash e_1 \Downarrow v_1, H_1,F'' \text{ and }\\ 
-  &\quad 2. |F''| \ge \Phi_{H_1}(v_1:A) + p + C + \Phi_{V',H_1}(\Gamma_2)\\
-  &\text{Where } |F| \ge \Phi_{V,H}(\Gamma_1) + q + C + \Phi_{V,H}(\Gamma_2) \text{ since }  |F| \ge \Phi_{V,H}(\Gamma) + q + C\\ 
+  &\quad 2. |F''| \ge \Phi_{H_1}(v_1:A) + p + C + \Phi_{V_2,H_1}(\Gamma_2)\\
   &\text{For the second premise: }\\
   &\Sigma; \Gamma_2, x : A \sststile{q'}{p} e_2 : B \tag{ad.}\\
   &H_1 \vDash v_1 : A \text{ and } \tag{Theorem 3.3.4}\\ 
@@ -751,15 +810,19 @@ Induction on the evaluation judgement.\\
   &H_1 \vDash V' : \Gamma_2, x : A \tag{def of $\vDash$}\\
   &V',H_1 \vdash e_2 \Downarrow v_2,H_2 \tag{ad.}\\
   &\text{Let } g = \{l \in H_1 \mid l \notin F_1 \cup R \cup locs_{V',H_1}(e_2)\}\\ 
-  &\text{Then we have } \na{V',H_1} \text{ and } \dist{\{R, F'' \cup g, locs_{V',H_1}(e_2)\}} \tag{similar to case in Lemma 1.2}\\
-  &\text{Instantiate IH with } C = C, F = F'' \cup g, R = R, \text{ we get } F^{(3)} \text{ s.t. }\\
-  &\quad 1. V',H_1,R, F'' \cup g \vdash e_2 \Downarrow v_2,H_2,F^{(3)} \\
-  &\quad 2. |F^{(3)}| \ge \Phi_{H_2}(v_2:B) + q' + C\\
-  &\text{Where we verify the precondition } |F'' \cup g| \ge \Phi_{V',H_1}(\Gamma_2,x:A) + p + C\\
+  &\text{Instantiate IH with } C = C, F = F'' \cup g, R = R, \text{ we get existence lemma on  } J_2:\\
+  &\text{NTS (1) - (4) to instantiate existence lemma on } J_1\\
+  &\emph{(1)} \quad dom(V_2') = FV(e_2)\\
+  &\emph{(2)} \quad \na{V_2',H_1} \\
+  &\emph{(3)} \quad \dist{\{R,F'' \cup g,locs_{V_2',H_1}(e_2)\}} \tag{(1) - (3) all verbatim as in Lemma $~\ref{itm:na}$}\\
+  &\emph{(4)} \quad |F'' \cup g| \ge \Phi_{V_2',H_1}(\Gamma_2,x:A) + p + C\\
   &\quad |F'' \cup g | \ge |F''|\\
-  &\quad \quad \ge \Phi_{H_1}(v_1:A) + p + C + \Phi_{V,H}(\Gamma_2) \tag{IH}\\ 
-  &\quad \quad = \Phi_{H_1}(v_1:A) + p + C + \Phi_{V',H_1}(\Gamma_2) \tag{Lemma 4.3.3}\\ 
-  &\quad \quad = \Phi_{V',H_1}(\Gamma_2,x:A) + p + C \tag{def of $\Phi$}\\
+  &\quad \quad \ge \Phi_{H_1}(v_1:A) + p + C + \Phi_{V_2,H}(\Gamma_2) \tag{IH}\\ 
+  &\quad \quad = \Phi_{H_1}(v_1:A) + p + C + \Phi_{V_2',H_1}(\Gamma_2) \tag{Lemma 4.3.3}\\ 
+  &\quad \quad = \Phi_{V_2',H_1}(\Gamma_2,x:A) + p + C \tag{def of $\Phi$}\\
+  &\text{Instantiating existence lemma on } J_2, \text{ we get } F^{(3)} \text{ s.t. }\\
+  &\quad 1. V_2',H_1,R, F'' \cup g \vdash e_2 \Downarrow v_2,H_2,F^{(3)} \\
+  &\quad 2. |F^{(3)}| \ge \Phi_{H_2}(v_2:B) + q' + C\\
   &\text{Take } F' = F^{(3)}\\
   &V,H,R,F \vdash e \Downarrow v_2, H_2,F' \text{ and } \tag{E:Let}\\ 
   &|F'| \ge \Phi_{H_2}(v_2:B) + q' + C \tag{from IH}\\
