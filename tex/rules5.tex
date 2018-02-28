@@ -12,6 +12,10 @@
 \usepackage{mathpartir}
 \usepackage{turnstile}
 \usepackage{fancyvrb}
+\usepackage{stmaryrd}
+\usepackage{mathtools}
+\usepackage{hyperref}
+\usepackage[margin=0.5in]{geometry}
 
 \allowdisplaybreaks
 
@@ -77,7 +81,15 @@
 \newcommand{\set}[1]{\mathsf{set}(#1)}
 \newcommand{\safe}[1]{\mathsf{safe}(#1)}
 \newcommand{\dist}[1]{\mathsf{disjoint}(#1)}
+\newcommand{\stack}[1]{\irl{stack}(#1)}
+\newcommand{\denote}[1]{\llbracket#1\rrbracket}
+\newcommand{\nil}{[]}
+\newcommand{\cons}[2]{\pi(#1,#2)}
+\newcommand{\sharecst}[4]{\irl{share}\;#1\;\irl{as}\;#2,#3\;\irl{in}\;#4}
+\newcommand{\shareabt}[4]{\irl{share}(#1;#2,#3.#4)}
+\newcommand{\ssize}[2]{\left\Vert #2 \right\Vert_{#1}}
 \newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}{Corollary}[theorem]
 
 \title{15-312 Assignment \hwnumber}
 \author{\myname\\(\myandrewid)}
@@ -91,18 +103,18 @@
 \section{Introduction}
 
 \noindent
-In this paper, we propose a model for deriving asymptotically tight bounds for first order functional programs. We choose a fragment of OCaml as the target language. The abstract and concrete syntax of the language is show below. Note that we only allow first order functions of type $\tau_1 to \tau_2$, where $\tau_1$ and $\tau_2$ are base types: unit, bool, product, or lists. 
+In this paper, we propose a model for deriving asymptotically tight bounds for first order functional programs. We choose a fragment of OCaml as the target language. The abstract and concrete syntax of the language is show below. Note that we only allow first order functions of type $\tau_1 \to \tau_2$, where $\tau_1$ and $\tau_2$ are base types: unit, bool, product, or lists. 
 
 \[
 \begin{array}{r l l l l}
-\ms{Base\; types} & \tau \,\,\,\,\, ::= \\
+\ms{BTypes} & \tau \,\,\,\,\, ::= \\
 	& \irl{nat}                	 			& \irl{nat}											& \text{naturals}\\
 	& \unittyabt                	 			& \unittycst										& \text{unit}\\
   & \booltyabt                       & \booltycst                    & \text{boolean}\\
   & \prodtyabt{\tau_1}{\tau_2}       & \prodtycst{\tau_1}{\tau_2}    & \text{product}\\
   &\listtyabt{\tau}		& L(\tau)											& \text{list}\\
   \\
-\ms{First\; order\; types} & \rho \,\,\,\,\, ::= \\
+\ms{FTypes} & \rho \,\,\,\,\, ::= \\
 	&\irl{arr}(\tau_1;\tau_2) 				& \arrtycst{\tau_1}{\tau_2} 									& \text{first order function}\\
 	 \\
 \ms{Exp}
@@ -121,6 +133,7 @@ In this paper, we propose a model for deriving asymptotically tight bounds for f
  	& \consexabt{x_1}{x_2}					& x_1::x_2   										& \text{cons}\\
  	& \listcaseexabt{l}{e_1}{x}{xs}{e_2}					& \listcaseexcst{l}{e_1}{x}{xs}{e_2}   	& \text{match list}\\
   & \irl{let}(e_1; x : \tau.e_2)			& \irl{let}\; x = e_1 \; \irl{in}\; e_2   	& \text{let}\\
+  & \shareabt{x}{x_1}{x_2}{e} &\sharecst{x}{x_1}{x_2}{e} &\text{share}\\
   \\
 \ms{Val}
         & v   \,\,\,\,\, ::= \\
@@ -141,16 +154,21 @@ In this paper, we propose a model for deriving asymptotically tight bounds for f
  	& \irl{var}(x)                                			& x 												& \text{variable}\\
 \end{array}
 \]
+
+\newpage
 \section{Paths and aliasing}
 
 Model dynamics using judgement of the form:
 \[
-\fbox{$V,H,R,F \; \vdash_{\Sigma} e \Downarrow v, H', F'$}
+\fbox{$V,H,R,F \; \vdash_{P : \Sigma} e \Downarrow v, H', F'$}
 \]
 
 \noindent
-Where $V : \ms{Var} \to \ms{Val} \times \ms{State}$, $H : \ms{Loc} \to \ms{Val}$, $R \subseteq \ms{Loc}$, and $F \subseteq \ms{Loc}$. This can be read as: under stack $V$, heap $H$, roots $R$,
-freelist $F$, and signature $\Sigma$, the expression $e$ evaluates to $v$, and engenders a new heap $H'$ and freelist $F'$. Because the signature $\Sigma$ for the set of the first order functions does not change during evaluation, we drop the subscript $\Sigma$ from $\vdash_{\Sigma}$ when the context of evaluation is clear. It is convenient to think of the evaluation judgement $\vdash$ as being indexed by a family of signatures $\Sigma$'s, each of which is a set of ``top-level'' first-order declarations to be used during evaluation.\\
+Where $V : \ms{Var} \to \ms{Val} \times \ms{State}$, $H : \ms{Loc} \to \ms{Val}$, $R \subseteq \ms{Loc}$, $F \subseteq \ms{Loc}$, and $\Sigma : \ms{Var} \to \ms{FTypes}$. This can be read as: under stack $V$, heap $H$, roots $R$,
+freelist $F$, and program $P$ with signature $\Sigma$, the expression $e$ evaluates to $v$, and engenders a new heap $H'$ and freelist $F'$.\\
+
+\noindent
+A \emph{program} is then a $\Sigma$ indexed map $P$ from $\ms{Var}$ to pairs $(y_f,e_f)_{f \in \Sigma}$, where $\Sigma(y_f) = A \to B$, and $\Sigma;y_f : A \vdash e_f : B$ (typing rules are discussed in $\ref{sec:typing}$). We write $P : \Sigma$ to mean $P$ is a program with signature $\Sigma$. Because the signature $\Sigma$ for the mapping of function names to first order functions does not change during evaluation, we drop the subscript $\Sigma$ from $\vdash_{\Sigma}$ when the context of evaluation is clear. It is convenient to think of the evaluation judgement $\vdash$ as being indexed by a family of signatures $\Sigma$'s, each of which is a set of ``top-level'' first-order declarations to be used during evaluation.\\
 
 \noindent 
 For a partial map $f : A \to B$, we write $dom$ for the defined values of $f$. Sometimes we shorten $x \in dom(f)$ to $x \in f$. We write $f[x \mapsto y]$ for the extension of $f$ where $x$ is mapped to $y$, with the constraint that $x \notin dom(f)$. \\
@@ -191,18 +209,26 @@ $\forall x,y \in V$, $x \ne y$. \text{ Let } $r_x = reach_H(V(x))$, $r_y = reach
 
 For a stack $V$ and a heap $H$, whenever $\na{V,H}$ holds, visually, one can think of the situation as the following: the induced graph of heap $H$ with variables on the stack as additional leaf nodes is a forest: a disjoint union of arborescences (directed trees); consequently, there is at most one path from a live variable on the stack $V$ to a location in $H$ by following the pointers.\\
 
-First, we define $FV(e)$, the multiset of free variables of $e$. It is defined inductively over the structure of $e$; the only unusual thing is that multiple occurences of a free variable $x$ in $e$ will be reflected in the multiplicity of $FV(e)$.\\
+First, we define $FV^{\star}(e)$, the multiset of free variables of $e$. As the usual $FV$, it is defined inductively over the structure of $e$; the only unusual thing is that multiple occurences of a free variable $x$ in $e$ will be reflected in the multiplicity of $FV^{\star}(e)$.\\
 
 Next, we define $locs_{V,H}$ using the previous notion of reachability. 
 \begin{equation*}
   &locs_{V,H}(e) = \bigcup\limits_{x \in FV(e)} reach_H(V(x))\\\\
 \end{equation*}
 
-$size$ calculates the number of cells a value occupies.
+$size$ calculates the \emph{literal size} of a value, e.g. the size to store its address.
 \begin{align*}
   &size(\pairexcst{v_1}{v_2}) = size(v_1) + size(v_2)\\
   &size(\_) = 1
 \end{align*}
+
+$\ssize{H}{\cdot}$ calculates the \emph{semantic} or \emph{heap size} of a value, e.g. the size of the heap structure induced by the value.
+\begin{align*}
+  &\ssize{H}{\pairexcst{v_1}{v_2}} = \ssize{H}{v_1} + \ssize{H}{v_2}\\
+  &\ssize{H}{l} = 1 + \ssize{H}{H(l)}\\
+\end{align*}
+
+As usual, we extend it to stacks $V$: $\ssize{H}{V} = \sum_{V(x) = v} \ssize{H}{v}$\\
 
 $copy(H,L,v)$ takes a heap $H$, a set of locations $L$, and a value $v$, and returns a new heap $H'$ and a location $l$ such that $l$ maps to $v$ in $H'$.
 \begin{align*}
@@ -266,8 +292,10 @@ $copy(H,L,v)$ takes a heap $H$, a set of locations $L$, and a value $v$, and ret
 % function
 
 \infern{
-  V = V'[x \mapsto v']\\
-  V'[y_f \mapsto v'],H,R,F \; \vdash e_f \Downarrow v,H',F'\\
+  V(x) = v'\\
+  P(f) = (y_f,e_f)\\
+  g = \{l \in H \mid l \notin F \cup R \cup locs_{V,H}(e_f)\}\\
+  [y_f \mapsto v'],H,R,F \cup g \; \vdash e_f \Downarrow v,H',F'\\
 }{
   V,H,R,F \; \vdash \appcst{f}{x} \Downarrow v,H',F'
 }
@@ -298,10 +326,18 @@ $copy(H,L,v)$ takes a heap $H$, a set of locations $L$, and a value $v$, and ret
 } 
 
 \infern{
-  g = reach_H(v)\\
-  V,H,R,F \cup g \; \vdash e \Downarrow v,H',F'
+  V = V'[x \mapsto v']\\
+  g = reach_H(v')\\
+  V',H,R,F \cup g \; \vdash e \Downarrow v,H',F'
 }{
-  V[x \mapsto v],H,R,F \; \vdash \irl{drop}(x;e) \Downarrow v,H',F'
+  V,H,R,F \; \vdash \irl{drop}(x;e) \Downarrow v,H',F'
+}
+
+\infern{
+  V = V'[x \mapsto v']\\
+  V'[x_1 \mapsto v',x_2 \mapsto v'],H,R,F \; \vdash e \Downarrow v,H',F'
+}{
+  V,H,R,F \; \vdash \sharecst{x}{x_1}{x_2}{e} \Downarrow v,H',F'
 }
 
 \infern{
@@ -392,10 +428,86 @@ This can be read as: under stack $V$, heap $H$ the expression $e$ evaluates to $
   V,H \; \vdash \irl{let}(e_1; x : \tau.e_2) \Downarrow v_2,H_2
 }
 \end{mathpar}
+\section{Well Defined Environments}
+In order to define the potential for first-order types, we need a notion of well-define environments, one that relates 
+heap values to semantic values of a type. We first give a denotational semantics for the first-order types: 
 
-\section{Type rules}
+\begin{align*}
+() &\in \denote{\unittyabt}\\
+\bot &\in \denote{\booltyabt}\\
+\top &\in \denote{\booltyabt}\\
+0 &\in \denote{\irl{nat}}\\
+n + 1 &\in \denote{\irl{nat}} \text{ if } n \in \denote{\irl{nat}}\\
+\nil &\in \denote{L(A)}\\
+\cons{a}{l} &\in \denote{L(A)} \text{ if } a \in \denote{A} \text{ and } l \in \denote{L(A)}\\
+\end{align*}
 
-The type system takes into account of garbaged collected cells by returning potential locally in a match construct. Since we are interested in the number of heap cells, all constants are assumed to be nonnegative.
+Where semantic set for each type is the least set such that the above holds. Note $\pi(x,y)$ is the usual set-theoretic pairing function, and write $[a_1,...,a_n]$ for $\pi(a_1,...,\pi(a_n,[]))$. \\
+
+Now we give the judgements relating heap values to semantic values, in the form \fbox{$H \vDash v \mapsto a : A$}, which can be read as: under heap $H$, heap value $v$ defines the semantic value $a \in \denote{A}$.  
+
+\begin{mathpar}
+\inferr{
+  H \vDash \val{n} \mapsto n : \irl{nat}
+}{
+  n \in \mathbb{Z}
+}(\text{V:ConstI})
+
+\inferr{
+  H \vDash \val{\irl{Null}} \mapsto n : \unittyabt
+}{
+}(\text{V:ConstI})
+
+\inferr{
+  H \vDash \val{\irl{Null}} \mapsto n : L(A)
+}{
+  A \in \ms{BType}
+}(\text{V:Nil})
+
+\inferr{
+  H \vDash \val{\irl{T}} \mapsto \top : \booltyabt
+}{
+}(\text{V:True})
+
+\inferr{
+  H \vDash \val{\irl{F}} \mapsto \bot : \booltyabt
+}{
+}(\text{V:False})
+
+\inferr{
+  H \vDash l \mapsto [a_1,\ldots,a_n] : L(A)
+}{
+  l \in \ms{Loc}\\
+  H(l) = \pairexcst{v_h}{v_t}\\
+  H \vDash v_h \mapsto a_1 : A\\
+  H \vDash v_t \mapsto [a_2,\ldots,a_n] : L(A)
+}(\text{V:Cons})
+\end{mathpar}
+\section{Stack vs Heap Allocated Types}
+In order to share variables, we need to distinguish between types that are allocated on the stack and the heap. 
+We write \fbox{$\stack{A}$} to denote that values of type $A$ will be allocataed \emph{entirely} on the stack at run time (no references into the heap). 
+
+\begin{mathpar}
+\inferr{
+  \stack{A}
+}
+{
+  A \in \{\unittyabt,\booltyabt,\irl{nat}\}
+}(\text{S:Const})
+
+\inferr{
+  \stack{\prodtycst{A_1}{A_2}}
+}
+{
+  \stack{A_1} \\
+  \stack{A_2}
+}(\text{S:Product})
+\end{mathpar}
+
+\section{Linear Garbage Collection Type Rules}
+\label{sec:typing}
+
+The linear version of the type system takes into account of garbaged collected cells by returning potential locally in a match construct. Since we are interested in the number of heap cells, all constants are assumed to be nonnegative. The second let rule expresses the fact that since stack types don't reference heap cells, any heap cells used in the evaluation of $e_1$ can be deallocated, as there are no longer references to them in $v_1$. 
 
 \begin{mathpar}
 \inferr{
@@ -425,6 +537,13 @@ The type system takes into account of garbaged collected cells by returning pote
 }(\text{L:Var})
 
 \inferr{
+  \Sigma; x : A \sststile{q'}{q} f(x) : B
+}
+{
+  \Sigma(f) = A \xmapsto{q/q'} B
+}
+
+\inferr{
   \Sigma; \Gamma, x : \irl{bool} \sststile{q'}{q} \ifexcst{x}{e_t}{e_f} : B
 }{
   \Sigma; \Gamma \sststile{q'}{q} e_t : B \\
@@ -448,7 +567,7 @@ The type system takes into account of garbaged collected cells by returning pote
 }(\text{L:Nil})
 
 \inferr{
-  \Sigma; \Gamma, x_h : A, x_t : L^p(A) \sststile{q}{q+p+1} \consexcst{x_h}{x_t} : L^p(A)
+  \Sigma; x_h : A, x_t : L^p(A) \sststile{q}{q+p+1} \consexcst{x_h}{x_t} : L^p(A)
 }{
 }(\text{L:Cons})
 
@@ -467,17 +586,57 @@ The type system takes into account of garbaged collected cells by returning pote
 }(\text{L:Let})
 
 \inferr{
+  \Sigma; \Gamma_1, \Gamma_2 \sststile{q'}{q} \irl{let}(e_1; x : \tau.e_2) : B
+}{
+  \Sigma; \Gamma_1 \sststile{p}{q} e_1 : A \\
+  \stack{A}\\
+  \Sigma; \Gamma_2, x : A \sststile{q'}{\max{(p,q)}} e_2 : B
+}(\text{L:LetS})
+
+\inferr{
   \Sigma; \Gamma, x : A \sststile{q'}{q} \irl{drop}(x;e) : B
 }{
   \Sigma; \Gamma \sststile{q'}{q} e : B
 }(\text{L:Drop})
+
+\inferr{
+  \Sigma; \Gamma, x : A \sststile{q'}{q} \sharecst{x}{x_1}{x_2}{e} : B
+}{
+  \stack{A}\\
+  \Sigma; \Gamma, x_1 : A, x_2 : A \sststile{q'}{q} e : B
+}(\text{L:Share})
 \end{mathpar}
 
 Now if we take $\dagger :  L^p(A) \mapsto L(A)$ as the map that erases resource annotations, 
  we obtain a simpler typing judgement \fbox{$\Sigma^{\dagger}; \Gamma^{\dagger} \vdash e : B^{\dagger}$}.
+ 
+\section{Type Rules For Sharing}
+
+\begin{align*}
+L^p(A) - n &= L ^ {\max{(p - n,0)}}(A - n)\\
+\prodtycst{A_1}{A_2} - n &= \prodtycst{A_1 - n}{A_2 - n}\\
+A - n &= A\\
+\end{align*}
+
+\begin{mathpar}
+\inferr{
+  \Sigma; \Gamma, x : A \sststile{q'}{q} \sharecst{x}{x_1}{x_2}{e} : B
+}{
+  A \;\ms{ with } \;A_1, A_2\\
+  \Sigma; \Gamma, x_1 : A_1, x_2 : A_2 \sststile{q'}{q} e : B
+}(\text{M:Share})
+
+\inferr{
+  \Sigma; \Gamma_1, \Gamma_2 \sststile{q'}{q} \irl{let}(e_1; x : \tau.e_2) : B
+}{
+  \Sigma; \Gamma_1 \sststile{p}{q} e_1 : A \\
+  \Sigma; \Gamma_1 \sststile{}{\ms{cf}} e_1 : A' \\
+  \Sigma; \Gamma_2, x : (A' - 1) \sststile{q'}{p} e_2 : B
+}(\text{M:Let})
+\end{mathpar}
 
 \newpage
-\section{Soundness for garbage collection semantics}
+\section{Soundness for Linear GC}
 
 We simplify the soundness proof of the type system for the general metric to one with monotonic resource.
 (No function types for now)
@@ -487,7 +646,7 @@ We simplify the soundness proof of the type system for the general metric to one
 \end{lemma}
 
 \begin{lemma}\label{itm:linear}
-\label{a} If $\Sigma; \Gamma \sststile{q'}{q} e : B$, then $\set{FV(e)}$ and $dom(\Gamma) = FV(e)$.
+\label{a} If $\Sigma; \Gamma \sststile{q'}{q} e : B$, then $\set{FV^{\star}(e)}$ and $dom(\Gamma) = FV(e)$.
 \end{lemma}
 
 \begin{proof}
@@ -495,15 +654,39 @@ Induction on the typing judgement.
 \end{proof}
 
 \begin{lemma}\label{itm:stable}
-For all values $v$, heaps $H$, $H'$, set of locations $R$, if $reach_H(v) \subseteq R$ and $\stable{R,H,H'}$, then $reach_H(v) = reach_{H'}(v)$.
+Let $H \vDash v \mapsto a : A$. For all sets of locations $R$, if $reach_H(v) \subseteq R$ and $\stable{R,H,H'}$, then $H' \vDash v \mapsto a : A$ and $reach_H(v) = reach_{H'}(v)$.
 \end{lemma}
 
 \begin{proof}
 Induction on the structure of $v$.
 \end{proof}
 
-\begin{lemma}\label{itm:na}
-For all stacks $V$ and heaps $H$, let  $V,H,R,F \; \vdash e \Downarrow v, H', F'$, $\Sigma; \Gamma \vdash e : B$, and $H \vDash V : \Gamma$. Then given the following: 
+\begin{corollary}
+Let $H \vDash V : \Gamma$. For all sets of locations $R$, if $\bigcup_{x \in V} reach_H(V(x)) \subseteq R$ and $\stable{R,H,H'}$, then $H' \vDash V : \Gamma$.
+\end{corollary}
+
+\begin{proof}
+Follows from Lemma $\ref{itm:stable}$.
+\end{proof}
+
+\begin{lemma}\label{itm:stack}
+Let $H \vDash v \mapsto a : A$. If $\stack{A}$, then $\Phi_H(v:A) = 0$.
+\end{lemma}
+
+\begin{proof}
+Induction on $H \vDash v \mapsto a : A$.
+\end{proof}
+
+% heap conservation
+\begin{lemma}[heap conservation]
+Let $V,H,R,F \; \vdash e \Downarrow v, H', F'$, and $g = \gc{H'}{R}{F'}$. 
+Then $\ssize{H}{V} + |F| = \ssize{H'}{v} + |F' \cup g|$.
+\end{lemma}
+
+% main lemma
+
+\begin{lemma}[main lemma]\label{itm:na}
+For all stacks $V$ and heaps $H$, let  $V,H,R,F \; \vdash e \Downarrow v, H', F'$ and $\Sigma; \Gamma \vdash e : B$. Then given the following: 
 \begin{enumerate}
 \item $dom(V) = FV(e)$
 \item $\na{V,H}$, and
@@ -708,7 +891,7 @@ Nested induction on the evaluation judgement and the typing judgement.\\
   &\quad x' \in FV(e) \tag{def of $FV$}\\
   &\quad l' \in locs_{V,H}(e) \tag{def of $locs_{V,H}$}\\
   &\quad l' \notin R \tag{$\dist{\{R,F,locs_{V,H}(e)\}}$}\\
-  &\textbf{case: }  l' \in reach_{H}(V''(x_h)) \\
+  &\textbf{case: }  l' \in reach_{H}(V''(x_h)) \\tom
   &\quad l' \in reach_{H}(v_h)\\
   &\quad l' \in reach_{H}(V(x)) \tag{def of $reach$}\\
   &\quad l' \in locs_{V,H}(e) \tag{def of $locs_{V,H}$}\\
@@ -724,6 +907,33 @@ Nested induction on the evaluation judgement and the typing judgement.\\
   &\emph{(1)} \quad \ms{set}(reach_{H'}(v))\\
   &\emph{(2)} \quad\dist{\{R,F',reach_{H'}(v)\}}\\
   &\emph{(3)} \quad\stable{R,H,H'}\\
+  \end{align*}
+  \item [Case 13: E:Drop]
+  \begin{align*}
+  &e = \irl{drop}(x;e') \tag{case}\\
+  &V',H,R,F \cup g \vdash e' \Downarrow v,H',F' (\mathcal{J}_1) \tag{ad.}\\
+  &\Gamma = \Gamma',x:A \tag{case}\\
+  &\Sigma;\Gamma' \sststile{q'}{q} e' : B\\
+  &\text{Suppose } dom(V) = FV(e), \na{V,H},\dist{\{R,F,locs_{V,H}(e)\}}\\
+  &\text{By IH, we have invariant on } \mathcal{J}_1\\
+  &\text{NTS (1) - (3) for } \mathcal{J}_1\\
+  &\emph{(1)} \quad dom(V') = FV(e') \tag{$dom(V) = FV(e)$ and def of $FV$}\\
+  &\emph{(2)} \quad \na{V',H} \tag{$\na{V,H}$ and $V' \subseteq V$}\\
+  &\emph{(3)} \quad \dist{\{R,F \cup g,locs_{V',H}(e')\}}\\
+  &g = reach_H(v') \tag{case}\\
+  &g \subseteq locs_{V,H}(e) \tag{def of $locs_{V,H}$}\\
+  &R \cap (F \cup g) = \emptyset \tag{$\dist{\{R,F\}}$ and $\dist{\{R,locs_{V,H}(e)\}}$}\\
+  &R \cap locs_{V',H}(e') = \emptyset \tag{\dist{\{R,locs_{V,H}(e)\}}$ and $locs_{V',H}(e) \subseteq locs_{V,H}(e)$}\\
+  &F \cap locs_{V',H}(e') = \emptyset \tag{\dist{\{F,locs_{V,H}(e)\}}$ and $locs_{V',H}(e) \subseteq locs_{V,H}(e)$}\\
+  &g \cap locs_{V',H}(e') = \emptyset \tag{$\na{V,H}$}\\
+  &\text{Instantiating invariant on }  \mathcal{J}_1,\\
+  &\emph{(1)} \quad \set{reach_{H'}(v)}\\
+  &\emph{(2)} \quad \disjoint{\{R,F',reach_{H'}(v)\}}\\
+  &\emph{(3)} \quad \stable{R,H,H'}\\
+  \end{align*}
+  \item [Case 13: E:Share]
+  \begin{align*}
+  &e = \shareabt{x}{x_1}{x_2}{e} \tag{case}\\
   \end{align*}
   \end{description}
 \end{proof}
@@ -814,8 +1024,54 @@ Nested induction on the evaluation judgement and the typing judgement.\\
   &\text{NTS (1) - (4) to instantiate existence lemma on } J_1\\
   &\emph{(1)} \quad dom(V_2') = FV(e_2)\\
   &\emph{(2)} \quad \na{V_2',H_1} \\
-  &\emph{(3)} \quad \dist{\{R,F'' \cup g,locs_{V_2',H_1}(e_2)\}} \tag{(1) - (3) all verbatim as in Lemma $~\ref{itm:na}$}\\
+  &\emph{(3)} \quad \dist{\{R,F'' \cup g,locs_{V_2',H_1}(e_2)\}} \tag{(1) - (3) all verbatim as in Lemma $\ref{itm:na}$}\\
   &\emph{(4)} \quad |F'' \cup g| \ge \Phi_{V_2',H_1}(\Gamma_2,x:A) + p + C\\
+  &\quad |F'' \cup g | \ge |F''|\\
+  &\quad \quad \ge \Phi_{H_1}(v_1:A) + p + C + \Phi_{V_2,H}(\Gamma_2) \tag{IH}\\ 
+  &\quad \quad = \Phi_{H_1}(v_1:A) + p + C + \Phi_{V_2',H_1}(\Gamma_2) \tag{Lemma 4.3.3}\\ 
+  &\quad \quad = \Phi_{V_2',H_1}(\Gamma_2,x:A) + p + C \tag{def of $\Phi$}\\
+  &\text{Instantiating existence lemma on } J_2, \text{ we get } F^{(3)} \text{ s.t. }\\
+  &\quad 1. V_2',H_1,R, F'' \cup g \vdash e_2 \Downarrow v_2,H_2,F^{(3)} \\
+  &\quad 2. |F^{(3)}| \ge \Phi_{H_2}(v_2:B) + q' + C\\
+  &\text{Take } F' = F^{(3)}\\
+  &V,H,R,F \vdash e \Downarrow v_2, H_2,F' \text{ and } \tag{E:Let}\\ 
+  &|F'| \ge \Phi_{H_2}(v_2:B) + q' + C \tag{from IH}\\
+  \end{align*}
+  \item [Case 14: E:Let1]
+  \begin{align*}
+  &V,H \vdash e \Downarrow v_2,H_2 \tag{case}\\
+  &V,H \vdash e_1 \Downarrow v_1,H_1 \tag{ad.}\\
+  &\Sigma; \Gamma_1 \sststile{p}{q} e_1 : A \tag{ad.}\\
+  &H \vDash V_1 : \Gamma_1 \tag{def of W.D.E}\\
+  &\text{Let } C \in \mathbb{Q}^+, F,R \subseteq \ms{Loc} \text{ be arb.}\\
+  &\text{Suppose }  dom(V) = FV(e),\na{V,H}, \dist{\{R,F,locs_{V,H}(e)\}}, \text{ and } |F| \ge \Phi_{V,H}(\Gamma) + q + C\\
+  &\text{NTF } F' \text{ s.t. }\\
+  &\quad 1. V,H,R,F \vdash e \Downarrow v_2, H_2,F' \text{ and }\\ 
+  &\quad 2. |F'| \ge \Phi_{H_2}(v_2:B) + q' + C\\
+  &\text{Let } R' = R \cup locs_{V,H}(\irl{lam}(x : \tau.e_2))\\
+  &\dist{\{R',F,locs_{V,H}(e_1)\}} \tag{Similar to case in Lemma $~\ref{itm:na}$}\\
+  &\text{Instantiate IH with } C = C + \Phi_{V_2,H}(\Gamma_2), F = F, R = R', \text{ we get existence lemma on } J_1:\\
+  &\text{NTS (1) - (4) to instantiate existence lemma on } J_1\\
+  &\emph{(1)} \quad dom(V_1) = FV(e_1)\\
+  &\emph{(2)} \quad \na{V_1,H}\\
+  &\emph{(3)} \quad \dist{\{R,F,locs_{V,H}(e)\}} \tag{(1) - (3) all verbatim as in Lemma $~\ref{itm:na}$}\\
+  &\emph{(4)} \quad |F| \ge \Phi_{V_1,H}(\Gamma_1) + q + C + \Phi_{V,H}(\Gamma_2) \tag{$|F| \ge \Phi_{V,H}(\Gamma) + q + C$ and $\Phi_{V,H}(\Gamma) \ge \Phi_{V_1,H}(\Gamma_1) + \Phi_{V,H}(\Gamma_2)$}\\
+  &\text{Instantiating existence lemma on } J_1, \text{ we get }  F'' \text{ s.t. }\\
+  &\quad 1. V,H,R',F \vdash e_1 \Downarrow v_1, H_1,F'' \text{ and }\\ 
+  &\quad 2. |F''| \ge \Phi_{H_1}(v_1:A) + p + C + \Phi_{V_2,H_1}(\Gamma_2)\\
+  &\text{For the second premise: }\\
+  &\Sigma; \Gamma_2, x : A \sststile{q'}{\max{(p,q)}} e_2 : B \tag{ad.}\\
+  &H_1 \vDash v_1 : A \text{ and } \tag{Theorem 3.3.4}\\ 
+  &H_1 \vDash V : \Gamma_2 \tag{???}\\
+  &H_1 \vDash V' : \Gamma_2, x : A \tag{def of $\vDash$}\\
+  &V',H_1 \vdash e_2 \Downarrow v_2,H_2 \tag{ad.}\\
+  &\text{Let } g = \{l \in H_1 \mid l \notin F'' \cup R \cup locs_{V',H_1}(e_2)\}\\ 
+  &\text{Instantiate IH with } C = C, F = F'' \cup g, R = R, \text{ we get existence lemma on  } J_2:\\
+  &\text{NTS (1) - (4) to instantiate existence lemma on } J_1\\
+  &\emph{(1)} \quad dom(V_2') = FV(e_2)\\
+  &\emph{(2)} \quad \na{V_2',H_1} \\
+  &\emph{(3)} \quad \dist{\{R,F'' \cup g,locs_{V_2',H_1}(e_2)\}} \tag{(1) - (3) all verbatim as in Lemma $~\ref{itm:na}$}\\
+  &\emph{(4)} \quad |F'' \cup g| \ge \Phi_{V_2',H_1}(\Gamma_2,x:A) + q + C\\
   &\quad |F'' \cup g | \ge |F''|\\
   &\quad \quad \ge \Phi_{H_1}(v_1:A) + p + C + \Phi_{V_2,H}(\Gamma_2) \tag{IH}\\ 
   &\quad \quad = \Phi_{H_1}(v_1:A) + p + C + \Phi_{V_2',H_1}(\Gamma_2) \tag{Lemma 4.3.3}\\ 
@@ -835,19 +1091,13 @@ Nested induction on the evaluation judgement and the typing judgement.\\
   Similar to E:Const*
   \item[Case 11: E:Cons]
   \begin{align*}
-  &|F| - |F'|\\
-  &\quad = |F| - |F \setminus \{l\}| \tag{ad.}\\
-  &\quad = 1\\
-  &\Phi_{V,H}(\Gamma) +q - (\Phi_{H'}(v:B) + q')\\
-  &\quad = \Phi_{V,H}(x_h : A,x_t:L^p(A)) + q + p + 1 - (\Phi_{H'}(v:L^p(A)) + q) \tag{ad.}\\
-  &\quad = \Phi_{V,H}(x_h : A,x_t:L^p(A)) + p + 1 - \Phi_{H'}(v:L^p(A))) \\
-  &\quad = \Phi_{H}(V(x_h):A) + \Phi_{H}(V(x_t):L^p(A)) + p + 1 - \Phi_{H'}(v:L^p(A))) \tag{def of $\Phi_{V,H}$}\\
-  &\quad = \Phi_{H}(v_h:A) + \Phi_{H}(v_t:L^p(A)) + p + 1 - \Phi_{H'}(v:L^p(A))) \tag{ad.}\\
-  &\quad = \Phi_{H}(v_h:A) + \Phi_{H}(v_t:L^p(A)) + p + 1 - (p + \Phi_{H'}(v_h:A) + \Phi_{H'}(v_t:L^p(A))) \tag{Lemma 4.1.1}\\
-  &\quad = \Phi_{H}(v_h:A) + \Phi_{H}(v_t:L^p(A)) + p + 1 - (p + \Phi_{H}(v_h:A) + \Phi_{H}(v_t:L^p(A))) \tag{Lemma 4.3.3}\\
-  &\quad = 1\\
-  &\text{Hence,}\\
-  &|F| - |F'| \le \Phi_{V,H}(\Gamma) +q - (\Phi_{H'}(v:B) + q')
+  &V,H \vdash \consexabt{x_1}{x_2} \Downarrow l, H' \tag{case}\\
+  &\text{Let } C \in \mathbb{Q}^+, F,R \subseteq \ms{Loc} \text{ be arb.}\\
+  &\text{Suppose } dom(V) = FV(e), \na{V,H}, \dist{\{R,F,locs_{V,H}(e)\}}, |F| \ge \Phi_{V,H}(\Gamma) + q + C\\
+  &\text{NTF } F' \text{ s.t. }\\
+  &\quad 1. V,H,R,F \vdash e \Downarrow v, H',F' \text{ and }\\ 
+  &\quad 2. |F'| \ge \Phi_{H'}(v:B) + q' + C\\
+  &\text{Let } F' = F \ 
   \end{align*}
   \item[Case 12: E:MatNil]
   Similar to E:Cond*
