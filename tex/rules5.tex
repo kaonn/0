@@ -86,10 +86,15 @@
 \newcommand{\nil}{[]}
 \newcommand{\cons}[2]{\pi(#1,#2)}
 \newcommand{\sharecst}[4]{\irl{share}\;#1\;\irl{as}\;#2,#3\;\irl{in}\;#4}
+\newcommand{\sharecpcst}[4]{\irl{shareCopy}\;#1\;\irl{as}\;#2,#3\;\irl{in}\;#4}
 \newcommand{\shareabt}[4]{\irl{share}(#1;#2,#3.#4)}
 \newcommand{\ssize}[2]{\left\Vert #2 \right\Vert_{#1}}
+\newcommand{\gc}[3]{\mathsf{gc}(#1,#2,#3)}
+\newcommand{\wfc}[5]{\mathsf{wfc}(#1,#2,#3,#4,#5)}
 \newtheorem{lemma}[theorem]{Lemma}
 \newtheorem{corollary}{Corollary}[theorem]
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
 
 \title{15-312 Assignment \hwnumber}
 \author{\myname\\(\myandrewid)}
@@ -226,6 +231,7 @@ $\ssize{H}{\cdot}$ calculates the \emph{semantic} or \emph{heap size} of a value
 \begin{align*}
   &\ssize{H}{\pairexcst{v_1}{v_2}} = \ssize{H}{v_1} + \ssize{H}{v_2}\\
   &\ssize{H}{l} = 1 + \ssize{H}{H(l)}\\
+  &\ssize{H}{\_} = 0\\ 
 \end{align*}
 
 As usual, we extend it to stacks $V$: $\ssize{H}{V} = \sum_{V(x) = v} \ssize{H}{v}$\\
@@ -234,13 +240,16 @@ $copy(H,L,v)$ takes a heap $H$, a set of locations $L$, and a value $v$, and ret
 \begin{align*}
   &copy(H,L,\pairexcst{v_1}{v_2}) =\\
   &\quad\mathsf{let }\; L_1 \sqcup L_2 \subseteq L\\
-  &\quad\quad\mathsf{ where }\; |L_1| = size(v_1) \;,|L_2| = size(v_2)\\
-  &\quad\mathsf{let }\; H_1 = copy(H,L_1,v_1) \\
-  &\quad\mathsf{let }\; H_2 = copy(H_1,L_2,v_2) \;\mathsf{in}\\
-  &\quad H_2\{l \mapsto v\}\\
-  &copy(H,L,v) =\\
-  &\quad\mathsf{let }\; l \in H\; \mathsf{in}\\
-  &\quad H\{l \mapsto v\}\\
+  &\quad\quad\mathsf{ where }\; |L_1| = \ssize{H}{v_1} \;,|L_2| = \ssize{H}{v_2}\\
+  &\quad\mathsf{let }\; H_1,v_1' = copy(H,L_1,v_1) \\
+  &\quad\mathsf{let }\; H_2,v_2' = copy(H_1,L_2,v_2) \;\mathsf{in}\\
+  &\quad H_2,\pairexcst{v_1'}{v_2'}\\
+  &copy(H,L,l) =\\
+  &\quad\mathsf{let }\; l' \in L\; \mathsf{in}\\
+  &\quad\mathsf{let }\; H',v = copy(H,L \setminus \{l'\}, H(l)) \mathsf{in}\\
+  &\quad H'\{l' \mapsto v\}, l'\\
+  &copy(H,L,v) = \\
+  &\quad H,v
 \end{align*}
 
 \section{Garbage collection semantics}
@@ -326,6 +335,13 @@ $copy(H,L,v)$ takes a heap $H$, a set of locations $L$, and a value $v$, and ret
 } 
 
 \infern{
+  v = \pairexcst{V(x_1)}{V(x_2)}\\
+  H' = H\{l \mapsto v\}
+}{
+  V,H,R,F \; \vdash \consexcst{x_1}{x_2} \Downarrow l,H' ,F'
+}
+
+\infern{
   V = V'[x \mapsto v']\\
   g = reach_H(v')\\
   V',H,R,F \cup g \; \vdash e \Downarrow v,H',F'
@@ -335,20 +351,19 @@ $copy(H,L,v)$ takes a heap $H$, a set of locations $L$, and a value $v$, and ret
 
 \infern{
   V = V'[x \mapsto v']\\
-  V'[x_1 \mapsto v',x_2 \mapsto v'],H,R,F \; \vdash e \Downarrow v,H',F'
+  V'[x_1 \mapsto v',x_2 \mapsto v'],H',R,F \; \vdash e \Downarrow v,H'',F'
 }{
-  V,H,R,F \; \vdash \sharecst{x}{x_1}{x_2}{e} \Downarrow v,H',F'
+  V,H,R,F \; \vdash \sharecst{x}{x_1}{x_2}{e} \Downarrow v,H'',F'
 }
 
 \infern{
-  v = \pairexcst{V(x_1)}{V(x_2)}\\
-  L \sqcup \{l\}\subseteq F\\
-  |L| = size_H(v)\\
-  F' = F \setminus (L \sqcup \{l\})\\
-  H' = copy(H,L,v)\\
-  H'' = H'\{l \mapsto v\}
+  V = V'[x \mapsto v']\\
+  L \subseteq F\\
+  |L| = \ssize{H}{v'}\\
+  H',v'' = copy(H,L,v')\\
+  V'[x_1 \mapsto v',x_2 \mapsto v''],H',R,F \; \vdash e \Downarrow v,H'',F'
 }{
-  V,H,R,F \; \vdash \consexcst{x_1}{x_2} \Downarrow l,H'' ,F'
+  V,H,R,F \; \vdash \sharecpcst{x}{x_1}{x_2}{e} \Downarrow v,H'',F'
 }
 
 \infern{
@@ -641,6 +656,17 @@ A - n &= A\\
 We simplify the soundness proof of the type system for the general metric to one with monotonic resource.
 (No function types for now)
 
+\begin{definition}[Well-formed computation]
+When considering the input mode arguments of a evaluation judgment $V,H,R,F \vdash e \Downarrow v,H',F'$, 
+we say the 5-tuple $(V,H,R,F,e)$ is a \emph{well-formed computation} given the following:
+\begin{enumerate}
+\item $dom(V) = FV(e)$
+\item $\na{V,H}$, and
+\item $\dist{\{R,F,locs_{V,H}(e)\}}$
+\end{enumerate} 
+And we write $\wfc{V}{H}{R}{F}{e}$ to denote this fact.
+\end{definition}
+
 \begin{lemma}
 \label{a} If $\Sigma; \Gamma \sststile{q'}{q} e : B$, then $\Sigma^{\dagger}; \Gamma^{\dagger} \vdash e : B^{\dagger}$.
 \end{lemma}
@@ -679,10 +705,97 @@ Induction on $H \vDash v \mapsto a : A$.
 
 % heap conservation
 \begin{lemma}[heap conservation]
-Let $V,H,R,F \; \vdash e \Downarrow v, H', F'$, and $g = \gc{H'}{R}{F'}$. 
-Then $\ssize{H}{V} + |F| = \ssize{H'}{v} + |F' \cup g|$.
+Let $\wfc{V}{H}{R}{F}{e}$, $V,H,R,F \; \vdash e \Downarrow v, H', F'$, and $g = \gc{H'}{R}{F'}$. 
+Then $\ssize{H}{V} + |F| \le \ssize{H'}{v} + |F' \cup g|$.
 \end{lemma}
 
+\begin{proof}
+Induction on evaluation.\\
+\begin{description}
+  \item[Case 1: E:Var]
+  \begin{align*}
+  &V = [x \mapsto v] \tag{since $dom(V) = FV(e) = \{x\}$}\\
+  &\ssize{H}{V} = \ssize{H}{v} \tag{def of $\ssize{H}{\cdot}$}\\
+  &\ssize{H}{V} + |F| \le \ssize{H'}{v} + |F \cup g|\\
+  \end{align*}
+  \item[Case 2: E:Const*]
+  Due to similarity, we show only for E:ConstI
+  \begin{align*}
+  &V = \emptyset \tag{since $dom(V) = FV(e) = \emptyset$}\\
+  &\ssize{H}{V} = \ssize{H}{v} \tag{def of $\ssize{H}{\cdot}$}\\
+  &\ssize{H}{V} + |F| \le \ssize{H'}{v} + |F \cup g|\\
+  \end{align*}
+  \item[Case 4: E:App]
+  \item[Case 5: E:CondT] Similar to E:MatNil
+  \item[Case 6: E:CondF] Similar to E:CondT
+  \item [Case 7: E:Let]
+  \begin{align*}
+  &\ssize{H}{V_1} + |F| \le \ssize{H_1}{v_1} + |F_1 \cup g| \tag{IH on first premise}\\ 
+  &\text{Let } g' = \gc{H_2}{R}{F_2}\\
+  &\ssize{H_1}{V_2'} + |F_1 \cup g| \le \ssize{H_2}{v_2} + |F \cup g'| \tag{IH on second premise}\\
+  &\ssize{H_1}{V_2'} = \ssize{H_1}{V_2} + \ssize{H_1}{v_1} \tag{definition of semantic size}\\
+  &\quad = \ssize{H}{V_2} + \ssize{H_1}{v_1} \tag{main lemma}\\
+  &\ssize{H}{V_2} + \ssize{H_1}{v_1} + |F_1 \cup g| \le \ssize{H_2}{v_2} + |F \cup g'|\\
+  &\ssize{H}{V_1} + \ssize{H}{V_2} + \ssize{H_1}{v_1} + |F| + |F_1 \cup g| \le \ssize{H_1}{v_1} + \ssize{H_2}{v_2} +
+  |F_1 \cup g| + |F \cup g'|\\
+  &\ssize{H}{V} + |F| \le \ssize{H_2}{v_2} + |F \cup g'|\\
+  \end{align*}
+  \item[Case 8: E:Pair]
+  Similar to E:Var
+  \item[Case 9: E:MatP]
+  Similar to E:MatCons
+  \item[Case 10: E:Nil]
+  Similar to E:Const*
+  \item[Case 11: E:Cons]
+  \begin{align*}
+  &V = [x_1 \mapsto v_1,x_2 \mapsto v_2] \tag{since $dom(V) = FV(e) = \{x_1,x_2\}$}\\
+  &\ssize{H}{V} = \ssize{H}{v_1} + \ssize{H}{v_2} \tag{def of $\ssize{H}{\cdot}$}\\
+  &\ssize{H'}{l} = 1 + \ssize{H'}{H'(l)} = 1 + \ssize{H''}{v} = 1 + \ssize{H''}{v_1} + \ssize{H''}{v_2}
+  \tag{def of semantic size}\\
+  &\quad = 1 + \ssize{H}{v_1} + \ssize{H}{v_1}\\
+  &\quad = 1 + \ssize{H}{V}\\
+  &L \sqcup \{l\} \subseteq g \tag{$R \cap F = \emptyset$ and $L \sqcup \{l\} \subseteq H''$}\\
+  &|g| \ge |L \sqcup \{l\}| = size(v) + 1\\
+  &|F' \cup g| \ge |F|\\
+  &\ssize{H}{V} + |F| \le \ssize{H'}{v} + |F \cup g|\\
+  \end{align*}
+  \item[Case 12: E:MatNil]
+  \begin{align*}
+  \end{align*}
+  \item [Case 13: E:MatCons]
+  \begin{align*}
+  &\text{Let } g' = \gc{H'}{R}{F'}\\
+  &\ssize{H}{V''}  + |F \cup g| \le |F' \cup g'| \tag{IH (wfc from main lemma)}\\
+  &\ssize{H}{V''} = \ssize{H}{V'[x_h \mapsto v_h, x_t \mapsto v_t]}\\
+  &\quad = \ssize{H}{V'} + \ssize{H}{v_h} + \ssize{H}{v_t}\\
+  &\quad = \ssize{H}{V'} + \ssize{H}{l} - 1\\
+  &\quad = \ssize{H}{V} - 1\\
+  &\ssize{H}{V} - 1 + |F \cup g| \le |F' \cup g'|\\
+  &\ssize{H}{v} - 1 + |F| + |g| \le |F' \cup g'| \tag{$F \cap g = \emptyset$}\\
+  &\ssize{H}{v} + |F| \le |F' \cup g'| \tag{$|g| \ge 1$ from main lemma}\\
+  \end{align*}
+  \item [Case 13: E:Drop]
+  \begin{align*}
+  &\text{Let } g' = \gc{H'}{R}{F'}\\
+  &\ssize{H}{V'} + |F \cup g| \le \ssize{H'}{v} + |F' \cup g'| \tag{IH}\\
+  &\sszie{H}{V} = \ssize{V'} + \ssize{v'}\\
+  &\ssize{H}{V} - \ssize{v'} + |F \cup reach_H(v')| \le \ssize{H'}{v} + |F' \cup g'|\\
+  &\ssize{H}{V} - \ssize{v'} + |F| + |reach_H(v')| \le \ssize{H'}{v} + |F' \cup g'|\\
+  &\ssize{H}{V} + |F| \le \ssize{H'}{v} + |F' \cup g'|\\
+  \end{align*}
+  \item [Case 13: E:Share]
+  \begin{align*}
+  &e = \shareabt{x}{x_1}{x_2}{e} \tag{case}\\
+  \end{align*}
+\end{description}
+\end{proof}
+
+% aux lemma
+
+\begin{lemma}
+Let $\Sigma;\Gamma \sststile{q'}{q} e : B$ and $V,H,R,F \vdash e \Downarrow v,H',F'$. Then 
+$\ssize{H}{V} - \ssize{H'}{v} + q \ge q'$.
+\end{lemma}
 % main lemma
 
 \begin{lemma}[main lemma]\label{itm:na}
@@ -1025,11 +1138,14 @@ Nested induction on the evaluation judgement and the typing judgement.\\
   &\emph{(1)} \quad dom(V_2') = FV(e_2)\\
   &\emph{(2)} \quad \na{V_2',H_1} \\
   &\emph{(3)} \quad \dist{\{R,F'' \cup g,locs_{V_2',H_1}(e_2)\}} \tag{(1) - (3) all verbatim as in Lemma $\ref{itm:na}$}\\
-  &\emph{(4)} \quad |F'' \cup g| \ge \Phi_{V_2',H_1}(\Gamma_2,x:A) + p + C\\
-  &\quad |F'' \cup g | \ge |F''|\\
-  &\quad \quad \ge \Phi_{H_1}(v_1:A) + p + C + \Phi_{V_2,H}(\Gamma_2) \tag{IH}\\ 
-  &\quad \quad = \Phi_{H_1}(v_1:A) + p + C + \Phi_{V_2',H_1}(\Gamma_2) \tag{Lemma 4.3.3}\\ 
-  &\quad \quad = \Phi_{V_2',H_1}(\Gamma_2,x:A) + p + C \tag{def of $\Phi$}\\
+  &\emph{(4)} \quad |F'' \cup g| \ge \Phi_{V_2',H_1}(\Gamma_2,x: (\cf{A} - 1)) + p + C\\
+  &\quad \text{STS } |F'' \cup g| \ge \Phi_{V_2,H_1}(\Gamma_2) + \Phi_{H_1}(v_1 : (\cf{A} - 1)) + p + C\\
+  &\quad |F'' \cup g| \ge \ssize{H}{V_1} + |F| - \ssize{H_1}{v_1} \tag{conservation lemma}\\
+  &\quad \ge \Phi_{V,H}(\Gamma) + q + C + \ssize{H}{V_1} - \ssize{H_1}{v_1} 
+    \tag{$|F| \ge \Phi_{H}(V) + q + C$ }\\
+  &\quad \text{STS } \Phi_{V_1,H}(\Gamma_1) + q + C \ssize{H}{V_1} - \ssize{H_1}{v_1} \ge \Phi_{H_1}(v_1 : (\cf{A} - 1)) + p + C\\
+  &\quad \Phi_{V_1,H}(\Gamma_1) \ge \Phi_{H_1}(v_1 : (\cf{A} - 1)) \tag{lemma about cf typing}\\
+  &\quad \text{STS } \ssize{H}{V_1} - \ssize{H_1}{v_1} + q \ge p \tag{done by aux lemma}\\
   &\text{Instantiating existence lemma on } J_2, \text{ we get } F^{(3)} \text{ s.t. }\\
   &\quad 1. V_2',H_1,R, F'' \cup g \vdash e_2 \Downarrow v_2,H_2,F^{(3)} \\
   &\quad 2. |F^{(3)}| \ge \Phi_{H_2}(v_2:B) + q' + C\\
