@@ -89,6 +89,7 @@
 \newcommand{\sharecpcst}[4]{\irl{shareCopy}\;#1\;\irl{as}\;#2,#3\;\irl{in}\;#4}
 \newcommand{\shareabt}[4]{\irl{share}(#1;#2,#3.#4)}
 \newcommand{\ssize}[2]{\left\Vert #2 \right\Vert_{#1}}
+\newcommand{\card}[1]{card(#1)}
 \newcommand{\gc}[3]{\mathsf{gc}(#1,#2,#3)}
 \newcommand{\wfc}[5]{\mathsf{wfc}(#1,#2,#3,#4,#5)}
 \newtheorem{lemma}[theorem]{Lemma}
@@ -227,12 +228,8 @@ $size$ calculates the \emph{literal size} of a value, e.g. the size to store its
   &size(\_) = 1
 \end{align*}
 
-$\ssize{H}{\cdot}$ calculates the \emph{semantic} or \emph{heap size} of a value, e.g. the size of the heap structure induced by the value.
-\begin{align*}
-  &\ssize{H}{\pairexcst{v_1}{v_2}} = \ssize{H}{v_1} + \ssize{H}{v_2}\\
-  &\ssize{H}{l} = 1 + \ssize{H}{H(l)}\\
-  &\ssize{H}{\_} = 0\\ 
-\end{align*}
+Let $\card{S}$ denote the number of unique elements, e.g. the cardinality of a multiset $S$.
+We write $\ssize{H}{v}$ for $\card{reach_H(v)}$ 
 
 As usual, we extend it to stacks $V$: $\ssize{H}{V} = \sum_{V(x) = v} \ssize{H}{v}$\\
 
@@ -349,19 +346,13 @@ $copy(H,L,v)$ takes a heap $H$, a set of locations $L$, and a value $v$, and ret
   V,H,R,F \; \vdash \irl{drop}(x;e) \Downarrow v,H',F'
 }
 
-\infern{
-  V = V'[x \mapsto v']\\
-  V'[x_1 \mapsto v',x_2 \mapsto v'],H',R,F \; \vdash e \Downarrow v,H'',F'
-}{
-  V,H,R,F \; \vdash \sharecst{x}{x_1}{x_2}{e} \Downarrow v,H'',F'
-}
 
 \infern{
   V = V'[x \mapsto v']\\
   L \subseteq F\\
   |L| = \ssize{H}{v'}\\
   H',v'' = copy(H,L,v')\\
-  V'[x_1 \mapsto v',x_2 \mapsto v''],H',R,F \; \vdash e \Downarrow v,H'',F'
+  V'[x_1 \mapsto v',x_2 \mapsto v''],H',R,F \setminus L \; \vdash e \Downarrow v,H'',F'
 }{
   V,H,R,F \; \vdash \sharecpcst{x}{x_1}{x_2}{e} \Downarrow v,H'',F'
 }
@@ -442,6 +433,18 @@ This can be read as: under stack $V$, heap $H$ the expression $e$ evaluates to $
 }{
   V,H \; \vdash \irl{let}(e_1; x : \tau.e_2) \Downarrow v_2,H_2
 }
+
+\infern{
+  V = V'[x \mapsto v']\\
+	L \; fresh\\
+  |L| = \ssize{H}{v'}\\
+  H',v'' = copy(H,L,v')\\
+  V'[x_1 \mapsto v',x_2 \mapsto v''],H' \; \vdash e \Downarrow v,H''
+}{
+  V,H \; \vdash \sharecpcst{x}{x_1}{x_2}{e} \Downarrow v,H''
+}
+
+
 \end{mathpar}
 \section{Well Defined Environments}
 In order to define the potential for first-order types, we need a notion of well-define environments, one that relates 
@@ -637,7 +640,7 @@ A - n &= A\\
 \inferr{
   \Sigma; \Gamma, x : A \sststile{q'}{q} \sharecst{x}{x_1}{x_2}{e} : B
 }{
-  A \;\ms{ with } \;A_1, A_2\\
+  A \;\curlyvee \;A_1, A_2,1\\
   \Sigma; \Gamma, x_1 : A_1, x_2 : A_2 \sststile{q'}{q} e : B
 }(\text{M:Share})
 
@@ -649,6 +652,12 @@ A - n &= A\\
   \Sigma; \Gamma_2, x : (A' - 1) \sststile{q'}{p} e_2 : B
 }(\text{M:Let})
 \end{mathpar}
+
+Where $A \curlyvee A_1,A_2,n$ is the sharing relation defined as:
+\begin{align*}
+	&L^p(A) \curlyvee L^q(A_1),L^r(A_2),n & \text{if } p = q + r + n \;\text{and}\; A \curlyvee A_1,A_2,n\\
+	&A \curlyvee A_1,A_2 & \text{if } \stack{A}, \stack{A_1}, \stack{A_2} \;\text{and}\; A \equiv A_1 \equiv A_2
+\end{align*}
 
 \newpage
 \section{Soundness for Linear GC}
@@ -783,9 +792,16 @@ Induction on evaluation.\\
   &\ssize{H}{V} - \ssize{v'} + |F| + |reach_H(v')| \le \ssize{H'}{v} + |F' \cup g'|\\
   &\ssize{H}{V} + |F| \le \ssize{H'}{v} + |F' \cup g'|\\
   \end{align*}
-  \item [Case 13: E:Share]
+  \item [Case 13: E:ShareCopy]
   \begin{align*}
-  &e = \shareabt{x}{x_1}{x_2}{e} \tag{case}\\
+  &e = \sharecpcst{x}{x_1}{x_2}{e} \tag{case}\\
+	&\text{Let } g' = \gc{H'}{R}{F'}\\
+	&\ssize{H'}{V'[x_1 \mapsto v', x_2 \mapsto v'']} + |F \setminus L| 
+			\le \ssize{H''}{v} + |F' \cup g'| \tag{IH, well-formedness from main lemma}\\
+  &\ssize{H'}{V'[x_1 \mapsto v', x_2 \mapsto v'']} + |F \setminus L| =
+			\ssize{H}{V} + \ssize{H'}{v''} + |F| - |L| \tag{stability lemma for copy}\\
+	&\quad = \ssize{H}{V} + |L| + |F| - |L| \tag{lemma about copy}\\
+	&\quad = \ssize{H}{V} + |F|\\
   \end{align*}
 \end{description}
 \end{proof}
@@ -1046,7 +1062,29 @@ Nested induction on the evaluation judgement and the typing judgement.\\
   \end{align*}
   \item [Case 13: E:Share]
   \begin{align*}
-  &e = \shareabt{x}{x_1}{x_2}{e} \tag{case}\\
+  &e = \sharecpcst{x}{x_1}{x_2}{e'} \tag{case}\\
+  &\text{Suppose } H \vDash V : \Gamma, dom(V) = FV(e), \na{V,H}, \dist{\{R,F,locs_{V,H}(e)\}} 
+		\tag{def. of wtf} \\
+	&\text{Let } V_2 = V'[x_1 mapsto v', x_2 mapsto v'']\\
+	&\text{We show the subsequent computation is also well-formed to invocate the IH:}\\
+  &\emph{(1)} \quad dom(V_2) = FV(e') \tag{$dom(V) = FV(e)$ and def of $FV$}\\
+  &\emph{(2)} \quad \na{V'[x_1 \mapsto v', x_2 \mapsto v''],H}
+	&\quad \na{V'[x_1 \mapsto v']} \tag{$\na{V,H}$}\\
+  &\quad \text{Let } x' \mapsto v''' \in V'[x_1 \mapsto v']. 
+		\text{STS } reach_{H'}(v''') \cap reach_{H'}(v'') = \emptyset\\
+	&\quad reach_{H'}(v'') \subseteq L \subseteq F \tag{lemma about copy}\\
+	&\quad reach_{H'}(v''') \subseteq locs_{V'[x_1\mapsto v'],H'}(e') \subseteq locs_{V,H}(e) 
+		\tag{stability lemma for copy}\\ 
+	&\quad \text{but since } $F \cap locs_{V,H}(e) = \emptyset$, \text{we have the result.}
+		 \tag{$\wfc{V}{H}{R}{F}{e}$}\\
+  &\emph{(3)} \quad \dist{\{R,F \setminus L,locs_{V_2,H'}(e')\}}\\
+	&\quad \text{Disjointedness involving $F$ follows from assumption. Last one follows since }
+		$locs_{V_2,H'}(e') \subseteq \locs_{V,H}(e) \cup L$\\
+	&\text{By IH:}
+  &\emph{(1)} \quad \set{reach_{H''}(v)}\\
+  &\emph{(2)} \quad \disjoint{\{R,F',reach_{H''}(v)\}}\\
+  &\emph{(3)} \quad \stable{R,H',H''}\\
+	&\text{STS } \stable{R,H,H'}, \text{ which follows from $L \cap R = \emptyset$ and stability for copy}\\
   \end{align*}
   \end{description}
 \end{proof}
@@ -1257,8 +1295,58 @@ Nested induction on the evaluation judgement and the typing judgement.\\
 	&V,H,R,F \; \vdash e \Downarrow v,H',F' \tag{E:MatCons}\\
   &|F'| \ge \Phi_{H'}(v:B) + q' + C \tag{From the IH}\\
   \end{align*}
+  \item[Case 13: E:Share]
+	\begin{align*}
+	&V,H \vdash e \Downarrow v,H'' \tag{case}\\
+	&V'[x_1 \mapsto v',x_2 \mapsto v''], H' \vdash e' \Downarrow v,H'' \tag{ad}\\
+	&\Sigma;\Gamma,x:A \sststile{q'}{q} e : B \tag{case}\\
+	&A \curlyvee A_1,A_2,1 \tag{ad.}\\
+	&\Sigma; \Gamma,x_1:A_1,x_2:A_2 \sststile{q'}{q} e : B \tag{ad.}\\
+  &\text{Let } C \in \mathbb{Q}^+, F,R \subseteq \ms{Loc} \text{ be arb.}\\
+  &\text{Suppose }  \na{V,H}, \dist{\{R,F,locs_{V,H}(e)\}}, \text{ and } |F| 
+		\ge \Phi_{V,H}(\Gamma,x:A) + q + C\\
+  &\text{NTF } F'' \text{ s.t. }\\
+  &\quad 1. V,H,R,F \vdash e \Downarrow v, H'',F'' \text{ and }\\ 
+  &\quad 2. |F''| \ge \Phi_{H''}(v:B) + q' + C\\
+	&\text{We need to show the freelist is sufficient for the subsequent computation to invoke the IH:}\\
+	&\text{Instantiate with } C, F \setminus L, \text{and} R\\
+	&\text{STS } |F\setminus L| \ge \Phi_{V_2, H'}(\Gamma,x_1 : A_1,x_2 : A_2) + q + C\\
+	&\quad \iff |F| - |L| \ge \Phi_{V_2,H'}(\Gamma) + 
+			\Phi_{V_2,H'}(x_1 : A_1) + \Phi_{V_2,H'}(x_2 : A_2) + q + C\\
+	&\quad \iff |F| \ge \Phi_{V_2,H'}(\Gamma) + 
+			\Phi_{V_2,H'}(x_1 : A_1) + \Phi_{V_2,H'}(x_2 : A_2) + \ssize{H}{v'} + q + C\\
+	&\quad \iff |F| \ge \Phi_{V_2,H'}(\Gamma) + 
+			\Phi_{V,H}(x : A) + q + C \tag{definition of sharing relation}\\
+	&\quad \iff |F| \ge \Phi_{V,H}(\Gamma,x:A) + q + C \tag{stability of copying}\\
+	&\quad \text{done from assumption}\\
+	&\text{By IH, we get } F'' \text{ fulfilling the previous two points for the case. }\\
+	\end{align*}
   \end{description}
 \end{proof}
+
+\section{Copy-free garbage collection semantics}
+
+Consider the GC semantics (from now on $\mathsf{copy}$ semantics) above,
+with the share rule replaced with the following: 
+
+\begin{mathpar}
+\infern{
+  V = V'[x \mapsto v']\\
+  V'[x_1 \mapsto v',x_2 \mapsto v'],H',R,F \; \vdash e \Downarrow v,H'',F'
+}{
+  V,H,R,F \; \vdash \sharecst{x}{x_1}{x_2}{e} \Downarrow v,H'',F'
+}
+\end{mathpar}
+
+Call this new semantics $\mathsf{free}$ semantics for copy-free. 
+It is easy to see that any terminating compuation
+in $\mathsf{copy}$ has a corresponding one in $\mathsf{free}$ that can be instantiated with 
+an equal or smaller freelist. This is expressed as the following lemma:
+
+\begin{lemma}
+Let $V,H,R,F \vdash^{\mathsf{copy}} v,H',F'$. Then there exists an $F''$ s.t.
+$V,H,R,F \vdash^{\mathsf{free}} v,H',F''$ and $|F''| \ge |F'|$.
+\end{lemma}
 
 
 \end{document}
