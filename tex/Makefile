@@ -1,7 +1,8 @@
 
-TARGETS := $(patsubst %.tex,%.pdf,$(wildcard rules5.tex) $(wildcard assn*.tex))
+TARGETS := $(patsubst %.tex,%.pdf,$(wildcard rules5.tex) $(wildcard paper.tex))
 
-all: $(TARGETS)
+all: rules5.pdf paper.pdf
+	echo $(TARGETS)
 
 # Generalized rule: how to build a .pdf from each .tex
 %.pdf: %.tex
