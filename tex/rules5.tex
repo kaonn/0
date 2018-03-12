@@ -171,7 +171,7 @@ Model dynamics using judgement of the form:
 
 \noindent
 Where $V : \ms{Var} \to \ms{Val} \times \ms{State}$, $H : \ms{Loc} \to \ms{Val}$, $R \subseteq \ms{Loc}$, $F \subseteq \ms{Loc}$, and $\Sigma : \ms{Var} \to \ms{FTypes}$. This can be read as: under stack $V$, heap $H$, roots $R$,
-freelist $F$, and program $P$ with signature $\Sigma$, the expression $e$ evaluates to $v$, and engenders a new heap $H'$ and freelist $F'$.\\
+freelist $F$, and program $P$ with signature $\Sigma$, the expression $e$ evaluates to $v$, and engenders a new heap $H'$ and freelist $F'$. Write $\ms{Heap}$ for the set of heaps and $\ms{Stack}$ for the set of stacks.\\
 
 \noindent
 A \emph{program} is then a $\Sigma$ indexed map $P$ from $\ms{Var}$ to pairs $(y_f,e_f)_{f \in \Sigma}$, where $\Sigma(y_f) = A \to B$, and $\Sigma;y_f : A \vdash e_f : B$ (typing rules are discussed in $\ref{sec:typing}$). We write $P : \Sigma$ to mean $P$ is a program with signature $\Sigma$. Because the signature $\Sigma$ for the mapping of function names to first order functions does not change during evaluation, we drop the subscript $\Sigma$ from $\vdash_{\Sigma}$ when the context of evaluation is clear. It is convenient to think of the evaluation judgement $\vdash$ as being indexed by a family of signatures $\Sigma$'s, each of which is a set of ``top-level'' first-order declarations to be used during evaluation.\\
@@ -233,6 +233,7 @@ We write $\ssize{H}{v}$ for $\card{reach_H(v)}$
 
 As usual, we extend it to stacks $V$: $\ssize{H}{V} = \sum_{V(x) = v} \ssize{H}{v}$\\
 
+\iffalse
 $copy(H,L,v)$ takes a heap $H$, a set of locations $L$, and a value $v$, and returns a new heap $H'$ and a location $l$ such that $l$ maps to $v$ in $H'$.
 \begin{align*}
   &copy(H,L,\pairexcst{v_1}{v_2}) =\\
@@ -248,6 +249,35 @@ $copy(H,L,v)$ takes a heap $H$, a set of locations $L$, and a value $v$, and ret
   &copy(H,L,v) = \\
   &\quad H,v
 \end{align*}
+\fi
+
+Let $copy(H,L,v,H',v')$ be a 5-place relation on 
+$\ms{Heap} \times \ms{Loc} \times \ms{Val} \times \ms{Heap} \times \ms{Val}$. We write this as 
+$H',v = copy(H,L,v)$ to signify the intended mode for this predicate: $(+,+,+,-,-)$.
+\begin{mathpar}
+	\inferr{
+		H,v = copy(H,L,v)	
+	}{
+		v \in \{n,\irl{T},\irl{F},\irl{Null}\}
+	}
+
+	\inferr{
+		H'\{l' \mapsto v\},l' = copy(H,L,l) 
+	}{
+		l' \in L\\
+		H',v = copy(H,L \setminus \{l'\},H(l)) 
+	}
+
+\inferr{
+	H_2,\pairexcst{v_1'}{v_2'} = copy(H,L,\pairexcst{v_1}{v_2})
+}{
+	L_1 \sqcup L_2 \subseteq L\\
+	|L_1| = \ssize{H}{v_1}\\
+	|L_2| = \ssize{H}{v_2}\\
+	H_1,v_1' = copy(H,L_1,v_1)\\
+	H_2,v_2' = copy(H_1,L_2,v_2)\\
+}
+\end{mathpar}
 
 \section{Garbage collection semantics}
 
@@ -333,9 +363,10 @@ $copy(H,L,v)$ takes a heap $H$, a set of locations $L$, and a value $v$, and ret
 
 \infern{
   v = \pairexcst{V(x_1)}{V(x_2)}\\
+	l \in F\\
   H' = H\{l \mapsto v\}
 }{
-  V,H,R,F \; \vdash \consexcst{x_1}{x_2} \Downarrow l,H' ,F'
+	V,H,R,F \; \vdash \consexcst{x_1}{x_2} \Downarrow l,H' ,F \setminus \{l\}
 }
 
 \infern{
@@ -405,9 +436,9 @@ This can be read as: under stack $V$, heap $H$ the expression $e$ evaluates to $
 
 \begin{mathpar}
 \infern{
+	l \notin dom(H)\\
   v = \pairexcst{V(x_1)}{V(x_2)}\\
-  (L \sqcup \{l\}) \cap dom(H) = \emptyset\\
-  H',l = copy(H,L,v)\\
+	H' = H\{l \mapsto v\}\\
 }{
   V,H \; \vdash \consexcst{x_1}{x_2} \Downarrow l,H'
 }
@@ -436,7 +467,7 @@ This can be read as: under stack $V$, heap $H$ the expression $e$ evaluates to $
 
 \infern{
   V = V'[x \mapsto v']\\
-	L \; fresh\\
+	L \cap dom(H) = \emptyset\\
   |L| = \ssize{H}{v'}\\
   H',v'' = copy(H,L,v')\\
   V'[x_1 \mapsto v',x_2 \mapsto v''],H' \; \vdash e \Downarrow v,H''
@@ -456,6 +487,8 @@ heap values to semantic values of a type. We first give a denotational semantics
 \top &\in \denote{\booltyabt}\\
 0 &\in \denote{\irl{nat}}\\
 n + 1 &\in \denote{\irl{nat}} \text{ if } n \in \denote{\irl{nat}}\\
+\pairexcst{a_1}{a_2} &\in \denote{\prodtycst{A_1}{A_2}} 
+	\text{ if } a_1 \in \denote{A_1} \text{ and } a_2 \in \denote{A_2}\\
 \nil &\in \denote{L(A)}\\
 \cons{a}{l} &\in \denote{L(A)} \text{ if } a \in \denote{A} \text{ and } l \in \denote{L(A)}\\
 \end{align*}
@@ -492,6 +525,13 @@ Now we give the judgements relating heap values to semantic values, in the form 
 }{
 }(\text{V:False})
 
+	\inferr{
+		H \vDash \pairexcst{v_1}{v_2} \mapsto \pairexcst{a_1}{a_2} : \prodtycst{A_1}{A_2}
+	}{
+		H \vDash v_1 \mapsto a_1 : A_1 \\
+		H \vDash v_2 \mapsto a_2 : A_2
+	}(\text{V:Pair})
+	
 \inferr{
   H \vDash l \mapsto [a_1,\ldots,a_n] : L(A)
 }{
@@ -612,52 +652,53 @@ The linear version of the type system takes into account of garbaged collected c
 }(\text{L:LetS})
 
 \inferr{
+  \Sigma; \Gamma_1, \Gamma_2 \sststile{q'}{q} \irl{let}(e_1; x : \tau.e_2) : B
+}{
+  \Sigma; \Gamma_1 \sststile{p}{q} e_1 : A \\
+  \Sigma; \Gamma_1 \sststile{}{\ms{cf}} e_1 : A' \\
+  \Sigma; \Gamma_2, x : (A' - 1) \sststile{q'}{p} e_2 : B
+}(\text{L:Let})
+
+\inferr{
   \Sigma; \Gamma, x : A \sststile{q'}{q} \irl{drop}(x;e) : B
 }{
   \Sigma; \Gamma \sststile{q'}{q} e : B
 }(\text{L:Drop})
 
+\iffalse
 \inferr{
   \Sigma; \Gamma, x : A \sststile{q'}{q} \sharecst{x}{x_1}{x_2}{e} : B
 }{
   \stack{A}\\
   \Sigma; \Gamma, x_1 : A, x_2 : A \sststile{q'}{q} e : B
-}(\text{L:Share})
+}(\text{L:ShareS})
+\fi
+
+\inferr{
+  \Sigma; \Gamma, x : A \sststile{q'}{q} \sharecpcst{x}{x_1}{x_2}{e} : B
+}{
+  A \;\curlyvee \;A_1, A_2,1\\
+  \Sigma; \Gamma, x_1 : A_1, x_2 : A_2 \sststile{q'}{q} e : B
+}(\text{L:ShareCopy})
 \end{mathpar}
 
-Now if we take $\dagger :  L^p(A) \mapsto L(A)$ as the map that erases resource annotations, 
- we obtain a simpler typing judgement \fbox{$\Sigma^{\dagger}; \Gamma^{\dagger} \vdash e : B^{\dagger}$}.
- 
-\section{Type Rules For Sharing}
+Where $A \curlyvee A_1,A_2,n$ is the sharing relation defined as:
+\begin{align*}
+	&L^p(A) \curlyvee L^q(A_1),L^r(A_2),n & \text{if } p = q + r + n \;\text{and}\; A \curlyvee A_1,A_2,n\\
+	&\prodtycst{A}{B} \curlyvee \prodtycst{A_1}{A_2}, \prodtycst{B_1}{B_2}, n 
+		&\text{ if } A \curlyvee A_1,A_2,n \text{ and } B \curlyvee B_1,B_2,n\\
+	&A \curlyvee A,A,n & \text{ if } A \in \{\unittycst, \booltycst, \irl{nat}\}\\
+\end{align*}
 
+And $A - n$ is potential subtraction defined as:
 \begin{align*}
 L^p(A) - n &= L ^ {\max{(p - n,0)}}(A - n)\\
 \prodtycst{A_1}{A_2} - n &= \prodtycst{A_1 - n}{A_2 - n}\\
 A - n &= A\\
 \end{align*}
 
-\begin{mathpar}
-\inferr{
-  \Sigma; \Gamma, x : A \sststile{q'}{q} \sharecst{x}{x_1}{x_2}{e} : B
-}{
-  A \;\curlyvee \;A_1, A_2,1\\
-  \Sigma; \Gamma, x_1 : A_1, x_2 : A_2 \sststile{q'}{q} e : B
-}(\text{M:Share})
-
-\inferr{
-  \Sigma; \Gamma_1, \Gamma_2 \sststile{q'}{q} \irl{let}(e_1; x : \tau.e_2) : B
-}{
-  \Sigma; \Gamma_1 \sststile{p}{q} e_1 : A \\
-  \Sigma; \Gamma_1 \sststile{}{\ms{cf}} e_1 : A' \\
-  \Sigma; \Gamma_2, x : (A' - 1) \sststile{q'}{p} e_2 : B
-}(\text{M:Let})
-\end{mathpar}
-
-Where $A \curlyvee A_1,A_2,n$ is the sharing relation defined as:
-\begin{align*}
-	&L^p(A) \curlyvee L^q(A_1),L^r(A_2),n & \text{if } p = q + r + n \;\text{and}\; A \curlyvee A_1,A_2,n\\
-	&A \curlyvee A_1,A_2 & \text{if } \stack{A}, \stack{A_1}, \stack{A_2} \;\text{and}\; A \equiv A_1 \equiv A_2
-\end{align*}
+Now if we take $\dagger :  L^p(A) \mapsto L(A)$ as the map that erases resource annotations, 
+ we obtain a simpler typing judgement \fbox{$\Sigma^{\dagger}; \Gamma^{\dagger} \vdash e : B^{\dagger}$}.
 
 \newpage
 \section{Soundness for Linear GC}
@@ -693,7 +734,7 @@ Let $H \vDash v \mapsto a : A$. For all sets of locations $R$, if $reach_H(v) \s
 \end{lemma}
 
 \begin{proof}
-Induction on the structure of $v$.
+Induction on the structure of $cst$.
 \end{proof}
 
 \begin{corollary}
@@ -711,6 +752,17 @@ Let $H \vDash v \mapsto a : A$. If $\stack{A}$, then $\Phi_H(v:A) = 0$.
 \begin{proof}
 Induction on $H \vDash v \mapsto a : A$.
 \end{proof}
+
+% copy
+
+\begin{lemma}[stability of copying]
+	Let $H',v' = copy(H,L,v)$. For all $l \in H$, if $l \notin L$, then $H(l) = H'(l)$. 
+	Further, $reach_{H'}(v') \subseteq L$.
+\end{lemma}
+
+\begin{lemma}[copy is copy]
+	Let $H',v' = copy(H,L,v)$. If $H \vDash v \mapsto a : A$, then $H' \vDash v' \mapsto a : A$.
+\end{lemma}
 
 % heap conservation
 \begin{lemma}[heap conservation]
@@ -794,7 +846,6 @@ Induction on evaluation.\\
   \end{align*}
   \item [Case 13: E:ShareCopy]
   \begin{align*}
-  &e = \sharecpcst{x}{x_1}{x_2}{e} \tag{case}\\
 	&\text{Let } g' = \gc{H'}{R}{F'}\\
 	&\ssize{H'}{V'[x_1 \mapsto v', x_2 \mapsto v'']} + |F \setminus L| 
 			\le \ssize{H''}{v} + |F' \cup g'| \tag{IH, well-formedness from main lemma}\\
@@ -815,13 +866,8 @@ $\ssize{H}{V} - \ssize{H'}{v} + q \ge q'$.
 % main lemma
 
 \begin{lemma}[main lemma]\label{itm:na}
-For all stacks $V$ and heaps $H$, let  $V,H,R,F \; \vdash e \Downarrow v, H', F'$ and $\Sigma; \Gamma \vdash e : B$. Then given the following: 
-\begin{enumerate}
-\item $dom(V) = FV(e)$
-\item $\na{V,H}$, and
-\item $\dist{\{R,F,locs_{V,H}(e)\}}$
-\end{enumerate} 
-We have the follwoing: 
+For all stacks $V$ and heaps $H$, let  $V,H,R,F \; \vdash e \Downarrow v, H', F'$ 
+and $\Sigma; \Gamma \vdash e : B$. Then given that $\wfc{V}{H}{R}{F}{e}$, we have the follwoing: 
 \begin{enumerate}
 \item $\ms{set}(reach_{H'}(v))$
 \item $\dist{\{R,F',reach_{H'}(v)\}}$, and
@@ -1064,8 +1110,8 @@ Nested induction on the evaluation judgement and the typing judgement.\\
   \begin{align*}
   &e = \sharecpcst{x}{x_1}{x_2}{e'} \tag{case}\\
   &\text{Suppose } H \vDash V : \Gamma, dom(V) = FV(e), \na{V,H}, \dist{\{R,F,locs_{V,H}(e)\}} 
-		\tag{def. of wtf} \\
-	&\text{Let } V_2 = V'[x_1 mapsto v', x_2 mapsto v'']\\
+		\tag{def. of wfc} \\
+	&\text{Let } V_2 = V'[x_1 \mapsto v', x_2 \mapsto v'']\\
 	&\text{We show the subsequent computation is also well-formed to invocate the IH:}\\
   &\emph{(1)} \quad dom(V_2) = FV(e') \tag{$dom(V) = FV(e)$ and def of $FV$}\\
   &\emph{(2)} \quad \na{V'[x_1 \mapsto v', x_2 \mapsto v''],H}
@@ -1091,16 +1137,17 @@ Nested induction on the evaluation judgement and the typing judgement.\\
 
 \begin{theorem}[Soundness]
 \label{b} let $H \vDash V : \Gamma$, $\Sigma; \Gamma \sststile{q'}{q} e : B$,
-and $V,H \; \vdash e \Downarrow v, H'$. Then $\forall C \in \mathbb{Q}^{+}$ and $\forall F,R \subseteq \ms{Loc}$, if we have the following (existence lemma):
+$V,H \; \vdash e \Downarrow v, H'$, and $H \vDash v \mapsto a : A$.
+Then $\forall C \in \mathbb{Q}^{+}$ and $\forall F,R \subseteq \ms{Loc}$,
+given the following (existence lemma):
 \begin{enumerate} 
-\item $dom(V) = FV(e)$
-\item $\na{V,H}$
-\item $\dist{\{R,F,locs_{V,H}(e)\}}$, and
+\item $\wfc{V}{H}{R}{F}{e}$
 \item $|F| \ge \Phi_{V,H}(\Gamma) + q + C$ 
 \end{enumerate}
 then there exists $F' \subseteq \ms{Loc}$ s.t.
 \begin{enumerate}
-  \item $V,H,R,F \vdash e \Downarrow v, H', F'$
+  \item $V,H,R,F \vdash e \Downarrow v', H', F'$
+	\item $H \vDash v' \mapsto a : A$
   \item $|F'| \ge \Phi_{H'}(v:B) + q' + C$
 \end{enumerate}
 \end{theorem}
@@ -1295,7 +1342,7 @@ Nested induction on the evaluation judgement and the typing judgement.\\
 	&V,H,R,F \; \vdash e \Downarrow v,H',F' \tag{E:MatCons}\\
   &|F'| \ge \Phi_{H'}(v:B) + q' + C \tag{From the IH}\\
   \end{align*}
-  \item[Case 13: E:Share]
+  \item[Case 14: E:Share]
 	\begin{align*}
 	&V,H \vdash e \Downarrow v,H'' \tag{case}\\
 	&V'[x_1 \mapsto v',x_2 \mapsto v''], H' \vdash e' \Downarrow v,H'' \tag{ad}\\
@@ -1344,9 +1391,13 @@ in $\mathsf{copy}$ has a corresponding one in $\mathsf{free}$ that can be instan
 an equal or smaller freelist. This is expressed as the following lemma:
 
 \begin{lemma}
-Let $V,H,R,F \vdash^{\mathsf{copy}} v,H',F'$. Then there exists an $F''$ s.t.
-$V,H,R,F \vdash^{\mathsf{free}} v,H',F''$ and $|F''| \ge |F'|$.
+Let $V,H,R,F \vdash^{\mathsf{copy}} v,H',F'$, and $H \vDash v \mapsto a : A$.
+Then there exists an $F''$ s.t.
+	\begin{enumerate}
+			\item $V,H,R,F \vdash^{\mathsf{free}} v',H',F''$
+			\item $H \vDash v' \mapsto a : A$
+			\item $|F''| \ge |F'|$
+	\end{enumerate}
 \end{lemma}
-
 
 \end{document}
