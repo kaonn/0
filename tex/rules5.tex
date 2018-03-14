@@ -1471,7 +1471,91 @@ Induction on the evaluation judgement.\\
 
 For brevity, we write the following examples using an extended syntax which is not in let-normal form, but
 which is equivalent to the restricted syntax in expressiveness and semantics. The 
-program and signature is populated with top level let declarations.
+program and signature is populated with top level let declarations.\\
+
+\emph{append}:
+
+\begin{verbatim}
+let rec append (l1, l2) =
+  match l1 with
+    | [] -> l2
+    | x::xs -> let r = append (xs, l2) in x::r
+\end{verbatim}
+
+$P = [\texttt{append} \mapsto e_{\texttt{append}}]$\\
+$\Sigma = [\texttt{append} \xrightarrow{q/q} \prodtycst{L^p(A)}{L^p(A)} \to \L^p(A)]$\\
+
+Type derivation:
+\begin{tiny}
+\[
+\infer[\text{L:MatL}]{
+	\Sigma; l_1 : L^p(A), l_2 : L^p(A) \sststile{q}{q} 
+		\listcaseexcst{l_1}{l_2}{x}{xs}{\irl{let}\; r = append(xs,l_2) \; \irl{in}\; x::r } : L^p(A)
+}{
+	\infer[\text{L:Var}]{
+		\Sigma; l_2 : L^p(A) \sststile{q}{q} l_2 : L^p(A)
+	}{
+	}&
+	\infer[\text{L:Let}]{
+		\Sigma; l_2 : L^p(A), x : A, xs : L^p(A) \sststile{q}{q + p + 1} 
+				\irl{let}\; r = append(xs,l_2) \; \irl{in}\; x::r : L^p(A)
+	}{
+		\infer[\text{L:App}]{
+			\Sigma; L_2 : L^p(A), xs : L^p(A) \sststile{q+p+1}{q+p+1} append(xs,l_2) : L^p(A)
+		}{
+			append : \xrightarrow{q/q} \prodtycst{L^p(A)}{L^p(A)} \to \L^p(A) \in \Sigma
+		}&
+		\infer[\text{L:Cons}]{
+			\Sigma; x : A, r : L^p(A) \sststile{q}{q+p+1} x::r : L^p(A)
+		}{
+		}
+	}
+}
+\]
+\end{tiny}
+
+This can be read as \texttt{append} takes two lists, each with potential $p$ per element, and a constant
+potential $q$, and returns a list with potential $p$ per element and constant potential $q$. This 
+bound is tight and reflects the fact that append is constructing the concatenation ``in place'' by 
+collecting the cells in $l_1$. Thus, append induces no overhead heap cells in addition to its arguments.\\
+
+Now we show that quicksort is also has no overhead. First, the partition:\\
+
+\begin{verbatim}
+let rec partition (p, l) =
+  match l with
+    | [] -> ([],[])
+    | x::xs ->
+      let (l1,l2) = partition xs in
+      let r = x < p in
+      if r then
+        (x::l1,l2)
+      else
+        (l1,x::l2)
+\end{verbatim}
+
+$P = [partition \mapsto e_{partition}]$\\
+$\Sigma = [partition \mapsto \prodtycst{\irl{nat}}{L^p(\irl{nat})} \xrightarrow{} \prodtycst{L^p(\irl{nat})}{L^p(\irl{nat})}]$\\
+The type derivation for the Cons branch:
+
+\[
+\infer[]{
+	\Sigma; p : \irl{nat}, x : \irl{nat}, xs : L^p(\irl{nat}) \sststile{}{} 
+		\irl{let}\; r = \; \irl{in}\; x::r 
+}{
+}
+\]	
+\begin{verbatim}
+let rec quicksort l = 
+match l with
+  | [] -> []
+  | x::xs ->
+      let ys, zs = partition (x,xs) in
+			let l1 = quicksort ys in 
+			let l2 = quicksort zs in 
+			let r = x :: l2 in
+      append (l1, r)
+\end{verbatim}
 
 \emph{map}: 
 
@@ -1479,19 +1563,25 @@ program and signature is populated with top level let declarations.
 let rec map (f,l) = 
 	match l with
 	| [] -> []
-	| x::xs -> f x :: map (f, xs)
+	| x::xs -> let r = f x in r :: map (f, xs)
 \end{verbatim}
 
 $P = [\texttt{map} \mapsto e_{\texttt{map}}]$\\
-$\Sigma = [\texttt{map} \mapsto \prodtycst{A \to B}{\listtyabt{A}} \to \listtyabt{B}]$\\
+$\Sigma = [\texttt{map} \mapsto \prodtycst{A \to B}{L^0(A)} \to \L^0(B)]$\\
 
 Type derivation:
 
 \[
 \inferr{
-	
+	\Sigma; f : \arrtycst{A}{B}, l : L^0(A) \sststile{}{} \listcaseexcst{l}{[]}{x}{xs}{\appcst{f}{x} :: map(f,xs)} : 
 }{
-}
+	\inferr{\Sigma; \cdot \sststile{}{} [] : L^0(A)}{
+	}(\text{L:Nil})\\
+	
+	\inferr{\Sigma; f : \arrtycst{A}{B}, x : A, xs : L^0(A) \sststile{}{} f(x) :: map(f,xs)}{
+		\inferr{\Sigma; f : \arrtycst{A}{B}, x : A \sststile{}{} }
+	}(\text{L:Cons})
+}(\text{L:MatL})
 \]
 
 \end{document}
