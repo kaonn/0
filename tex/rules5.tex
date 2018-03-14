@@ -92,6 +92,8 @@
 \newcommand{\card}[1]{card(#1)}
 \newcommand{\gc}[3]{\mathsf{gc}(#1,#2,#3)}
 \newcommand{\wfc}[5]{\mathsf{wfc}(#1,#2,#3,#4,#5)}
+\newcommand{\veq}[4]{#3 \sim^{#1}_{#2} #4}
+\newcommand{\ctxeq}[2]{(#1) \sim (#2)}
 \newtheorem{lemma}[theorem]{Lemma}
 \newtheorem{corollary}{Corollary}[theorem]
 \theoremstyle{definition}
@@ -130,6 +132,13 @@ In this paper, we propose a model for deriving asymptotically tight bounds for f
   & \irl{unit}							& ()												& \text{unit}\\
   & \irl{T}							& \irl{T}												& \text{true}\\
   & \irl{F}	   					& \irl{F}												& \text{false}\\
+	& \irl{plus}(e_1;e_2)	   			& e_1 + e_2												& \text{plus}\\
+	& \irl{minus}(e_1;e_2)	   			& e_1 - e_2												& \text{minus}\\
+	& \irl{eq}(e_1;e_2)	   			& e_1 = e_2												& \text{equality}\\
+	& \irl{lt}(e_1;e_2)	   			& e_1 < e_2												& \text{less-than}\\
+	& \irl{and}(e_1;e_2)	   			& e_1 \land e_2												& \text{conjunction}\\
+	& \irl{or}(e_1;e_2)	   			& e_1 \lor e_2												& \text{disjunction}\\
+	& \irl{not}(e)	   			& \lnot e											& \text{negation}\\
   & \ifexabt{x}{e_1}{e_2} & \ifexcst{x}{e_1}{e_2}  & \text{if}\\
   & \irl{lam}(x:\tau.e) 						&\lambda \; x : \tau. e 		& \text{abstraction}\\
   & \irl{ap}(f;x) 					& \appcst{f}{x} 										& \text{application}\\
@@ -162,22 +171,10 @@ In this paper, we propose a model for deriving asymptotically tight bounds for f
 \]
 
 \newpage
-\section{Paths and aliasing}
-
-Model dynamics using judgement of the form:
-\[
-\fbox{$V,H,R,F \; \vdash_{P : \Sigma} e \Downarrow v, H', F'$}
-\]
-
-\noindent
-Where $V : \ms{Var} \to \ms{Val} \times \ms{State}$, $H : \ms{Loc} \to \ms{Val}$, $R \subseteq \ms{Loc}$, $F \subseteq \ms{Loc}$, and $\Sigma : \ms{Var} \to \ms{FTypes}$. This can be read as: under stack $V$, heap $H$, roots $R$,
-freelist $F$, and program $P$ with signature $\Sigma$, the expression $e$ evaluates to $v$, and engenders a new heap $H'$ and freelist $F'$. Write $\ms{Heap}$ for the set of heaps and $\ms{Stack}$ for the set of stacks.\\
-
-\noindent
-A \emph{program} is then a $\Sigma$ indexed map $P$ from $\ms{Var}$ to pairs $(y_f,e_f)_{f \in \Sigma}$, where $\Sigma(y_f) = A \to B$, and $\Sigma;y_f : A \vdash e_f : B$ (typing rules are discussed in $\ref{sec:typing}$). We write $P : \Sigma$ to mean $P$ is a program with signature $\Sigma$. Because the signature $\Sigma$ for the mapping of function names to first order functions does not change during evaluation, we drop the subscript $\Sigma$ from $\vdash_{\Sigma}$ when the context of evaluation is clear. It is convenient to think of the evaluation judgement $\vdash$ as being indexed by a family of signatures $\Sigma$'s, each of which is a set of ``top-level'' first-order declarations to be used during evaluation.\\
+\section{Preliminaries}
 
 \noindent 
-For a partial map $f : A \to B$, we write $dom$ for the defined values of $f$. Sometimes we shorten $x \in dom(f)$ to $x \in f$. We write $f[x \mapsto y]$ for the extension of $f$ where $x$ is mapped to $y$, with the constraint that $x \notin dom(f)$. \\
+For a finite mapping $f : A \to B$, we write $dom$ for the defined values of $f$. Sometimes we shorten $x \in dom(f)$ to $x \in f$. We write $f[x \mapsto y]$ for the extension of $f$ where $x$ is mapped to $y$, with the constraint that $x \notin dom(f)$. \\
 
 \noindent
 Roots represents the set of locations required to compute the continuation \emph{excluding} the current expression.
@@ -281,6 +278,20 @@ $H',v = copy(H,L,v)$ to signify the intended mode for this predicate: $(+,+,+,-,
 
 \section{Garbage collection semantics}
 
+The garbage collection operation semantics consists of judgement of the form:
+\[
+\fbox{$\mathcal{C} \; \vdash_{P : \Sigma} e \Downarrow v, H', F'$}
+\]
+
+\noindent
+Where $\mathcal{C}$ is a \emph{configuration}, consisting of a 4-tuple in 
+$\ms{Stack} \times \ms{Heap} \times \ms{\{Loc\}} \times \ms{\{Loc\}}$, usually written as $V,H,R,F$. 
+P is a program with signature $\Sigma : \ms{Var} \to \ms{FTypes}$. 
+This can be read as: under stack $V$, heap $H$, roots $R$,
+freelist $F$, and program $P$ with signature $\Sigma$, the expression $e$ evaluates to $v$, and engenders a new heap $H'$ and freelist $F'$. Here, $\ms{Stack}$ is defined as the set of finite mappings $\ms{Var} \to \ms{Val}$, and $\ms{Heap}$ is defined as the set of finite mappings $\ms{Loc} \to \ms{Val}$.\\
+
+\noindent
+A \emph{program} is then a $\Sigma$ indexed map $P$ from $\ms{Var}$ to pairs $(y_f,e_f)_{f \in \Sigma}$, where $\Sigma(y_f) = A \to B$, and $\Sigma;y_f : A \vdash e_f : B$ (typing rules are discussed in $\ref{sec:typing}$). We write $P : \Sigma$ to mean $P$ is a program with signature $\Sigma$. Because the signature $\Sigma$ for the mapping of function names to first order functions does not change during evaluation, we drop the subscript $\Sigma$ from $\vdash_{\Sigma}$ when the context of evaluation is clear. It is convenient to think of the evaluation judgement $\vdash$ as being indexed by a family of signatures $\Sigma$'s, each of which is a set of ``top-level'' first-order declarations to be used during evaluation.\\
 \begin{mathpar}
 
 \infern
@@ -383,7 +394,8 @@ $H',v = copy(H,L,v)$ to signify the intended mode for this predicate: $(+,+,+,-,
   L \subseteq F\\
   |L| = \ssize{H}{v'}\\
   H',v'' = copy(H,L,v')\\
-  V'[x_1 \mapsto v',x_2 \mapsto v''],H',R,F \setminus L \; \vdash e \Downarrow v,H'',F'
+	V_2 = V'[x_1 \mapsto v',x_2 \mapsto v'']\\
+ 	V_2,H',R,F \setminus L \; \vdash e \Downarrow v,H'',F'
 }{
   V,H,R,F \; \vdash \sharecpcst{x}{x_1}{x_2}{e} \Downarrow v,H'',F'
 }
@@ -429,10 +441,14 @@ $H',v = copy(H,L,v)$ to signify the intended mode for this predicate: $(+,+,+,-,
 In order to prove the soundess of the type system, we also define a simplified operational semantics that does not account for garbage collection. 
 
 \[
-\fbox{$V,H \vdash e \Downarrow v, H'$}
+\fbox{$\mathcal{S} \vdash e \Downarrow v, H'$}
 \]
 
-This can be read as: under stack $V$, heap $H$ the expression $e$ evaluates to $v$, and engenders a new heap $H'$. We write the representative rules.
+Where $\mathcal{S}$ is a \emph{context}, consisting of a tuple in $\ms{Stack} \times \ms{Heap}$, and usually
+written as $(V,H)$.
+This can be read as: under stack $V$, heap $H$ the expression $e$ evaluates to $v$, 
+and engenders a new heap $H'$. We write the representative rules, since the rest are derived in the obvious
+way from the garbage collection semantics.
 
 \begin{mathpar}
 \infern{
@@ -643,6 +659,7 @@ The linear version of the type system takes into account of garbaged collected c
   \Sigma; \Gamma_2, x : A \sststile{q'}{p} e_2 : B
 }(\text{L:Let})
 
+\iffalse
 \inferr{
   \Sigma; \Gamma_1, \Gamma_2 \sststile{q'}{q} \irl{let}(e_1; x : \tau.e_2) : B
 }{
@@ -658,6 +675,7 @@ The linear version of the type system takes into account of garbaged collected c
   \Sigma; \Gamma_1 \sststile{}{\ms{cf}} e_1 : A' \\
   \Sigma; \Gamma_2, x : (A' - 1) \sststile{q'}{p} e_2 : B
 }(\text{L:Let})
+\fi
 
 \inferr{
   \Sigma; \Gamma, x : A \sststile{q'}{q} \irl{drop}(x;e) : B
@@ -690,12 +708,14 @@ Where $A \curlyvee A_1,A_2,n$ is the sharing relation defined as:
 	&A \curlyvee A,A,n & \text{ if } A \in \{\unittycst, \booltycst, \irl{nat}\}\\
 \end{align*}
 
+\iffalse
 And $A - n$ is potential subtraction defined as:
 \begin{align*}
 L^p(A) - n &= L ^ {\max{(p - n,0)}}(A - n)\\
 \prodtycst{A_1}{A_2} - n &= \prodtycst{A_1 - n}{A_2 - n}\\
 A - n &= A\\
 \end{align*}
+\fi
 
 Now if we take $\dagger :  L^p(A) \mapsto L(A)$ as the map that erases resource annotations, 
  we obtain a simpler typing judgement \fbox{$\Sigma^{\dagger}; \Gamma^{\dagger} \vdash e : B^{\dagger}$}.
@@ -703,12 +723,10 @@ Now if we take $\dagger :  L^p(A) \mapsto L(A)$ as the map that erases resource 
 \newpage
 \section{Soundness for Linear GC}
 
-We simplify the soundness proof of the type system for the general metric to one with monotonic resource.
-(No function types for now)
-
 \begin{definition}[Well-formed computation]
-When considering the input mode arguments of a evaluation judgment $V,H,R,F \vdash e \Downarrow v,H',F'$, 
-we say the 5-tuple $(V,H,R,F,e)$ is a \emph{well-formed computation} given the following:
+Given a configuration $\mathcal{C} = (V,H,R,F)$ and an expression $e$, 
+we say the 5-tuple $(\mathcal{C},e)$ is a \emph{computation}; it is a \emph{well-formed computation} 
+given the following:
 \begin{enumerate}
 \item $dom(V) = FV(e)$
 \item $\na{V,H}$, and
@@ -764,6 +782,7 @@ Induction on $H \vDash v \mapsto a : A$.
 	Let $H',v' = copy(H,L,v)$. If $H \vDash v \mapsto a : A$, then $H' \vDash v' \mapsto a : A$.
 \end{lemma}
 
+\iffalse
 % heap conservation
 \begin{lemma}[heap conservation]
 Let $\wfc{V}{H}{R}{F}{e}$, $V,H,R,F \; \vdash e \Downarrow v, H', F'$, and $g = \gc{H'}{R}{F'}$. 
@@ -856,13 +875,8 @@ Induction on evaluation.\\
   \end{align*}
 \end{description}
 \end{proof}
+\fi
 
-% aux lemma
-
-\begin{lemma}
-Let $\Sigma;\Gamma \sststile{q'}{q} e : B$ and $V,H,R,F \vdash e \Downarrow v,H',F'$. Then 
-$\ssize{H}{V} - \ssize{H'}{v} + q \ge q'$.
-\end{lemma}
 % main lemma
 
 \begin{lemma}[main lemma]\label{itm:na}
@@ -875,6 +889,7 @@ and $\Sigma; \Gamma \vdash e : B$. Then given that $\wfc{V}{H}{R}{F}{e}$, we hav
 \end{enumerate}
 \end{lemma}
 
+\iffalse
 \begin{proof}
 Nested induction on the evaluation judgement and the typing judgement.\\
 \begin{description}
@@ -1134,20 +1149,42 @@ Nested induction on the evaluation judgement and the typing judgement.\\
   \end{align*}
   \end{description}
 \end{proof}
+\fi
+
+To formally state the soundness theorem (and later the equivalence of free and copy semantics), we need the notion
+of context equivalence. Here we define it for contexts, which consisting of only the stack and heap. Later, 
+we extend it the the full configuration. First, define \emph{value} equivalence: 
+
+\begin{definition}[Value Equivalence]
+Two values $v_1,v_2$ are equivalent (with the presupposition that they are well-formed w.r.t heaps $H_1,H_2$),
+iff $H_1 \vDash v_1 \mapsto a : A$ and $H_2 \vDash v_2 \mapsto a : A$. 
+Write value equivalence as $\veq{H_1}{H_2}{v_1}{v_2}$.
+\end{definition}
+
+\begin{definition}[Context Equivalence]
+Two simple contexts $(V_1,H_1), (V_2,H_2)$ are equivalent
+(with the presupposition that both are well-formed contexts) iff $dom(V_1) = dom(V_2)$ and 
+for all $x \in dom(V_1)$, $\veq{H_1}{H_2}{V_1(x)}{V_2(x)}$. Write context equivalence as 
+$\ctxeq{V_2,H_2}{V_2,H_2}$
+\end{definition}
+
+Stated simply, two contexts are equivalent when they have the same domain and equal variables bind equal 
+semantic values.
 
 \begin{theorem}[Soundness]
 \label{b} let $H \vDash V : \Gamma$, $\Sigma; \Gamma \sststile{q'}{q} e : B$,
-$V,H \; \vdash e \Downarrow v, H'$, and $H \vDash v \mapsto a : A$.
+$V,H \; \vdash e \Downarrow v, H'$, and $H' \vDash v \mapsto a : A$.
 Then $\forall C \in \mathbb{Q}^{+}$ and $\forall F,R \subseteq \ms{Loc}$,
 given the following (existence lemma):
 \begin{enumerate} 
 \item $\wfc{V}{H}{R}{F}{e}$
 \item $|F| \ge \Phi_{V,H}(\Gamma) + q + C$ 
 \end{enumerate}
-then there exists $F' \subseteq \ms{Loc}$ s.t.
+then there exists a context $(W,Y)$, a value $w$, and a freelist $F'$ s.t.
 \begin{enumerate}
-  \item $V,H,R,F \vdash e \Downarrow v', H', F'$
-	\item $H \vDash v' \mapsto a : A$
+	\item $\ctxeq{W,Y}{V,H}$
+  \item $W,Y,R,F \vdash e \Downarrow w, Y', F'$
+	\item $\veq{H'}{Y'}{v}{w}$
   \item $|F'| \ge \Phi_{H'}(v:B) + q' + C$
 \end{enumerate}
 \end{theorem}
@@ -1156,18 +1193,16 @@ then there exists $F' \subseteq \ms{Loc}$ s.t.
 Nested induction on the evaluation judgement and the typing judgement.\\
 \begin{description}
   \item[Case 1: E:Var]
-  \begin{align}
-  &V,H,R,F \; \vdash x \Downarrow V(x),H,F \tag{admissibility}\\
+  \begin{align*}
+  &V,H \; \vdash x \Downarrow V(x),H \tag{admissibility}\\
   &\Sigma; x : B \sststile{q}{q} x : B \tag{admissibility}\\
-  &|F| - |F'|\\
-  &\quad = |F| - |F| \tag{ad.}\\
-  &\quad = 0\\
-  &\Phi_{V,H}(\Gamma) + q - (\Phi_{H'}(v:B) + q')\\
-  &\quad = \Phi_{V,H}(x : B) + q - (\Phi_{H}(V(x) : B) + q) \tag{ad.}\\
-  &\quad = \Phi_{H}(V(x) : B) + q  - (\Phi_{H}(V(x) : B) + q) \tag{def. of $\Phi_{V,H}$}\\
-  &\quad = 0\\
-  &|F| - |F'| \le \Phi_{V,H}(\Gamma) +q - (\Phi_{H'}(v:B) + q') \tag{(3),(5)}
-  \end{align}
+	&\text{Let } C \in \mathbb{Q}^+, F,R \subseteq \ms{Loc} \text{ be arb.}\\
+	&\text{Suppose this eval-config is well-formed, and further, } |F| \ge \Phi_{V,H}(x : B) + q + C\\
+	&\text{Let } F' = F. \text{ Then }\\
+	&V,H,R,F \vdash e \Downarrow V(x),H,F' \tag{E:Var}\\
+	&\text{And we have } F' = F \ge \Phi_{V,H}(x : B) + q + C\\
+	&\quad = \Phi_{H}(V(x) : B) + q + C \tag{definition of $\Phi$}\\
+  \end{align*}
   \item[Case 2: E:Const*]
   Due to similarity, we show only for E:ConstI
   \begin{align*}
@@ -1238,53 +1273,7 @@ Nested induction on the evaluation judgement and the typing judgement.\\
   &V,H,R,F \vdash e \Downarrow v_2, H_2,F' \text{ and } \tag{E:Let}\\ 
   &|F'| \ge \Phi_{H_2}(v_2:B) + q' + C \tag{from IH}\\
   \end{align*}
-  \item [Case 14: E:Let1]
-  \begin{align*}
-  &V,H \vdash e \Downarrow v_2,H_2 \tag{case}\\
-  &V,H \vdash e_1 \Downarrow v_1,H_1 \tag{ad.}\\
-  &\Sigma; \Gamma_1 \sststile{p}{q} e_1 : A \tag{ad.}\\
-  &H \vDash V_1 : \Gamma_1 \tag{def of W.D.E}\\
-  &\text{Let } C \in \mathbb{Q}^+, F,R \subseteq \ms{Loc} \text{ be arb.}\\
-  &\text{Suppose }  dom(V) = FV(e),\na{V,H}, \dist{\{R,F,locs_{V,H}(e)\}}, \text{ and } |F| \ge \Phi_{V,H}(\Gamma) + q + C\\
-  &\text{NTF } F' \text{ s.t. }\\
-  &\quad 1. V,H,R,F \vdash e \Downarrow v_2, H_2,F' \text{ and }\\ 
-  &\quad 2. |F'| \ge \Phi_{H_2}(v_2:B) + q' + C\\
-  &\text{Let } R' = R \cup locs_{V,H}(\irl{lam}(x : \tau.e_2))\\
-  &\dist{\{R',F,locs_{V,H}(e_1)\}} \tag{Similar to case in Lemma $~\ref{itm:na}$}\\
-  &\text{Instantiate IH with } C = C + \Phi_{V_2,H}(\Gamma_2), F = F, R = R', \text{ we get existence lemma on } J_1:\\
-  &\text{NTS (1) - (4) to instantiate existence lemma on } J_1\\
-  &\emph{(1)} \quad dom(V_1) = FV(e_1)\\
-  &\emph{(2)} \quad \na{V_1,H}\\
-  &\emph{(3)} \quad \dist{\{R,F,locs_{V,H}(e)\}} \tag{(1) - (3) all verbatim as in Lemma $~\ref{itm:na}$}\\
-  &\emph{(4)} \quad |F| \ge \Phi_{V_1,H}(\Gamma_1) + q + C + \Phi_{V,H}(\Gamma_2) \tag{$|F| \ge \Phi_{V,H}(\Gamma) + q + C$ and $\Phi_{V,H}(\Gamma) \ge \Phi_{V_1,H}(\Gamma_1) + \Phi_{V,H}(\Gamma_2)$}\\
-  &\text{Instantiating existence lemma on } J_1, \text{ we get }  F'' \text{ s.t. }\\
-  &\quad 1. V,H,R',F \vdash e_1 \Downarrow v_1, H_1,F'' \text{ and }\\ 
-  &\quad 2. |F''| \ge \Phi_{H_1}(v_1:A) + p + C + \Phi_{V_2,H_1}(\Gamma_2)\\
-  &\text{For the second premise: }\\
-  &\Sigma; \Gamma_2, x : A \sststile{q'}{\max{(p,q)}} e_2 : B \tag{ad.}\\
-  &H_1 \vDash v_1 : A \text{ and } \tag{Theorem 3.3.4}\\ 
-  &H_1 \vDash V : \Gamma_2 \tag{???}\\
-  &H_1 \vDash V' : \Gamma_2, x : A \tag{def of $\vDash$}\\
-  &V',H_1 \vdash e_2 \Downarrow v_2,H_2 \tag{ad.}\\
-  &\text{Let } g = \{l \in H_1 \mid l \notin F'' \cup R \cup locs_{V',H_1}(e_2)\}\\ 
-  &\text{Instantiate IH with } C = C, F = F'' \cup g, R = R, \text{ we get existence lemma on  } J_2:\\
-  &\text{NTS (1) - (4) to instantiate existence lemma on } J_1\\
-  &\emph{(1)} \quad dom(V_2') = FV(e_2)\\
-  &\emph{(2)} \quad \na{V_2',H_1} \\
-  &\emph{(3)} \quad \dist{\{R,F'' \cup g,locs_{V_2',H_1}(e_2)\}} \tag{(1) - (3) all verbatim as in Lemma $~\ref{itm:na}$}\\
-  &\emph{(4)} \quad |F'' \cup g| \ge \Phi_{V_2',H_1}(\Gamma_2,x:A) + q + C\\
-  &\quad |F'' \cup g | \ge |F''|\\
-  &\quad \quad \ge \Phi_{H_1}(v_1:A) + p + C + \Phi_{V_2,H}(\Gamma_2) \tag{IH}\\ 
-  &\quad \quad = \Phi_{H_1}(v_1:A) + p + C + \Phi_{V_2',H_1}(\Gamma_2) \tag{Lemma 4.3.3}\\ 
-  &\quad \quad = \Phi_{V_2',H_1}(\Gamma_2,x:A) + p + C \tag{def of $\Phi$}\\
-  &\text{Instantiating existence lemma on } J_2, \text{ we get } F^{(3)} \text{ s.t. }\\
-  &\quad 1. V_2',H_1,R, F'' \cup g \vdash e_2 \Downarrow v_2,H_2,F^{(3)} \\
-  &\quad 2. |F^{(3)}| \ge \Phi_{H_2}(v_2:B) + q' + C\\
-  &\text{Take } F' = F^{(3)}\\
-  &V,H,R,F \vdash e \Downarrow v_2, H_2,F' \text{ and } \tag{E:Let}\\ 
-  &|F'| \ge \Phi_{H_2}(v_2:B) + q' + C \tag{from IH}\\
-  \end{align*}
-  \item[Case 8: E:Pair]
+	\item[Case 8: E:Pair]
   Similar to E:Const*
   \item[Case 9: E:MatP]
   Similar to E:MatCons
@@ -1377,27 +1366,132 @@ Consider the GC semantics (from now on $\mathsf{copy}$ semantics) above,
 with the share rule replaced with the following: 
 
 \begin{mathpar}
-\infern{
+\inferr{
+  V,H,R,F \; \vdash \sharecst{x}{x_1}{x_2}{e} \Downarrow v,H'',F'
+}{
   V = V'[x \mapsto v']\\
   V'[x_1 \mapsto v',x_2 \mapsto v'],H',R,F \; \vdash e \Downarrow v,H'',F'
-}{
-  V,H,R,F \; \vdash \sharecst{x}{x_1}{x_2}{e} \Downarrow v,H'',F'
-}
+}(\text{F:Share})
 \end{mathpar}
 
-Call this new semantics $\mathsf{free}$ semantics for copy-free. 
+Call this new semantics $\mathsf{free}$ semantics for copy-free (all rules are renamed to F:\_ for free). 
 It is easy to see that any terminating compuation
 in $\mathsf{copy}$ has a corresponding one in $\mathsf{free}$ that can be instantiated with 
-an equal or smaller freelist. This is expressed as the following lemma:
+an equal or smaller freelist. Before formalizing this idea, we extend context equivalence to a preorder on 
+configurations: 
+
+\begin{definition}
+A configuration $\mathcal{C}_1 = (\mathcal{S}_1,R_1,F_1)$ is less than a configuration
+$\mathcal{C}_2 = (\mathcal{S}_2,R_2,F_2)$ iff
+\begin{enumerate}
+\item $|F_1| \le |F_2|$
+\item $R_1 = R_2$
+\item $\mathcal{S}_1 \sim \mathcal{S}_2$
+\end{enumerate}
+Write this as $\mathcal{C}_1 \le \mathcal{C}_2$.
+\end{definition} 
+
+Now the lemma:
 
 \begin{lemma}
-Let $V,H,R,F \vdash^{\mathsf{copy}} v,H',F'$, and $H \vDash v \mapsto a : A$.
-Then there exists an $F''$ s.t.
+Let $\mathcal{C}_1 \vdash^{\mathsf{copy}} e \Downarrow v,H',F'$, and $H' \vDash v \mapsto a : A$.
+Then for all configurations $\mathcal{C}_2$ such that $\mathcal{C}_2 \le \mathcal{C}_1$,
+there is exists a triple
+$(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ s.t.
 	\begin{enumerate}
-			\item $V,H,R,F \vdash^{\mathsf{free}} v',H',F''$
-			\item $H \vDash v' \mapsto a : A$
-			\item $|F''| \ge |F'|$
+			\item $\mathcal{C}_2 \vdash^{\mathsf{free}} e \Downarrow w,Y',M'$
+			\item $\veq{H'}{Y'}{v}{w}$
+			\item $|M'| \ge |F'|$
 	\end{enumerate}
 \end{lemma}
+
+\begin{proof}
+Induction on the evaluation judgement.\\
+\begin{description}
+  \item[Case 1: E:Var]
+  \begin{align*}
+		&V,H,R,F \vdash^{\mathsf{copy}} e \Downarrow V(x),H,F \tag{case}\\
+		&\text{Suppose } H \vDash V(x) \mapsto a : A.
+			\text{ We need to show a triple that satisfies the 3 post-conditions.}\\
+		&\text{Take } (v',H'',F'') = (V(x),H,F)\\
+		&\emph{(1)}\quad V,H,R,F \vdash^{\mathsf{free}} e \Downarrow v',H'',F'' \tag{F:Var}\\
+		&\emph{(2)}\quad H'' \vDash v' \mapsto a : A \tag{assumption}\\
+		&\emph{(3)}\quad |F''| = |F| \ge |F|
+  \end{align*}
+  \item[Case 2: E:Const*]
+  Due to similarity, we show only for E:ConstI
+  \begin{align*}
+  \end{align*}
+  \item[Case 4: E:App]
+  \item[Case 5: E:CondT]
+  \begin{align*}
+		&V,H,R,F \; \vdash^{\mathsf{copy}} \ifexabt{x}{e_1}{e_2} \Downarrow v, H',F' \tag{case}\\
+		&\text{Suppose } H' \vDash v \mapsto a : A. 
+			\text{ We need to show a triple that satisfies the 3 post-conditions.}\\
+		&\text{By IH, we have } (v',H'',F'') \text{ such that }\\
+		&\emph{(1)}\quad V',H,R,F \cup g \vdash^{\mathsf{free}} e_1 \Downarrow v',H'',F''\\
+		&\emph{(2)}\quad H'' \vDash v' \mapsto a : A \\
+		&\emph{(3)}\quad |F''| \ge |F'|\\
+		&\text{Apply F:CondT to \emph{(1)}, we are done.}
+  \end{align*}
+  \item[Case 6: E:CondF] 
+  Similar to E:CondT
+  \item[Case 7: E:Let]
+  \begin{align*}
+  \end{align*}
+	\item[Case 8: E:Pair]
+  Similar to E:Const*
+  \item[Case 9: E:MatP]
+  Similar to E:MatCons
+  \item[Case 10: E:Nil]
+  Similar to E:Const*
+  \item[Case 11: E:Cons]
+  \begin{align*}
+  \end{align*}
+  \item[Case 12: E:MatNil]
+  Similar to E:Cond*
+  \item[Case 13: E:MatCons]
+  \begin{align*}
+  \end{align*}
+  \item[Case 14: E:Share]
+	\begin{align*}
+		&V,H,R,F \; \vdash^{\mathsf{copy}} \sharecpcst{x}{x_1}{x_2}{e} \Downarrow v,H'',F' \tag{case}\\
+		&\text{Suppose } H'' \vDash v \mapsto a : A. 
+			\text{ We need to show a configuration and a triple that satisfies the 3 post-conditions.}\\
+		&\text{By IH, we have } (w,K,M) \text{ such that }\\
+		&\emph{(1)}\quad V_2,H',R,F \setminus L \vdash^{\mathsf{free}} e \Downarrow w,K,M \tag{F:Var}\\
+		&\emph{(2)}\quad K \vDash w \mapsto a : A \\
+		&\emph{(3)}\quad |M| \ge |F'|\\
+		&
+	\end{align*}
+  \end{description}
+\end{proof}
+
+\section{Examples}
+
+For brevity, we write the following examples using an extended syntax which is not in let-normal form, but
+which is equivalent to the restricted syntax in expressiveness and semantics. The 
+program and signature is populated with top level let declarations.
+
+\emph{map}: 
+
+\begin{verbatim}
+let rec map (f,l) = 
+	match l with
+	| [] -> []
+	| x::xs -> f x :: map (f, xs)
+\end{verbatim}
+
+$P = [\texttt{map} \mapsto e_{\texttt{map}}]$\\
+$\Sigma = [\texttt{map} \mapsto \prodtycst{A \to B}{\listtyabt{A}} \to \listtyabt{B}]$\\
+
+Type derivation:
+
+\[
+\inferr{
+	
+}{
+}
+\]
 
 \end{document}
