@@ -1,0 +1,10 @@
+*.out
+*.aux
+*.bbl
+*.log
+*.cut
+*.blg
+*.gz
+*.cb
+*.cb2
+*.pdf
