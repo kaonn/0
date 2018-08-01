@@ -1,0 +1,1139 @@
+% easychair.tex,v 3.5 2017/03/15
+
+\documentclass{easychair}
+%\documentclass[EPiC]{easychair}
+%\documentclass[EPiCempty]{easychair}
+%\documentclass[debug]{easychair}
+%\documentclass[verbose]{easychair}
+%\documentclass[notimes]{easychair}
+%\documentclass[withtimes]{easychair}
+%\documentclass[a4paper]{easychair}
+%\documentclass[letterpaper]{easychair}
+
+\usepackage{doc}
+\usepackage{fullpage}
+\usepackage{latexsym}
+\usepackage{verbatim}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{stackengine}
+\usepackage{scalerel}
+\usepackage{code,proof,amsthm,amssymb, amsmath}
+\usepackage{mathpartir}
+\usepackage{turnstile}
+\usepackage{fancyvrb}
+\usepackage{stmaryrd}
+\usepackage{mathtools}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{positioning} 
+
+\allowdisplaybreaks
+
+\input{../generic-defns}
+\input{../syn-defns}
+\input{../../pfpl/fun-defns}
+\input{../../pfpl/pcf-defns}
+\input{../../pfpl/prod-defns}
+\input{../../pfpl/sum-defns}
+\input{../../pfpl/icoi-defns}
+\input{../../pfpl/t-defns}
+
+
+% use this if you have a long article and want to create an index
+% \usepackage{makeidx}
+
+% In order to save space or manage large tables or figures in a
+% landcape-like text, you can use the rotating and pdflscape
+% packages. Uncomment the desired from the below.
+%
+% \usepackage{rotating}
+% \usepackage{pdflscape}
+
+% Some of our commands for this guide.
+%
+\newcommand{\easychair}{\textsf{easychair}}
+\newcommand{\miktex}{MiK{\TeX}}
+\newcommand{\texniccenter}{{\TeX}nicCenter}
+\newcommand{\makefile}{\texttt{Makefile}}
+\newcommand{\latexeditor}{LEd}
+
+\newcommand{\myname}{Andrew Carnegie}
+\newcommand{\myandrewid}{andrew}
+\newcommand{\hwnumber}{1}
+% =========================================================================== %
+
+\newcounter{group}
+\setcounter{group}{1}
+\newtheorem{theorem}{Task}[group]
+% Remove '\newpage' below to preview your doc compactly.
+% Remember to put it back before submitting to Gradescope.
+\newcommand{\task}{\newpage\begin{theorem}\end{theorem}}
+\newcommand{\nextgroup}{\stepcounter{group}}
+\newcommand{\skipaheadtask}{\stepcounter{theorem}}
+\newcommand{\ms}[1]{\ensuremath{\mathsf{#1}}}
+\newcommand{\irl}[1]{\mathtt{#1}}
+\newcounter{rule}
+\setcounter{rule}{0}
+\newcommand{\rn}
+  {\addtocounter{rule}{1}(\arabic{rule})}	
+
+\newcounter{infercount}
+\setcounter{infercount}{1}
+\newcommand{\infern}[2]{\inferrule{#1}{#2}(\text{S}_{\arabic{infercount}}\stepcounter{infercount})}
+\newcommand*\ts[2]{%
+  \,\scalebox{1}[0.5]{$\sststile[ss]{\textstyle#1}{\textstyle#2}$}\,
+}
+\newcommand{\inferr}[2]{\inferrule{#2}{#1}}
+\newcommand{\inferrr}[3]{\inferrule[#1]{#2}{#3}}
+\newcommand{\paircaseabt}[4]{\irl{case}(#2,#3.#4)}
+\newcommand{\paircasecst}[4]{\irl{case} \; #1\; \{(#2;#3) \hookrightarrow #4\}}
+\newcommand{\na}[1]{\mathsf{linear}(#1)}
+\newcommand{\nr}[1]{\mathsf{no\_ref}(#1)}
+\newcommand{\stable}[1]{\mathsf{stable}(#1)}
+\newcommand{\set}[1]{\mathsf{set}(#1)}
+\newcommand{\safe}[1]{\mathsf{safe}(#1)}
+\newcommand{\dist}[1]{\mathsf{disjoint}(#1)}
+\newcommand{\stack}[1]{\irl{stack}(#1)}
+\newcommand{\denote}[1]{\llbracket#1\rrbracket}
+\newcommand{\nil}{[]}
+\newcommand{\cons}[2]{\pi(#1,#2)}
+\newcommand{\sharecst}[4]{\irl{share}\;#1\;\irl{as}\;#2,#3\;\irl{in}\;#4}
+\newcommand{\sharecpcst}[4]{\irl{share}\;#1\;\irl{as}\;#2,#3\;\irl{in}\;#4}
+\newcommand{\shareabt}[4]{\irl{share}(#1;#2,#3.#4)}
+\newcommand{\ssize}[2]{\left\Vert #2 \right\Vert_{#1}}
+\newcommand{\card}[1]{card(#1)}
+\newcommand{\gc}[3]{\mathsf{gc}(#1,#2,#3)}
+\newcommand{\wfc}[5]{\mathsf{linear}(#1,#2,#3,#4,#5)}
+\newcommand{\veq}[4]{#3 \sim^{#1}_{#2} #4}
+\newcommand{\ctxeq}[2]{(#1) \sim (#2)}
+\newcommand{\oh}[1]{\oslash(#1)}
+\newcommand{\fogc}{\ms{FO}^{gc}}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}{Corollary}[theorem]
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+%\makeindex
+
+%% Front Matter
+%%
+% Regular title as in the article class.
+%
+\title{Automatic Resource Bound Analysis for Functional Programs with Garbage Collection}
+
+% Authors are joined by \and. Their affiliations are given by \inst, which indexes
+% into the list defined using \institute
+%
+\author{
+Serguei A. Mokhov\inst{1}\thanks{Designed and implemented the class style}
+\and
+    Geoff Sutcliffe\inst{2}\thanks{Did numerous tests and provided a lot of suggestions}
+\and
+   Andrei Voronkov\inst{3}\inst{4}\inst{5}\thanks{Masterminded EasyChair and created versions
+     3.0--3.5 of the class style}
+}
+
+% Institutes for affiliations are also joined by \and,
+\institute{
+  Concordia University,
+  Montreal, Quebec, Canada\\
+  \email{mokhov@cse.concordia.ca}
+\and
+   University of Miami,
+   Miami, Florida, U.S.A.\\
+   \email{geoff@cs.miami.edu}\\
+\and
+   University of Manchester,
+   Manchester, U.K.\\
+   \email{andrei@voronkov.com}\\
+\and
+   Chalmers University of Technology,
+   Gothenburg, Sweden
+\and
+   EasyChair
+ }
+
+%  \authorrunning{} has to be set for the shorter version of the authors' names;
+% otherwise a warning will be rendered in the running heads. When processed by
+% EasyChair, this command is mandatory: a document without \authorrunning
+% will be rejected by EasyChair
+
+\authorrunning{Mokhov, Sutcliffe and Voronkov}
+
+% \titlerunning{} has to be set to either the main title or its shorter
+% version for the running heads. When processed by
+% EasyChair, this command is mandatory: a document without \titlerunning
+% will be rejected by EasyChair
+\titlerunning{The {\easychair} Class File}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+In today’s complex software systems, resource consumption such as time, memory, and energy is
+increasingly more relevant. Manually analyzing and predicting resource consumption is cumbersome
+and error prone. As a result, programming language research studies techniques that support developers
+by automating and guiding such a resource analysis. Most current techniques for resource bound
+inference work in an environment with manual memory management, or simply assume there is no
+automatic memory management. As a result, memory bounds derived by the aforementioned techniques
+are not accurate when the underlying system employs garbage collection. We
+develop new techniques for automatic bound inference in the presence of garbage collection, and 
+implement them as an extension to Resource Aware ML (RaML). We show that our system is able to 
+derive tight symbolic bounds for heap usage of common algorithms for which current analysis give 
+asymptotically worse bounds.
+\end{abstract}
+
+% The table of contents below is added for your convenience. Please do not use
+% the table of contents if you are preparing your paper for publication in the
+% EPiC Series or Kalpa Publications series
+
+\setcounter{tocdepth}{2}
+{\small
+\tableofcontents}
+
+%\section{To mention}
+%
+%Processing in EasyChair - number of pages.
+%
+%Examples of how EasyChair processes papers. Caveats (replacement of EC
+%class, errors).
+
+%------------------------------------------------------------------------------
+\section{Introduction}
+\label{sect:introduction}
+
+We present an algorithm for statically determining the symbolic cost bound 
+of the space complexity for first-order, garbage-collected functional programs. 
+The algorithm is based on Automatic Amortized Resource Analysis (AARA) as implemented 
+in Resource Aware ML (RaML) ~\cite{Hoffmann:2017:TAR:3009837.3009842}. \\
+
+We define the execution of the given language by giving it an
+operational cost semantics. The semantics is a big-step
+(or natural) semantics in the style of Spoonhower and Minamide (\cite{Spoonhower:2008:SPP:1411204.1411240} and 
+\cite{DBLP:journals/entcs/Minamide99}), which assigns any program a space cost. This cost is
+the high watermark on the heap, or the maximum number of cells used in the mutable store during 
+evaluation. While \cite{Spoonhower:2008:SPP:1411204.1411240} and 
+\cite{DBLP:journals/entcs/Minamide99} compute this cost at the leaves of a 
+evaluation judgment, we compute the cost ``as it happens'' by leveraging the \emph{free-list},
+which represents the cells available for evaluation. 
+The concept of the free-list can be found in Hofmann et. al. (\cite{Hofmann:2003:SPH:604131.604148}).
+However, unlike \cite{Hofmann:2003:SPH:604131.604148}, in order to account for garbage collection,
+we define the free-list as a set of locations instead of single number denoting its size.
+
+\section{Notation}
+\label{sect:notation}
+
+For a partition $f : A \to \mathcal{P}(B)$, we write the set of equivalence classes
+as $ec(f) = \{f(x) \mid x \in A\} = f(A)$, i.e. the image of $f$ on its domain $A$.
+Furthermore, a partition is \emph{proper} if for any $x \in A$, $f(x) \neq \emptyset$.\\
+
+Given a proper partition $f : A \to \mathcal{P}(B)$, for every $a \in A$, 
+we can choose an arbitrary 
+$b \in f(a)$ to be the representative for that part; call this $rep(a)$.
+
+\section{First Order Programs}
+\label{sect:fop}
+
+In this paper, in order to make clear the ideas and proofs involving our new garbage-collection 
+cost semantics, we focus our attention to a first-order, 
+strictly evaluated functional language. 
+The reader can think of our target language to be a very simple subset of OCaml or SML. 
+Furthermore, although we only demonstrate data types in the language with lists, 
+our techniques extend to the expected algebraic data types definable in ML; in fact, 
+our OCaml implementation leverages the OCaml compiler and supports type declarations in OCaml. 
+Being first order, our language does not allow arbitrary local functional definitions. Instead,
+all functions are defined in a ``global header'' consisting of $n$ mutually recursive blocks. 
+The types of these functions form a signature for the program, and the semantics and typing 
+judgments will be indexed by this signature. Thus, the types of the language can be expressed 
+as an arrow between zero-order (base)  types: 
+
+\[
+\begin{array}{r l l l l}
+\ms{BTypes} & \tau \,\,\,\,\, ::= \\
+	& \irl{nat}                	 			& \irl{nat}											& \text{naturals}\\
+	& \unittyabt                	 			& \unittycst										& \text{unit}\\
+  & \booltyabt                       & \booltycst                    & \text{boolean}\\
+  & \prodtyabt{\tau_1}{\tau_2}       & \prodtycst{\tau_1}{\tau_2}    & \text{product}\\
+  &\listtyabt{\tau}		& L(\tau)											& \text{list}\\
+  \\
+\ms{FTypes} & \rho \,\,\,\,\, ::= \\
+	&\irl{arr}(\tau_1;\tau_2) 				& \arrtycst{\tau_1}{\tau_2} 									& \text{first order function}
+\]
+
+Next, we have the (abridged) expressions: 
+
+\[
+\begin{array}{r l l l l}
+\ms{Exp}
+        & e   \,\,\,\,\, ::= \\
+ 	& x                                			& x 												& \text{variable}\\
+  & \irl{nat}[n]							& \numeral{n}												& \text{number}\\
+  & \irl{unit}							& ()												& \text{unit}\\
+  & \irl{T}							& \irl{T}												& \text{true}\\
+  & \irl{F}	   					& \irl{F}												& \text{false}\\
+  & \ifexabt{x}{e_1}{e_2} & \ifexcst{x}{e_1}{e_2}  & \text{if}\\
+  & \irl{lam}(x:\tau.e) 						&\lambda \; x : \tau. e 		& \text{abstraction}\\
+  & \irl{ap}(f;x) 					& \appcst{f}{x} 										& \text{application}\\
+  & \irl{tpl}(x_1;x_2)     	& \pairexcst{x_1}{x_2}                									& \text{pair}\\
+ 	& \paircaseabt{p}{x_1}{x_2}{e_1}					& \paircasecst{p}{x_1}{x_2}{e_1}   	& \text{match pair}\\
+ 	& \nilexabt					& []   										& \text{nil}\\
+ 	& \consexabt{x_1}{x_2}					& x_1::x_2   										& \text{cons}\\
+ 	& \listcaseexabt{l}{e_1}{x}{xs}{e_2}					& \listcaseexcst{l}{e_1}{x}{xs}{e_2}   	& \text{match list}\\
+  & \irl{let}(e_1; x : \tau.e_2)			& \irl{let}\; x = e_1 \; \irl{in}\; e_2   	& \text{let}\\
+  & \shareabt{x}{x_1}{x_2}{e} &\sharecst{x}{x_1}{x_2}{e} &\text{share}
+\end{array}
+\]
+
+In this paper, we restrict the language to terms that are in let-normal form to simplify the presentation. We allow an extended syntax in the implementation. 
+The one nonstandard construct is the $\sharecst{x}{x_1}{x_2}{e}$, which we will explain in more 
+detail in the following sections. We introduce two distinct notions of ``linearity'', one on 
+the syntactic level, and one on the semantic level. Syntactic linearity is linearity in 
+expression variables, while semantic linearity is linearity in locations, which we introduce next.
+Although throughout the sections, semantic 
+linearity will depend on the semantics at hand, everything we work with respects syntactic linearity.
+The sharing construct allows us to maintain syntactic linearity while working with 
+multiple semantics that might or might not respect semantic linearity.\\
+
+In line the previous works on space cost semantics, we employ a heap (also known as 
+environment) which persistently binds locations to values (normalized terms).
+As usual, we derive the cost of a program from the number of heap locations 
+number of heap locations used during execution. Locations is an infinite set of names for addressing
+the heap; we used natural numbers in the implementation:
+
+	\[
+\begin{array}{r l l l l}
+\ms{Val}
+        & v   \,\,\,\,\, ::= \\
+ 	& \irl{val}(n)                                			& n 												& \text{numeric value}\\
+ 	& \irl{val}(\irl{T})                               			& \irl{T} 								  & \text{true value}\\
+ 	& \irl{val}(\irl{F})                                			& \irl{F}								  & \text{false value}\\
+ 	& \irl{val}(\irl{Null})                                  & \irl{Null} 								  & \text{null value}\\
+ 	& \irl{val}(l)                                			& l 								  & \text{loc value}\\
+ 	& \irl{val}(\pairexabt{v_1}{v_2})                             & \pairexcst{v_1}{v_2} 								  & \text{pair value}\\
+  \\
+\ms{Loc} & l   \,\,\,\,\, ::= \\
+ 	& \irl{loc}(l)                                			& l 												& \text{location}\\\\
+\ms{Var} & l   \,\,\,\,\, ::= \\
+ 	& \irl{var}(x)                                			& x 												& \text{variable}
+\end{array}
+\]
+
+For the rest of the paper, we assume the following shorthands:
+
+\begin{align*}
+	&\ms{Stack} \triangleq \{ V \mid V : \ms{Var} \to \ms{Val} \}\\
+	&\ms{Heap} \triangleq \{ H \mid H: \ms{Loc} \to \ms{Val} \}\\
+\end{align*}
+
+\section{Reachability}
+\label{sect:reachability}
+
+Before we define the rules for the cost semantics, we relate the heap locations to 
+expressions and value with the 3-place reachability relation $reach(H,v,L)$ on $\ms{Heap} \times \ms{Val} \times \wp(\ms{Loc})$. This is read as ``under heap $H$, the value $v$ reaches the multiset 
+of locations $L$''. Write $L = reach_H(v)$ to indicate this is a functional relation 
+justified by the (valid) mode $(+,+,-)$.
+
+\begin{mathpar}
+\inferrule{
+	A = reach_H(v_1)\\
+	B = reach_H(v_2)
+}{
+	A \uplus B = reach_H(\pairexcst{v_1}{v_2}) 
+} 
+
+\inferrule{
+	A = reach_H(H(l))\\
+}{
+	\{l\} \uplus A = reach_H(l)
+} 
+
+\inferrule{
+	v \in \mathbb{N} \cup \{\irl{T},\irl{F},\irl{Null}\}
+}{
+	\{l\} \uplus A = reach_H(v)
+} 
+\end{mathpar}
+
+Notice that primitives and types with statically-known sizes are stack-allocated 
+($\booltycst, \irl{nat}, \prodtycst{\tau_1}{\tau_2}$) and use no heap cells. 
+The notion of reachability naturally lifts to expressions:
+\begin{equation*}
+  &locs_{V,H}(e) = \bigcup\limits_{x \in FV(e)} reach_H(V(x))\\\\
+\end{equation*}
+Where $FV : \ms{Exp} \to \mathcal{P}(\ms{Var})$ denotes the set of free-variables of expressions as usual.\\
+
+\section{Towards the Garbage Collection Cost Semantics}
+
+Now we are ready to give a first attempt to modeling the cost semantics for a
+tracing garbage collector. Before we present our new semantics, we explain an
+earlier version we tried (this particular one is adapted from  
+\cite{DBLP:journals/entcs/Minamide99}):
+
+\[V,H,R \vdash e \Downarrow^s v,H\]
+
+Which can be read as under stack $V \in \ms{Stack}$, heap $H \in ms{Heap}$, 
+and continuation set $R \subseteq \ms{Loc}$, $e$ evaluates to $v$ 
+and $H'$ using $s$ heap locations. The idea is that $R$ keeps track of the set of locations 
+necessary to complete the evaluation \emph{after} $e$ is evaluated (hence the name continuation).
+For example, we have the let rule: 
+
+\[
+	\inferrule{
+		V,H,R \cup locs_{V,H}(x.e_2) \vdash e_1 \Downarrow^{s_1} v_1,H_1\\
+		V[x \mapsto v_1],H,R \vdash e_2 \Downarrow^{s_2} v_2,H_2\\
+	}{
+		V,H,R \vdash \irl{let}(e_1; x : \tau.e_2) \Downarrow^{\max{s_1,s_2}} v_2,H_2
+	}
+\]
+
+Notice that to evaluate $e_1$, we have to extend the continuation $R$ with locations in $e_2$, which
+will be used \emph{after} $e_1$ is evaluated. The total space used is the max of the 
+component, indicating that locations used for $e_1$ can be reused for $e_2$. 
+This is clear when we look at the variable rule: 
+
+\[
+	\inferrule{
+		V(x) = v
+		}{
+			V,H,R \vdash x \Downarrow^{|R \cup reach_H(v)|} v,H
+			}
+\]
+
+Which states that evaluating a variable $x$ requires the locations reachable from $x$ as well as 
+the continuation set $R$. While this way of counting heap locations does model a tracing garbage 
+collector, it is not compatible with the existing type systems for amortized analysis. In these
+systems, the type rules count the heap locations as data is created, i.e. at each data constructor.
+Thus looking up a variable incurs no cost, since it was accounted for during creation. This mismatch
+between the dynamics and statics of language prevent us from proving the soundness of the analysis. 
+Now, we present our novel cost semantics which solves this issue by combining ``freelist'' 
+semantics from \cite{Hofmann:2003:SPH:604131.604148} with the above approach.
+
+%------------------------------------------------------------------------------
+
+
+\section{Garbage Collection Cost Semantics}
+\label{sect:semantics}
+
+The garbage collection operation semantics is defined by a collection of judgement of the form:
+\[
+\fbox{$\mathcal{C} \; \vdash_{P : \Sigma} e \Downarrow v, H', F'$}
+\]
+
+Where $\mathcal{C}$ is a \emph{configuration}, consisting of a 4-tuple in 
+$\ms{Stack} \times \ms{Heap} \times \mathcal{P}(\ms{Loc}) \times \mathcal{P}(\ms{Loc})$, 
+usually written as $V,H,R,F$. 
+P is a program with signature $\Sigma : \ms{Var} \to \ms{FTypes}$. 
+This can be read as: under stack $V$, heap $H$, continuation set $R$,
+free-list $F$, and program $P$ with signature $\Sigma$, the expression $e$ evaluates to $v$, 
+and engenders a new heap $H'$ and freelist $F'$. Compared to the previous section, the key ingredient 
+we added is the freelist, which will serve as the set of available locations (for allocation of 
+data constructors). \\
+
+A \emph{program} is a $\Sigma$ indexed map $P$ from $\ms{Var}$ to pairs $(y_f,e_f)_{f \in \Sigma}$, where $\Sigma(y_f) = A \to B$, and $\Sigma;y_f : A \vdash e_f : B$ (typing rules are discussed in $\ref{sect:typing}$). We write $P : \Sigma$ to mean $P$ is a program with signature $\Sigma$. Because the signature $\Sigma$ for the mapping of function names to first order functions does not change during evaluation, we drop the subscript $\Sigma$ from $\vdash_{\Sigma}$ when the context of evaluation is clear. Thus the evaluation judgement $\vdash$ is indexed by a signatures $\Sigma$, which is a mutually
+recursive block of global first-order declarations to be used during evaluation.\\
+
+The garbage collection semantics is to designed to model the heap usage of a program running with a 
+tracing counting garbage collector: whenever a heap cell becomes unreachable from the 
+root set, it becomes collected and added to the free-list as available for reallocation.
+As before, the continuation set $R$ represents the set of locations 
+required to compute the continuation \emph{excluding} the current expression.
+Define the  \emph{root set} as the union of the locations in the continuation set $R$ 
+and the locations in the current expression $e$.
+
+\section{The Garbage Collection Cost Semantics $\ms{copy}$}
+
+In order to establish the soundness of the our intended semantics $\ms{free}$, we need an 
+intermediary semantics which is \emph{semantically linear}: $\ms{copy}$.  
+As mentioned in \ref{sect:fop}, this means that locations are linear, i.e. no location can be 
+used twice in a program. Thus, variable sharing is achieved via \emph{copying}: 
+the shared value is created by allocating a fresh set of locations from the freelist and copying the 
+locations of the original value one by one. This is also sometimes referred to as deep copying.
+Let $copy(H,L,v,H',v')$ be a 5-place relation on 
+$\ms{Heap} \times \mathcal{P}(\ms{Loc}) \times \ms{Val} \times \ms{Heap} \times \ms{Val}$. Similar to 
+reachability, we write this as 
+$H',v = copy(H,L,v)$ to signify the intended mode for this predicate: $(+,+,+,-,-)$.
+\begin{mathpar}
+	\inferr{
+		H,v = copy(H,L,v)	
+	}{
+		v \in \{n,\irl{T},\irl{F},\irl{Null}\}
+	}
+
+	\inferr{
+		H'\{l' \mapsto v\},l' = copy(H,L,l) 
+	}{
+		l' \in L\\
+		H',v = copy(H,L \setminus \{l'\},H(l)) 
+	}
+
+\inferr{
+	H_2,\pairexcst{v_1'}{v_2'} = copy(H,L,\pairexcst{v_1}{v_2})
+}{
+	L_1 \sqcup L_2 \subseteq L\\
+	|L_1| = |dom(reach_H(v_1)|\\
+	|L_2| = |dom(reach_H(v_2)|\\
+	H_1,v_1' = copy(H,L_1,v_1)\\
+	H_2,v_2' = copy(H_1,L_2,v_2)\\
+}
+\end{mathpar}
+
+Primitives require no cells to copy; a location value is copied recursively; 
+a pair of values is copied sequentially, and the total number of cells required 
+is the size of the reachable set of the value. We now give the representative rules for 
+$\ms{copy}$. First, we have E:Var:
+
+\[
+	\infern
+{ V(x) = v\\
+}
+{V,H,R,F \; \vdash x \Downarrow v,H,F}
+\]
+
+Note that in contrast to the semantics in the previous section, looking up a variable incurs no
+cost. This ensures that we will be able prove the soundness of the type system. Next, we have 
+E:Let:
+
+\[
+	\infern{
+	V_1 = V\restriction_{FV(e_1)}\\
+  R' = R \cup locs_{V_2,H}(\irl{lam}(x : \tau.e_2))\\
+  V_1,H,R',F \vdash e_1 \Downarrow v_1,H_1,F_1\\
+	V_2' = (V[x \mapsto v_1])\restriction_{FV(e_2)}\\
+  g = \{ l \in H_1 \mid l \notin F_1 \cup R \cup locs_{V_2',H_1}(e_2) \}\\
+  V_2',H_1,R, F_1 \cup g \vdash e_2 \Downarrow v_2,H_2,F_2 \\
+}{
+  V,H,R,F \; \vdash \irl{let}(e_1; x : \tau.e_2) \Downarrow v_2,H_2,F_2
+}
+\]
+
+This states that, to evaluate a sequence of expressions ($e_1,e_2$), we evaluate the first expression 
+with the corresponding restricted stack $V_1$ and a expanded continuation set $R'$. The extra locations come 
+from the free variables of $e_2$ (not including the bound variable $x$), which we cannot collect during 
+the evaluation of $e_1$. Next, we extend the restricted stack $V_2$ with the result $v_1$, 
+and evaluate $e_2$ with this stack and the original continuation set $R$. We list the rest of the
+(abridged) rules below:
+
+\begin{mathpar}
+\infern{
+  V(x) = \irl{T}\\
+  g = \{l \in H \mid l \notin F \cup R \cup locs_{V,H}(e_1)\}\\
+	V' = V\restriction_{FV(e_1)}\\
+  V',H,R,F \cup g\; \vdash e_1 \Downarrow v, H',F'
+}{
+  V,H,R,F \; \vdash \ifexabt{x}{e_1}{e_2} \Downarrow v, H',F'
+}
+
+\infern{
+	V(x) = \irl{F}\\
+  g = \{l \in H \mid l \notin F \cup R \cup locs_{V,H}(e_2)\}\\
+	V' = V\restriction_{FV(e_2)}\\
+  V',H,R,F \cup g \; \vdash e_2 \Downarrow v, H',F'
+}{
+  V,H,R,F \; \vdash \ifexabt{x}{e_1}{e_2} \Downarrow v, H' ,F'
+}
+
+% function
+
+\infern{
+  V(x) = v'\\
+  P(f) = (y_f,e_f)\\
+  g = \{l \in H \mid l \notin F \cup R \cup locs_{V,H}(e_f)\}\\
+  [y_f \mapsto v'],H,R,F \cup g \; \vdash e_f \Downarrow v,H',F'\\
+}{
+  V,H,R,F \; \vdash \appcst{f}{x} \Downarrow v,H',F'
+}
+
+% lists
+
+\infern{
+}{
+  V,H,R,F \; \vdash \nilexabt \Downarrow \irl{val(Null)},H,F
+} 
+
+\infern{
+  v = \pairexcst{V(x_1)}{V(x_2)}\\
+	l \in F\\
+  H' = H\{l \mapsto v\}
+}{
+	V,H,R,F \; \vdash \consexcst{x_1}{x_2} \Downarrow l,H' ,F \setminus \{l\}
+}
+
+\infern{
+	V(x) = v\\
+  L \subseteq F\\
+  |L| = |dom(reach_H(v'))|\\
+  H',v'' = copy(H,L,v')\\
+	V_2 = (V[x_1 \mapsto v',x_2 \mapsto v'']) \restriction_{FV(e)}\\
+	F' =	F \setminus L\\
+	g = \{l \in H \mid l \notin F' \cup R \cup locs_{V_2,H}(e)\}\\
+ 	V_2,H',R,F' \sqcup g \; \vdash e \Downarrow v,H'',F'
+}{
+  V,H,R,F \; \vdash \sharecpcst{x}{x_1}{x_2}{e} \Downarrow v,H'',F'
+}
+
+\infern{
+  V(x) = \irl{Null}\\
+	V' = V\restriction_{FV(e_1)}\\
+  g = \{l \in H \mid l \notin F \cup R \cup locs_{V,H}(e_1)\}\\
+  V',H,R,F \cup g \; \vdash e_1 \Downarrow v, H',F' \\
+}{
+  V,H,R,F \; \vdash \listcaseexcst{x}{e_1}{x_h}{x_t}{e_2} \Downarrow v,H',F'
+}
+
+\infern{
+  V(x) =  l\\
+  H(l) = \pairexcst{v_h}{v_t} \\
+	V'' = (V[x_h \mapsto v_h, x_t \mapsto v_t])\restriction_{FV(e_2)}\\
+  g = \{l \in H \mid l \notin F \cup R \cup locs_{V'',H}(e_2)\}\\
+  V'',H,R,F \cup g \; \vdash e_2 \Downarrow v, H',F' \\
+}{
+  V,H,R,F \; \vdash \listcaseexcst{x}{e_1}{x_h}{x_t}{e_2} \Downarrow v,H',F'
+}
+\end{mathpar}
+
+In particular, note that since we don't allow local function definitions, no closures are created 
+during evaluation. However, our implementation uses closures to implement the global block of 
+function definitions. This is discussed in \ref{sect:implementation}.
+
+\section{Preparing for Soundness}
+
+In this section, we define some auxiliary predicates and judgments for the main lemma in the 
+following section.\\
+
+In order to define the potential for first-order types, we need a notion of well-define environments, one that relates 
+heap values to semantic values of a type. We first give a denotational semantics for the first-order types: 
+
+\begin{align*}
+() &\in \denote{\unittyabt}\\
+\bot &\in \denote{\booltyabt}\\
+\top &\in \denote{\booltyabt}\\
+0 &\in \denote{\irl{nat}}\\
+n + 1 &\in \denote{\irl{nat}} \text{ if } n \in \denote{\irl{nat}}\\
+\pairexcst{a_1}{a_2} &\in \denote{\prodtycst{A_1}{A_2}} 
+	\text{ if } a_1 \in \denote{A_1} \text{ and } a_2 \in \denote{A_2}\\
+\nil &\in \denote{L(A)}\\
+\cons{a}{l} &\in \denote{L(A)} \text{ if } a \in \denote{A} \text{ and } l \in \denote{L(A)}\\
+\end{align*}
+
+Where semantic set for each type is the least set such that the above holds. Note $\pi(x,y)$ is the usual set-theoretic pairing function, and write $[a_1,...,a_n]$ for $\pi(a_1,...,\pi(a_n,[]))$.
+We also refer to the elements of a semantic set as structures. \\
+
+Now we give the judgements relating heap values to semantic values, in the form \fbox{$H \vDash v \mapsto a : A$}, which can be read as: under heap $H$, heap value $v$ defines the semantic value $a \in \denote{A}$.  
+
+\begin{mathpar}
+\inferr{
+  H \vDash \val{n} \mapsto n : \irl{nat}
+}{
+  n \in \mathbb{Z}
+}(\text{V:ConstI})
+
+\inferr{
+  H \vDash \val{\irl{Null}} \mapsto n : \unittyabt
+}{
+}(\text{V:ConstI})
+
+\inferr{
+  H \vDash \val{\irl{Null}} \mapsto n : L(A)
+}{
+  A \in \ms{BType}
+}(\text{V:Nil})
+
+\inferr{
+  H \vDash \val{\irl{T}} \mapsto \top : \booltyabt
+}{
+}(\text{V:True})
+
+\inferr{
+  H \vDash \val{\irl{F}} \mapsto \bot : \booltyabt
+}{
+}(\text{V:False})
+
+	\inferr{
+		H \vDash \pairexcst{v_1}{v_2} \mapsto \pairexcst{a_1}{a_2} : \prodtycst{A_1}{A_2}
+	}{
+		H \vDash v_1 \mapsto a_1 : A_1 \\
+		H \vDash v_2 \mapsto a_2 : A_2
+	}(\text{V:Pair})
+	
+\inferr{
+  H \vDash l \mapsto [a_1,\ldots,a_n] : L(A)
+}{
+  l \in \ms{Loc}\\
+  H(l) = \pairexcst{v_h}{v_t}\\
+  H \vDash v_h \mapsto a_1 : A\\
+  H \vDash v_t \mapsto [a_2,\ldots,a_n] : L(A)
+}(\text{V:Cons})
+\end{mathpar}
+
+Given a stack $V$, we write $H \vDash V : \Gamma$ if $dom(V) = dom(\Gamma)$ and
+for every $x : A \in \Gamma$, $H \vDash V(x) \mapsto a : A$ for some $a \in \llbracket A \rrbracket$.
+
+\section{Linear Garbage Collection Type Rules}
+\label{sect:typing}
+The type system $\fogc$ consists of rules of the form \fbox{$\Sigma;\Gamma \sststile{q'}{q} e : A$}, 
+read as under signature $\Sigma$, context $\Gamma$, $e$ has type $A$ starting with $q$ units of 
+constant potential and ending with $q'$ units.\\
+
+The linear version of the type system takes into account of garbaged collected cells by returning potential locally in a match construct. Since we are interested in the number of heap cells, 
+there is an implicit side condition which ensures all constants are assumed to be nonnegative.\\
+
+The type system is based on the affine type system in \ref{Hoffmann:2017:TAR:3009837.3009842}. 
+The only major difference is the rule for L:MatL, in which an additional unit of potential is returned. This reflects the 
+fact (Lemma \ref{itm:na}) once a cons-cell is matched on, there can be no live references from the root set to it, and thus 
+we are justified in restituting the potential to type the subexpression $e_2$. 
+
+\begin{mathpar}
+\inferr{
+  \Sigma; x : B \sststile{q}{q} x : B
+}{
+}(\text{L:Var})
+
+\inferr{
+  \Sigma; x : A \sststile{q'}{q} f(x) : B
+}
+{
+  \Sigma(f) = A \xmapsto{q/q'} B
+}
+
+\inferr{
+  \Sigma; \Gamma, x : \irl{bool} \sststile{q'}{q} \ifexcst{x}{e_t}{e_f} : B
+}{
+  \Sigma; \Gamma \sststile{q'}{q} e_t : B \\
+  \Sigma; \Gamma \sststile{q'}{q} e_f : B
+}(\text{L:Cond})
+
+\inferr{
+  \Sigma; x_1 : A_1, x_2 : A_2 \sststile{q}{q} \pairexcst{x_1}{x_2} : \prodtycst{A_1}{A_2}
+}{
+}(\text{L:Pair})
+
+\inferr{
+  \Sigma; \Gamma, x : (A_1,A_2) \sststile{q'}{q} \paircasecst{x}{x_1}{x_2}{e} : B
+}{
+  \Sigma; \Gamma, x_1 : A_1, x_2 : A_2 \sststile{q'}{q} e : B
+}(\text{L:MatP})
+
+\inferr{
+  \Sigma; \emptyset \sststile{q}{q} \irl{nil} : L^p(A)
+}{
+}(\text{L:Nil})
+
+\inferr{
+  \Sigma; x_h : A, x_t : L^p(A) \sststile{q}{q+p+1} \consexcst{x_h}{x_t} : L^p(A)
+}{
+}(\text{L:Cons})
+
+\inferr{
+  \Sigma; \Gamma, x : L^p(A) \sststile{q'}{q} \listcaseexcst{x}{e_1}{x_h}{x_t}{e_2} : B
+}{
+  \Sigma; \Gamma \sststile{q'}{q} e_1 : B \\
+  \Sigma; \Gamma, x_h : A, x_t : L^p(A) \sststile{q'}{q + p + 1} e_2 : B
+}(\text{L:MatL})
+
+\inferr{
+  \Sigma; \Gamma_1, \Gamma_2 \sststile{q'}{q} \irl{let}(e_1; x : \tau.e_2) : B
+}{
+  \Sigma; \Gamma_1 \sststile{p}{q} e_1 : A \\
+  \Sigma; \Gamma_2, x : A \sststile{q'}{p} e_2 : B
+}(\text{L:Let})
+
+\inferr{
+  \Sigma; \Gamma, x : A \sststile{q'}{q} \sharecpcst{x}{x_1}{x_2}{e} : B
+}{
+  A \;\curlyvee \;A_1, A_2,1\\
+  \Sigma; \Gamma, x_1 : A_1, x_2 : A_2 \sststile{q'}{q} e : B
+}(\text{L:ShareCopy})
+\end{mathpar}
+
+Define $\dagger :  L^p(A) \mapsto L(A)$ as the map that erases resource annotations. We use 
+this simplified typing judgment in proofs where the resource annotation is unnecessary.
+ \fbox{$\Sigma^{\dagger}; \Gamma^{\dagger} \vdash e : B^{\dagger}$}.
+
+In previous versions of RAML, the typing judgment is parametrized by a \emph{cost metric} 
+$m : \ms{res_const \to \mathbb{Q}}$, which assigns a rational constant to 
+the set of control-flow points. Since the cost for all program construct is zero save for the cons
+data constructor, we elide the cost metric altogether. Although we defined the constructor to cost
+1 heap location (as shown in L:Cons and L:MatL), it can be any constant as long as the introduction
+and elimination rules agree on that constant. Thus we can extend the type system to accurately track
+closure sizes and constructor which vary in size depending on the argument (more in 
+\ref{sect:future-work}).
+
+Futhermore, note that given a judgment $\Sigma;\Gamma \sststile{q'}{q} e : A$, there are 
+infinitely many 
+admissible judgments $\Sigma;\Gamma \sststile{q' + k}{q + k} e : A$ for all $k \in \mathbb{N}$.
+The analysis module will export the constraints generated by the type system into an LP-solver 
+which minimizes all coefficients, so that the smallest admissible $q,q'$ will be used in the 
+resulting symbolic bound.
+%------------------------------------------------------------------------------
+\section{Linearity of Copy Semantics}
+
+In this section, we establish a key lemma for the copy semantics: 
+given a \emph{linear} computation,
+the evaluation result is also linear. First, we characterize semantically linear contexts: 
+
+\begin{definition}(Linear context)
+Given a context $(V,H)$, let
+$x,y \in dom(V)$, $x \ne y$, and $r_x = reach_H(V(x))$, $r_y = reach_H(V(y))$.
+It is non-aliasing given that:
+\begin{enumerate}
+\item $\ms{set}(r_x), \ms{set}(r_y)$
+\item $r_x \cap r_y = \emptyset$
+\end{enumerate}
+Denote this by $\na{V,H}$.
+\end{definition}
+
+Whenever $\na{V,H}$ holds, visually, one can think of the 
+stack as a collection of disjoint, directed trees with locations as nodes; 
+consequently, there is at 
+most one path from a variable on the stack $V$ to any location in $H$.
+
+\begin{definition}[Linear computation]
+Given a configuration $\mathcal{C} = (V,H,R,F)$ and an expression $e$, 
+we say the 5-tuple $(\mathcal{C},e)$ is a \emph{computation}; it is a \emph{linear computation} 
+given the following:
+\begin{enumerate}
+\item $dom(V) = FV(e)$
+\item $\na{V,H}$
+\item $\dist{\{R,F,locs_{V,H}(e)\}}$
+\end{enumerate} 
+And we write $\wfc{V}{H}{R}{F}{e}$ to denote this fact.
+\end{definition}
+
+\begin{definition}[Stability]
+Given heaps $H,H'$, a set of locations is \emph{stable} if $\forall l \in R$. $H(l) = H'(l)$. Denote this by
+$\stable{R,H,H'}$.
+\end{definition}
+
+\begin{lemma}
+\label{a} If $\Sigma; \Gamma \sststile{q'}{q} e : B$, then $\Sigma^{\dagger}; \Gamma^{\dagger} \vdash e : B^{\dagger}$.
+\end{lemma}
+
+\begin{proof}
+Induction on the typing judgement.
+\end{proof}
+
+Define $FV^{\star} : \ms{Exp} \to \wp(\ms{Var})$, the multiset of free variables of expressions,
+as the usual $FV$ inductively over the structure of $e$. This version of $FV$ reflects 
+the multiplicity of variable occurences.
+
+\begin{lemma}\label{itm:linear}
+\label{a} If $\Sigma; \Gamma \sststile{q'}{q} e : B$, then $\set{FV^{\star}(e)}$ and $dom(\Gamma) = FV(e)$.
+\end{lemma}
+
+\begin{proof}
+Induction on the typing judgement.
+\end{proof}
+
+\begin{lemma}\label{itm:stable}
+Let $H \vDash v \mapsto a : A$. For all sets of locations $R$, if $reach_H(v) \subseteq R$ and $\stable{R,H,H'}$, then $H' \vDash v \mapsto a : A$ and $reach_H(v) = reach_{H'}(v)$.
+\end{lemma}
+
+\begin{proof}
+Induction on the structure of $H \vDash v \mapsto a : A$.
+\end{proof}
+
+\begin{corollary}
+Let $H \vDash V : \Gamma$. For all sets of locations $R$, if $\bigcup_{x \in V} reach_H(V(x)) \subseteq R$ and $\stable{R,H,H'}$, then $H' \vDash V : \Gamma$.
+\end{corollary}
+
+\begin{proof}
+Follows from Lemma $\ref{itm:stable}$.
+\end{proof}
+
+% copy
+
+\begin{lemma}[stability of copying]
+	Let $H',v' = copy(H,L,v)$. For all $l \in H$, if $l \notin L$, then $H(l) = H'(l)$. 
+	Further, $reach_{H'}(v') \subseteq L$.
+\end{lemma}
+
+\begin{lemma}[copy is copy]
+	Let $H',v' = copy(H,L,v)$. If $H \vDash v \mapsto a : A$, then $H' \vDash v' \mapsto a : A$.
+\end{lemma}
+
+% main lemma
+
+The following lemma one of main results of this paper: given a semantically linear computation 
+(one with no sharing between the underlying locations), the resulting value is linear 
+(expressed by item 1. and 2. below):
+\begin{lemma}[Linearity of $\ms{copy}$]\label{itm:na}
+For all stacks $V$ and heaps $H$, let  $V,H,R,F \; \vdash e \Downarrow v, H', F'$ 
+and $\Sigma; \Gamma \vdash e : B$. Then given that $\wfc{V}{H}{R}{F}{e}$, we have the follwoing: 
+\begin{enumerate}
+\item $\ms{set}(reach_{H'}(v))$
+\item $\dist{\{R,F',reach_{H'}(v)\}}$, and
+\item $\stable{R,H,H'}$
+\end{enumerate}
+\end{lemma}
+
+The premises of this lemma is a subset of the premises of the soundness theorem. Thus, we could have
+merged the proof of this lemma directly into the soundness proof. However, we think makes the 
+presentation clearer; furthermore, the linearity of $\ms{copy}$ is an interesting in itself, 
+regardless of the type system. 
+
+%------------------------------------------------------------------------------
+\section{Soundness of \fogc}
+
+Recall that the semantics \ms{copy} makes a deep copy of every variable that is used more than once 
+in a program.  Of course, in many real-world languages, variable aliasing
+does not actually incur overhead proportional to the size of the value; instead,
+the aliased value simply gains one more reference. The semantics \ms{free} 
+(rules introduced in \ref{sect:free}) is 
+the version of the garbage collection semantics designed to capture this ``shallow'' copying. 
+It is identical to \ms{copy} except for the variable sharing rule.
+We use \ms{copy} to mediate between the type system and \ms{free}.
+The figure below outlines the plan for proving the soundess of the type 
+system w.r.t \ms{free}:
+
+\tikzstyle{process} = [rectangle, text centered, draw=black, fill=orange!30]
+\tikzstyle{arrow} = [thick,->,>=stealth]
+
+\begin{center}
+\begin{tikzpicture}[node distance=3cm]
+\node (type) [process] {$\fogc$};
+\node (copy) [process, right of=type, xshift=2cm] {\ms{copy}};
+\node (free) [process, below of=copy] {\ms{free}};
+
+\draw [arrow] (type) -- node[anchor=south] {Is sound w.r.t (\ref{itm:soundness})} (copy);
+\draw [arrow] (copy) -- node[anchor=west] {Over-approximates (\ref{itm:frugal})} (free);
+\draw [dashed,->] (type) -- node[anchor=south] {} (free);
+
+\end{tikzpicture}
+\end{center}
+
+Where the dashed arrow represents the intended result.\\
+
+First, we show the soundness of $\fogc$ w.r.t \ms{copy}. To formally state this theorem,
+we need to introduce an auxiliary semantics (call this 
+the operational semantics) that does not use freelists or accounts for garbage collection. We use
+it to characterize expressions that normalizes to a value if given enough heap locations.
+This technique was also employed in \cite{Hofmann:2003:SPH:604131.604148} to establish the soundness
+of their type system. The operational semantics consists of judgments of the following form:
+
+\[
+\fbox{$\mathcal{S} \vdash e \Downarrow v, H'$}
+\]
+
+Where $\mathcal{S}$ is a \emph{context}, consisting of a tuple in $\ms{Stack} \times \ms{Heap}$, and usually
+written as $(V,H)$.
+This can be read as: under stack $V$, heap $H$ the expression $e$ evaluates to $v$, 
+and engenders a new heap $H'$. Below are the representative rules 
+(the rest are derived in the obvious way from $\ms{copy}$:
+
+\begin{mathpar}
+\infern{
+	l \notin dom(H)\\
+  v = \pairexcst{V(x_1)}{V(x_2)}\\
+	H' = H\{l \mapsto v\}\\
+}{
+  V,H \; \vdash \consexcst{x_1}{x_2} \Downarrow l,H'
+}
+
+\infern{
+  V(x) = l \\
+  H(l) = \pairexcst{v_h}{v_t} \\
+  V' \subseteq V\\
+  dom(V') = FV(e_2) \setminus \{x_h,x_t\}\\
+  V'' = V'[x_h \mapsto v_h, x_t \mapsto v_t]\\
+  V'',H \; \vdash e_2 \Downarrow v, H' \\
+}{
+  V,H \; \vdash \listcaseexcst{x}{e_1}{x_h}{x_t}{e_2} \Downarrow v,H'
+}
+
+\infern{
+  V = V_1 \sqcup V_2\\
+  dom(V_1) = FV(e_1)\\
+  dom(V_2) = FV(\irl{lam}(x : \tau. e_2))\\
+  V_1,H \vdash e_1 \Downarrow v_1,H_1\\
+  V_2' = V_2[x \mapsto v_1]\\
+  V_2',H_1\vdash e_2 \Downarrow v_2,H_2\\
+}{
+  V,H \; \vdash \irl{let}(e_1; x : \tau.e_2) \Downarrow v_2,H_2
+}
+
+\infern{
+  V = V'[x \mapsto v']\\
+	L \cap dom(H) = \emptyset\\
+  |L| = dom(reach_H(v'))\\
+  H',v'' = copy(H,L,v')\\
+  V'[x_1 \mapsto v',x_2 \mapsto v''],H' \; \vdash e \Downarrow v,H''
+}{
+  V,H \; \vdash \sharecpcst{x}{x_1}{x_2}{e} \Downarrow v,H''
+}
+\end{mathpar}
+
+Next, we need the notion
+of context equivalence. Here we define it for contexts, which consisting of only the stack and heap. Later, 
+we extend it the the full configuration. First, define \emph{value} equivalence: 
+
+\begin{definition}[Value Equivalence]
+Two values $v_1,v_2$ are equivalent (with the presupposition that they are well-formed w.r.t heaps $H_1,H_2$),
+iff $H_1 \vDash v_1 \mapsto a : A$ and $H_2 \vDash v_2 \mapsto a : A$. 
+Write value equivalence as $\veq{H_1}{H_2}{v_1}{v_2}$.
+\end{definition}
+
+\begin{definition}[Context Equivalence]
+Two simple contexts $(V_1,H_1), (V_2,H_2)$ are equivalent
+(with the presupposition that both are well-formed contexts) iff $dom(V_1) = dom(V_2)$ and 
+for all $x \in dom(V_1)$, $\veq{H_1}{H_2}{V_1(x)}{V_2(x)}$. Write context equivalence as 
+$\ctxeq{V_2,H_2}{V_2,H_2}$
+\end{definition}
+
+Stated simply, two contexts are equivalent when they have the same domain and equal variables bind 
+equal semantic values. We are ready to state the soundness theorem now:
+
+\begin{theorem}[Soundness]
+\label{itm:soundness} let $H \vDash V : \Gamma$, $\Sigma; \Gamma \sststile{q'}{q} e : B$,
+$V,H \; \vdash e \Downarrow v, H'$, and $H' \vDash v \mapsto a : A$.
+Then $\forall C \in \mathbb{Q}^{+}$ and $\forall F,R \subseteq \ms{Loc}$,
+if the following holds:
+\begin{enumerate} 
+\item $\wfc{V}{H}{R}{F}{e}$
+\item $|F| \ge \Phi_{V,H}(\Gamma) + q + C$ 
+\end{enumerate}
+then there exists a context $(W,Y)$, a value $w$, and a freelist $F'$ s.t.
+\begin{enumerate}
+	\item $\ctxeq{W,Y}{V,H}$
+  \item $W,Y,R,F \vdash e \Downarrow w, Y', F'$
+	\item $\veq{H'}{Y'}{v}{w}$
+  \item $|F'| \ge \Phi_{H'}(v:B) + q' + C$
+\end{enumerate}
+\end{theorem}
+
+\section{Garbage Collection Cost Semantics \ms{free}}
+\label{sect:free}
+
+Consider $\ms{copy}$ with the share rule replaced with the following: 
+
+\begin{mathpar}
+\inferr{
+  V,H,R,F \; \vdash \sharecst{x}{x_1}{x_2}{e} \Downarrow v,H'',F'
+}{
+  V = V'[x \mapsto v']\\
+  V'[x_1 \mapsto v',x_2 \mapsto v'],H',R,F \; \vdash e \Downarrow v,H'',F'
+}(\text{F:Share})
+\end{mathpar}
+
+Call this new semantics $\mathsf{free}$ semantics for copy-free 
+(all rules are renamed to F:\_ for free). 
+It is easy to see that any terminating compuation
+in $\mathsf{copy}$ has a corresponding one in $\mathsf{free}$ that can be instantiated with 
+an equally-sized or smaller freelist. 
+Before formalizing this idea, we extend context equivalence to a 
+preorder on configurations: 
+
+\begin{definition} A configuration $(V,H,R,F)$ is well-formed if $dom(H) \subseteq reach_H(V) \cup R \cup F$.
+\end{definition}
+
+\begin{definition}
+A configuration $\mathcal{C}_2 = (V_2,H_2,R_2,F_2)$ is a \emph{copy extension} of another configuration
+$\mathcal{C}_1 = (V_1,H_1,R_1,F_1)$ iff
+\begin{enumerate}
+\item $V_1,H_1 \sim V_2,H_2$
+\item There is a proper partition $\gamma : dom(H_1) \setminus F_1 \to \mathcal{P}(dom(H_2) \setminus F_2)$ 
+such that for all $l \in dom(\gamma)$, $|\gamma(l)| = reach_{H_1}(V_1)(l) + R_1(l)$
+\item There is a mapping $\eta : (dom(H_1) \setminus F_1) \to dom(V_1) \to 
+	\mathcal{P}(dom(H_2) \setminus F_2)$ such that 
+for all $l \notin R_1$, $\eta(l)(x) = reach_{H_2}(x) \cap \gamma(l)$. Futhermore, 
+for all $l$ and $x$, $|\eta(l)(x)| = reach_{H_1}(V_1(x))(l)$.
+\item $R_1 \subseteq dom(H_1) \setminus F_1$ and $R_2 = \bigcup \gamma(R_1)$
+\item $|F_1| = |F_2| + |\oh{\gamma}|$, where 
+	$\oh{\gamma} = \bigcup_{P \in ec(\gamma)} P \setminus (rep(P))$
+\end{enumerate}
+Write this as $\mathcal{C}_1 \preceq \mathcal{C}_2$.
+\end{definition} 
+
+For an evaluation $\mathcal{C} = (V,H,R,F) \vdash e \Downarrow v,H',F'$, denote its garbage as
+$collect(\mathca{C} \vdash v,H',F') = \{l \in H' \mid l \notin F' \cup R \cup reach_H'(v)\}$. 
+Now the key lemma:
+
+\begin{lemma}\label{itm:frugal}
+	Let $(\mathcal{C}_2,e)$ be a linear computation. Given that 
+	$\mathcal{C}_2 \vdash^{\mathsf{copy}} e \Downarrow v,H',F'$, and $H' \vDash v \mapsto a : A$, 
+	for all well-formed configurations $\mathcal{C}_1$ such that $\mathcal{C}_1 \preceq \mathcal{C}_2$,
+there is exists a triple
+$(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ and 
+	$\gamma' : dom(Y') \setminus M' \to \mathcal{P}(dom(H') \setminus F')$ s.t.
+	\begin{enumerate}
+			\item $\mathcal{C}_1 \vdash^{\mathsf{free}} e \Downarrow w,Y',M'$
+			\item $\veq{H'}{Y'}{v}{w}$
+			\item $\gamma'$ is a proper partition, such that for all $l \in dom(\gamma')$, 
+				$|\gamma'(l)| = |reach_{Y_1}(w_1)(l)| + S(l) + |\gamma'(l) \cap collect(\mathcal{C}_2 \vdash^{\mathsf{copy}} e \Downarrow v,H',F')|$
+			\item $|reach_{H_1}(v) \cap \gamma'(l)| = reach_{Y_1}(w)(l)$
+			\item $R_2$ = \bigcup \gamma'(R_1)$ 
+			\item $|M'| = |F'| + |\oh{\gamma'}|$
+	\end{enumerate}
+\end{lemma}
+
+For a configuration $\mathcal{C} = (V,H,R,F)$, denote the current garbage w.r.t a set of root variables 
+$X \subseteq dom(V)$ 
+as $clean(\mathca{C},X) = \{l \in H \mid l \notin F \cup R \cup reach_H(X)\}$. Some auxiliary lemmas: 
+
+\begin{lemma}\label{itm:aux}
+Let $V_2,H_2,R_2,F_2 \vdash^{\mathsf{copy}} e \Downarrow v,H',F'$, and 
+$V_1,H_1,R_1,F_1 \preceq V_2,H_2,R_2,F_2$ because $(-,\gamma,\eta,-,-)$. Then the following hold:
+\begin{enumerate}
+\item for all $l \in dom(H_1) \setminus F_1$, 
+$X \subseteq dom(V)$, $\gamma(l) \subseteq clean(\mathcal{C}_2,X)$ implies that 
+$l \in clean(\mathcal{C}_1,X)$.
+\end{enumerate}
+\end{lemma}
+
+In particular, this means that we can (somewhat obviously), execute a computation using the 
+free semantics if the computation suceeded with the copy semantics. 
+
+\section{Implementation}
+\label{sect:implementation}
+
+The garbage collection cost semantics is implemented as an alternative evaluation module inside
+Resource Aware ML (RAML). As mentioned before, RAML leverages the syntax of OCaml programs. 
+First, we take the OCaml type checked abstract syntax tree and perform a series of transformations. 
+The evaluation modules operates on the resulting RAML syntax tree. First, we describe the 
+normal evaluation module \texttt{Eval} that's parametrized by a cost metric. It 
+exports the function \texttt{evaluate} with the following signature:
+
+\begin{verbatim}
+ evaluate : 
+     ('a, unit) Expressions.expression ->
+		   (Metric.res_const -> float) list ->
+			   ((location * 'a heap) option) * (float * float) list
+\end{verbatim}
+
+
+
+In order to implement the global function block, we allow closure creation
+during program evaluation. However, we allocate all closures from a separate freelist into 
+a separate heap.
+This ensures that data constructors are allocated from the correct freelist and no space overhead 
+is created by allocating closures for function declarations.\\
+
+
+\section{Evaluation}
+\label{sect:evaluation}
+
+
+
+\section{Future Work}
+\label{sect:future-work}
+
+
+\label{sect:bib}
+\bibliographystyle{plain}
+%\bibliographystyle{alpha}
+%\bibliographystyle{unsrt}
+%\bibliographystyle{abbrv}
+\bibliography{easychair}
+
+%------------------------------------------------------------------------------
+\appendix
+
+
+%------------------------------------------------------------------------------
+% Index
+%\printindex
+
+%------------------------------------------------------------------------------
+\end{document}
+

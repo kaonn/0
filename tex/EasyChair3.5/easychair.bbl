@@ -1,0 +1,31 @@
+\begin{thebibliography}{1}
+
+\bibitem{Hoffmann:2017:TAR:3009837.3009842}
+Jan Hoffmann, Ankush Das, and Shu-Chun Weng.
+\newblock Towards automatic resource bound analysis for ocaml.
+\newblock In {\em Proceedings of the 44th ACM SIGPLAN Symposium on Principles
+  of Programming Languages}, POPL 2017, pages 359--373, New York, NY, USA,
+  2017. ACM.
+
+\bibitem{Hofmann:2003:SPH:604131.604148}
+Martin Hofmann and Steffen Jost.
+\newblock Static prediction of heap space usage for first-order functional
+  programs.
+\newblock In {\em Proceedings of the 30th ACM SIGPLAN-SIGACT Symposium on
+  Principles of Programming Languages}, POPL '03, pages 185--197, New York, NY,
+  USA, 2003. ACM.
+
+\bibitem{DBLP:journals/entcs/Minamide99}
+Yasuhiko Minamide.
+\newblock Space-profiling semantics of the call-by-value lambda calculus and
+  the {CPS} transformation.
+\newblock {\em Electr. Notes Theor. Comput. Sci.}, 26:105--120, 1999.
+
+\bibitem{Spoonhower:2008:SPP:1411204.1411240}
+Daniel Spoonhower, Guy~E. Blelloch, Robert Harper, and Phillip~B. Gibbons.
+\newblock Space profiling for parallel functional programs.
+\newblock In {\em Proceedings of the 13th ACM SIGPLAN International Conference
+  on Functional Programming}, ICFP '08, pages 253--264, New York, NY, USA,
+  2008. ACM.
+
+\end{thebibliography}

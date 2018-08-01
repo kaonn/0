@@ -8,7 +8,6 @@
 \usepackage{stackengine}
 \usepackage{scalerel}
 \usepackage{code,proof,amsthm,amssymb, amsmath}
-\usepackage{proof}
 \usepackage{mathpartir}
 \usepackage{turnstile}
 \usepackage{fancyvrb}
@@ -16,6 +15,8 @@
 \usepackage{mathtools}
 \usepackage{hyperref}
 \usepackage[margin=0.5in]{geometry}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows}
 
 \allowdisplaybreaks
 
@@ -94,24 +95,64 @@
 \newcommand{\wfc}[5]{\mathsf{wfc}(#1,#2,#3,#4,#5)}
 \newcommand{\veq}[4]{#3 \sim^{#1}_{#2} #4}
 \newcommand{\ctxeq}[2]{(#1) \sim (#2)}
+\newcommand{\oh}[1]{\oslash(#1)}
 \newtheorem{lemma}[theorem]{Lemma}
 \newtheorem{corollary}{Corollary}[theorem]
 \theoremstyle{definition}
 \newtheorem{definition}{Definition}[section]
 
-\title{15-312 Assignment \hwnumber}
+\title{Automatic Resource Bound Analysis for Functional Programs with Garbage Collection}
 \author{\myname\\(\myandrewid)}
 \date{\today}
 \setlength{\parindent}{0pt}
 
 \begin{document}
+\RaggedRight
 \maketitle
 \pagenumbering{gobble}
+
+\begin{abstract}
+In today’s complex software systems, resource consumption such as time, memory, and energy is
+increasingly more relevant. Manually analyzing and predicting resource consumption is cumbersome
+and error prone. As a result, programming language research studies techniques that support developers
+by automating and guiding such a resource analysis. Most current techniques for resource bound
+inference work in an environment with manual memory management, or simply assume there is no
+automatic memory management. As a result, memory bounds derived by the aforementioned techniques
+are not accurate when the underlying system employs garbage collection. We
+develop new techniques for automatic bound inference in the presence of garbage collection, and 
+implement them as an extension to Resource Aware ML (RaML). We show that our system is able to 
+derive tight symbolic bounds for heap usage of common algorithms for which current analysis give 
+asymptotically worse bounds.
+\end{abstract}
 
 \section{Introduction}
 
 \noindent
-In this paper, we propose a model for deriving asymptotically tight bounds for first order functional programs. We choose a fragment of OCaml as the target language. The abstract and concrete syntax of the language is show below. Note that we only allow first order functions of type $\tau_1 \to \tau_2$, where $\tau_1$ and $\tau_2$ are base types: unit, bool, product, or lists. 
+We present an algorithm for statically determining the symbolic cost bound 
+of the space complexity for first-order, garbage-collected functional programs. 
+The algorithm is based on Automatic Amortized Resource Analysis (AARA) as implemented 
+in Resource Aware ML (RaML) \cite{Hoffmann:2017:TAR:3009837.3009842}.
+
+\subsection{Background}
+\label{sect:background}
+
+We define the execution of the given language by giving it an
+operational cost semantics. The semantics is a big-step
+(or natural) semantics in the style of Spoonhower and Minamide (\cite{Spoonhower:2008:SPP:1411204.1411240} and 
+\cite{DBLP:journals/entcs/Minamide99}), which assigns any program a space cost. This cost is
+the highwater mark on the heap, or the maximum number of cells used in the mutable store during 
+evaluation. While \cite{Spoonhower:2008:SPP:1411204.1411240} and 
+\cite{DBLP:journals/entcs/Minamide99} compute this cost at the leaves of a 
+evaluation judgment, we compute the cost ``as it happens'' by leveraging the \emph{free-list},
+which represents the cells available for evaluation. 
+The concept of the free-list can be found in Hofmann et. al. (\cite{Hofmann:2003:SPH:604131.604148}).
+However, unlike \cite{Hofmann:2003:SPH:604131.604148}, in order to account for garbage collection,
+we define the free-list as a set of locations instead of single number denoting its size.\\
+
+The abstract and concrete syntax of the language is show below. Note that we only allow first order functions 
+of type $\tau_1 \to \tau_2$, where $\tau_1$ and $\tau_2$ are base types: unit, bool, product, or lists. In 
+this paper, we restrict the language to terms that are in let-normal form to simplify the presentation. We 
+allow an extended syntax in the implementation. 
 
 \[
 \begin{array}{r l l l l}
@@ -160,9 +201,6 @@ In this paper, we propose a model for deriving asymptotically tight bounds for f
  	& \irl{val}(l)                                			& l 								  & \text{loc value}\\
  	& \irl{val}(\pairexabt{v_1}{v_2})                             & \pairexcst{v_1}{v_2} 								  & \text{pair value}\\
   \\
-\ms{State} & s   \,\,\,\,\, ::= \\
- 	& \irl{alive}                                			& \irl{alive} 												& \text{live value}\\
- 	& \irl{dead}                                			& \irl{dead} 												& \text{dead value}\\\\
 \ms{Loc} & l   \,\,\,\,\, ::= \\
  	& \irl{loc}(l)                                			& l 												& \text{location}\\\\
 \ms{Var} & l   \,\,\,\,\, ::= \\
@@ -171,85 +209,108 @@ In this paper, we propose a model for deriving asymptotically tight bounds for f
 \]
 
 \newpage
-\section{Preliminaries}
 
+\section{Notation}
 \noindent 
 For a finite mapping $f : A \to B$, we write $dom$ for the defined values of $f$. Sometimes we shorten $x \in dom(f)$ to $x \in f$. We write $f[x \mapsto y]$ for the extension of $f$ where $x$ is mapped to $y$, with the constraint that $x \notin dom(f)$. \\
 
-\noindent
-Roots represents the set of locations required to compute the continuation \emph{excluding} the current expression.
-We can think of roots as the heap allocations necessary to compute the context with a hole that will be filled
-by the current expression.\\
+Given possibly non-disjoint sets $A,B$, let the disjoint union be $A \oplus B$ defined by 
+$\{(\ms{inl},a) \mid a \in A\} \cup \{(\ms{inr},b) \mid b \in B\}$.
+
+Let a multiset be a function $S : A \to \mathbb{N}$, i.e. a map of the multiplicity of each element in the domain. 
+Write $x \in S$ iff $S(x) \ge 1$. If for all  $s \in S$, $\mu(s) = 1$, then $S$ is a property set, 
+and we denote this by $\ms{set}(S)$. Addtionally, $A \uplus B$ denotes counting union of sets where 
+$(A \uplus B) (s) = A (s) + B(s)$, similarly, $(A \cap B)(s) = \min{A(s),B(s)}$. Furthermore,
+ $A \cup B$ denotes the usual union where 
+$(A \cup B)(s) = \max{(A(s),B(s))}$. 
+For the union of disjoint multi-sets $A$ and $B$, we write $A \sqcup B$ to emphasize the disjointness.
+For a collection of pairwise disjoint multi-sets $\mathcal{C}$, i.e. $\forall X,Y \in \mathcal{C}$. $X \cap Y = \emptyset$, we write $\dist{\mathcal{C}}$.
+In the rest of the paper, 
+we sometimes treat a set $A$ sets as multiset $A : A \to \mathbb{N}$ via 
+$x \mapsto \begin{cases} 1 &\text{ if } x \in A \\0 &\text{ o.w.}\end{cases}$ when convenient. 
+For instance, if an operation 
+defined on multisets is used on sets and multisets, the set is thus promoted.\\
+
+\section{Garbage collection semantics}
+
+
+
+The garbage collection operation semantics is defined by a collection of judgement of the form:
+\[
+\fbox{$\mathcal{C} \; \vdash_{P : \Sigma} e \Downarrow v, H', F'$}
+\]
 
 \noindent
-In order prove soundness of the type system, we need some auxiliary judgements to defining properties of a heap. Below we define $reach : Val \to \{\{\ms{Loc}\}\}$ that maps stack values its the root \emph{multiset}, the multiset of locations that's already on the stack. 
+Where $\mathcal{C}$ is a \emph{configuration}, consisting of a 4-tuple in 
+$\ms{Stack} \times \ms{Heap} \times \mathcal{P}(\ms{Loc}) \times \mathcal{P}(\ms{Loc})$, 
+usually written as $V,H,R,F$. 
+P is a program with signature $\Sigma : \ms{Var} \to \ms{FTypes}$. 
+This can be read as: under stack $V$, heap $H$, continuation set $R$,
+free-list $F$, and program $P$ with signature $\Sigma$, the expression $e$ evaluates to $v$, and engenders a new heap $H'$ and freelist $F'$. Here, $\ms{Stack}$ is defined as the set of finite mappings $\ms{Var} \to \ms{Val}$, and $\ms{Heap}$ is defined as the set of finite mappings $\ms{Loc} \to \ms{Val}$.\\
 
 \noindent
-Next we define reachability of values:
+A \emph{program} is then a $\Sigma$ indexed map $P$ from $\ms{Var}$ to pairs $(y_f,e_f)_{f \in \Sigma}$, where $\Sigma(y_f) = A \to B$, and $\Sigma;y_f : A \vdash e_f : B$ (typing rules are discussed in $\ref{sec:typing}$). We write $P : \Sigma$ to mean $P$ is a program with signature $\Sigma$. Because the signature $\Sigma$ for the mapping of function names to first order functions does not change during evaluation, we drop the subscript $\Sigma$ from $\vdash_{\Sigma}$ when the context of evaluation is clear. It is convenient to think of the evaluation judgement $\vdash$ as being indexed by a family of signatures $\Sigma$'s, each of which is a set of ``top-level'' first-order declarations to be used during evaluation.\\
 
-\begin{align*}
-&reach_H(\pairexcst{v_1}{v_2}) = reach_H(v_1) \uplus reach_H(v_2)\\
-&reach_H(l) = \{l\} \uplus reach_H(H(l))\\
-&reach_H(\_) = \emptyset
-\end{align*}
-For a multiset $S$, we write $\mu_S : S \to \mathbb{N}$ for the multiplicity function of $S$, which maps each element to the count of its occurence. If $\mu_S(x) \ge 1$ for a multiset $S$, then we write $x \in S$ as in the usual set membership relation. If for all  $s \in S$, $\mu(s) = 1$, then $S$ is a property set, and we denote it by $\ms{set}(S)$. Addtionally, $A \uplus B$ denotes counting union of sets where $\mu_{A \uplus B} (s) = \mu_A (s) + \mu_B (s)$, and $A \cup B$ denotes the usual union where $\mu_{A \cup B}(s) = \max{(\mu_A(s),\mu_B(s))}$. For the disjoint union of sets $A$ and $B$, we write $A \sqcup B$.\\
+The garbage collection semantics is to designed to model the heap usage of a program running with a 
+``perfect'' reference counting garbage collector: whenever a heap cell becomes unreachable from the 
+root set, it becomes collected and added to the free-list as available for reallocation.
+The continuation set $R$ represents the set of locations required to compute the continuation 
+\emph{excluding} the current expression.
+We can think of $R$ heap cells needed to compute the (surrounding) context with a hole which is filled
+by the current expression.
+The root set is then the union of the locations in the continuation set $R$ and the locations in the current 
+expression $e$.
+Primitives and types with statically-known sizes are stack-allocated 
+($\booltycst, \irl{nat}, \prodtycst{\tau_1}{\tau_2}$) and use no heap cells; this is reflected in the 
+reachability predicate defined below. 
+
+\subsection{Reachability}
 
 \noindent
-Next, we define the predicates $\ms{no\_alias}$, $\ms{stable}$, and $\ms{disjoint}$:
-\begin{description}
-% \item [$\ms{forest}(H)$: ]\\
-% $\forall l,l_1,l_2 \in H$, if $H \vDash p : l_1 \leadsto l$ and $H \vDash q : l_2 \leadsto l$, then $l_1 = l_2$ and $H \vDash p \equiv q : l_1 \leadsto l$.
-\item[$\na{V,H}$: ] \\
-$\forall x,y \in V$, $x \ne y$. \text{ Let } $r_x = reach_H(V(x))$, $r_y = reach_H(V(y))$. Then:
-\begin{enumerate}
-\item $\ms{set}(r_x), \ms{set}(r_y)$
-\item $r_x \cap r_y = \emptyset$
-\end{enumerate}
-\item[$\ms{stable}(R,H,H')$: ] $\forall l \in R$. $H(l) = H'(l)$.
-\item [$\ms{safe}(V,H,F)$: ] $\forall x \in V$. $reach_{H}(V(x)) \cap F = \emptyset$
-\item[$\dist{\mathcal{C}}$: ] $\forall X,Y \in \mathcal{C}$. $X \cap Y = \emptyset$ 
-\end{description}
+In order to formalize the intuitive operations of the garbage collector, we define some auxiliary relations. \\
 
-For a stack $V$ and a heap $H$, whenever $\na{V,H}$ holds, visually, one can think of the situation as the following: the induced graph of heap $H$ with variables on the stack as additional leaf nodes is a forest: a disjoint union of arborescences (directed trees); consequently, there is at most one path from a live variable on the stack $V$ to a location in $H$ by following the pointers.\\
+We define the 3-place reachability relation $reach(H,v,L)$ on $\ms{Heap} \times \ms{Val} \times \wp(\ms{Loc})$.
+We write $L = reach_H(v)$ to indicate this is a functional relation justified by the valid mode $(+,+,-)$.
 
-First, we define $FV^{\star}(e)$, the multiset of free variables of $e$. As the usual $FV$, it is defined inductively over the structure of $e$; the only unusual thing is that multiple occurences of a free variable $x$ in $e$ will be reflected in the multiplicity of $FV^{\star}(e)$.\\
+\begin{mathpar}
+\inferrule{
+	A = reach_H(v_1)\\
+	B = reach_H(v_2)
+}{
+	A \uplus B = reach_H(\pairexcst{v_1}{v_2}) 
+} 
 
-Next, we define $locs_{V,H}$ using the previous notion of reachability. 
+\inferrule{
+	A = reach_H(H(l))\\
+}{
+	\{l\} \uplus A = reach_H(l)
+} 
+
+\inferrule{
+	v \in \mathbb{N} \cup \{\irl{T},\irl{F},\irl{Null}\}
+}{
+	\{l\} \uplus A = reach_H(v)
+} 
+\end{mathpar}
+
+The notion of reachability naturally lifts to expressions via $locs_{V,H}$:
 \begin{equation*}
   &locs_{V,H}(e) = \bigcup\limits_{x \in FV(e)} reach_H(V(x))\\\\
 \end{equation*}
+Where $FV : \ms{Exp} \to \mathcal{P}(\ms{Var})$ denotes the set of free-variables of expressions as usual.
+We define $FV^{\star} : \ms{Exp} \to \wp(\ms{Var})$, the multiset of free variables of expressions,
+as the usual $FV$ inductively over the structure of $e$; the only unusual thing is that multiple occurences
+of a free variable $x$ in $e$ will be reflected in the multiplicity of $FV^{\star}(e)$.\\
 
-$size$ calculates the \emph{literal size} of a value, e.g. the size to store its address.
-\begin{align*}
-  &size(\pairexcst{v_1}{v_2}) = size(v_1) + size(v_2)\\
-  &size(\_) = 1
-\end{align*}
 
-Let $\card{S}$ denote the number of unique elements, e.g. the cardinality of a multiset $S$.
-We write $\ssize{H}{v}$ for $\card{reach_H(v)}$ 
+\subsection{The Copying Semantics $\ms{copy}$}
 
-As usual, we extend it to stacks $V$: $\ssize{H}{V} = \sum_{V(x) = v} \ssize{H}{v}$\\
-
-\iffalse
-$copy(H,L,v)$ takes a heap $H$, a set of locations $L$, and a value $v$, and returns a new heap $H'$ and a location $l$ such that $l$ maps to $v$ in $H'$.
-\begin{align*}
-  &copy(H,L,\pairexcst{v_1}{v_2}) =\\
-  &\quad\mathsf{let }\; L_1 \sqcup L_2 \subseteq L\\
-  &\quad\quad\mathsf{ where }\; |L_1| = \ssize{H}{v_1} \;,|L_2| = \ssize{H}{v_2}\\
-  &\quad\mathsf{let }\; H_1,v_1' = copy(H,L_1,v_1) \\
-  &\quad\mathsf{let }\; H_2,v_2' = copy(H_1,L_2,v_2) \;\mathsf{in}\\
-  &\quad H_2,\pairexcst{v_1'}{v_2'}\\
-  &copy(H,L,l) =\\
-  &\quad\mathsf{let }\; l' \in L\; \mathsf{in}\\
-  &\quad\mathsf{let }\; H',v = copy(H,L \setminus \{l'\}, H(l)) \mathsf{in}\\
-  &\quad H'\{l' \mapsto v\}, l'\\
-  &copy(H,L,v) = \\
-  &\quad H,v
-\end{align*}
-\fi
-
+As mentioned in the introduction, $\ms{copy}$ is an intermediary semantics in which all variable sharing 
+is accomplished by physically allocating a fresh set of locations from the free-list and copying the 
+cells of the original value one by one. This is also sometimes referred to as deep copying.
 Let $copy(H,L,v,H',v')$ be a 5-place relation on 
-$\ms{Heap} \times \ms{Loc} \times \ms{Val} \times \ms{Heap} \times \ms{Val}$. We write this as 
+$\ms{Heap} \times \mathcal{P}(\ms{Loc}) \times \ms{Val} \times \ms{Heap} \times \ms{Val}$. Similar to 
+reachability, we write this as 
 $H',v = copy(H,L,v)$ to signify the intended mode for this predicate: $(+,+,+,-,-)$.
 \begin{mathpar}
 	\inferr{
@@ -269,29 +330,20 @@ $H',v = copy(H,L,v)$ to signify the intended mode for this predicate: $(+,+,+,-,
 	H_2,\pairexcst{v_1'}{v_2'} = copy(H,L,\pairexcst{v_1}{v_2})
 }{
 	L_1 \sqcup L_2 \subseteq L\\
-	|L_1| = \ssize{H}{v_1}\\
-	|L_2| = \ssize{H}{v_2}\\
+	|L_1| = |dom(reach_H(v_1)|\\
+	|L_2| = |dom(reach_H(v_2)|\\
 	H_1,v_1' = copy(H,L_1,v_1)\\
 	H_2,v_2' = copy(H_1,L_2,v_2)\\
 }
 \end{mathpar}
 
-\section{Garbage collection semantics}
+Primitives require no cells to copy; a location value is copied recursively; 
+a pair of values is copied sequentially, and the total number of cells required is the size of the reachable 
+set of the value.\\
 
-The garbage collection operation semantics consists of judgement of the form:
-\[
-\fbox{$\mathcal{C} \; \vdash_{P : \Sigma} e \Downarrow v, H', F'$}
-\]
 
-\noindent
-Where $\mathcal{C}$ is a \emph{configuration}, consisting of a 4-tuple in 
-$\ms{Stack} \times \ms{Heap} \times \ms{\{Loc\}} \times \ms{\{Loc\}}$, usually written as $V,H,R,F$. 
-P is a program with signature $\Sigma : \ms{Var} \to \ms{FTypes}$. 
-This can be read as: under stack $V$, heap $H$, roots $R$,
-freelist $F$, and program $P$ with signature $\Sigma$, the expression $e$ evaluates to $v$, and engenders a new heap $H'$ and freelist $F'$. Here, $\ms{Stack}$ is defined as the set of finite mappings $\ms{Var} \to \ms{Val}$, and $\ms{Heap}$ is defined as the set of finite mappings $\ms{Loc} \to \ms{Val}$.\\
 
-\noindent
-A \emph{program} is then a $\Sigma$ indexed map $P$ from $\ms{Var}$ to pairs $(y_f,e_f)_{f \in \Sigma}$, where $\Sigma(y_f) = A \to B$, and $\Sigma;y_f : A \vdash e_f : B$ (typing rules are discussed in $\ref{sec:typing}$). We write $P : \Sigma$ to mean $P$ is a program with signature $\Sigma$. Because the signature $\Sigma$ for the mapping of function names to first order functions does not change during evaluation, we drop the subscript $\Sigma$ from $\vdash_{\Sigma}$ when the context of evaluation is clear. It is convenient to think of the evaluation judgement $\vdash$ as being indexed by a family of signatures $\Sigma$'s, each of which is a set of ``top-level'' first-order declarations to be used during evaluation.\\
+\subsection{Rules for $\mathsf{copy}$}\label{sec:copy}
 \begin{mathpar}
 
 \infern
@@ -321,16 +373,18 @@ A \emph{program} is then a $\Sigma$ indexed map $P$ from $\ms{Var}$ to pairs $(y
 }
 
 \infern{
-  V = V'[x \mapsto \irl{T}]\\
+  V(x) = \irl{T}\\
   g = \{l \in H \mid l \notin F \cup R \cup locs_{V,H}(e_1)\}\\
+	V' = V\restriction_{FV(e_1)}\\
   V',H,R,F \cup g\; \vdash e_1 \Downarrow v, H',F'
 }{
   V,H,R,F \; \vdash \ifexabt{x}{e_1}{e_2} \Downarrow v, H',F'
 }
 
 \infern{
-  V = V'[x \mapsto \irl{F}]\\
+	V(x) = \irl{F}\\
   g = \{l \in H \mid l \notin F \cup R \cup locs_{V,H}(e_2)\}\\
+	V' = V\restriction_{FV(e_2)}\\
   V',H,R,F \cup g \; \vdash e_2 \Downarrow v, H',F'
 }{
   V,H,R,F \; \vdash \ifexabt{x}{e_1}{e_2} \Downarrow v, H' ,F'
@@ -357,9 +411,9 @@ A \emph{program} is then a $\Sigma$ indexed map $P$ from $\ms{Var}$ to pairs $(y
 }
 
 \infern{
-  V = V'[x \mapsto \pairexcst{v_1}{v_2}]\\
+	V(x) = \pairexcst{v_1}{v_2}\\
   g = \{l \in H \mid l \notin F \cup R \cup locs_{V,H}(e)\}\\
-  V'' = V'[x_1 \mapsto v_1, x_2 \mapsto v_2]\\
+	V'' = (V[x_1 \mapsto v_1, x_2 \mapsto v_2])\restriction_{FV(e)}\\
   V'',H,R,F \cup g \; \vdash e \Downarrow v,H',F'
 }{
   V,H,R,F \; \vdash \paircasecst{x}{x_1}{x_2}{e} \Downarrow v, H' ,F'
@@ -381,29 +435,21 @@ A \emph{program} is then a $\Sigma$ indexed map $P$ from $\ms{Var}$ to pairs $(y
 }
 
 \infern{
-  V = V'[x \mapsto v']\\
-  g = reach_H(v')\\
-  V',H,R,F \cup g \; \vdash e \Downarrow v,H',F'
-}{
-  V,H,R,F \; \vdash \irl{drop}(x;e) \Downarrow v,H',F'
-}
-
-
-\infern{
-  V = V'[x \mapsto v']\\
+	V(x) = v\\
   L \subseteq F\\
-  |L| = \ssize{H}{v'}\\
+  |L| = |dom(reach_H(v'))|\\
   H',v'' = copy(H,L,v')\\
-	V_2 = V'[x_1 \mapsto v',x_2 \mapsto v'']\\
- 	V_2,H',R,F \setminus L \; \vdash e \Downarrow v,H'',F'
+	V_2 = (V[x_1 \mapsto v',x_2 \mapsto v'']) \restriction_{FV(e)}\\
+	F' =	F \setminus L\\
+	g = \{l \in H \mid l \notin F' \cup R \cup locs_{V_2,H}(e)\}\\
+ 	V_2,H',R,F' \sqcup g \; \vdash e \Downarrow v,H'',F'
 }{
   V,H,R,F \; \vdash \sharecpcst{x}{x_1}{x_2}{e} \Downarrow v,H'',F'
 }
 
 \infern{
   V(x) = \irl{Null}\\
-  V' \subseteq V\\
-  dom(V') = FV(e_1)\\
+	V' = V\restriction_{FV(e_1)}\\
   g = \{l \in H \mid l \notin F \cup R \cup locs_{V,H}(e_1)\}\\
   V',H,R,F \cup g \; \vdash e_1 \Downarrow v, H',F' \\
 }{
@@ -413,6 +459,57 @@ A \emph{program} is then a $\Sigma$ indexed map $P$ from $\ms{Var}$ to pairs $(y
 \infern{
   V(x) =  l\\
   H(l) = \pairexcst{v_h}{v_t} \\
+	V'' = (V[x_h \mapsto v_h, x_t \mapsto v_t])\restriction_{FV(e_2)}\\
+  g = \{l \in H \mid l \notin F \cup R \cup locs_{V'',H}(e_2)\}\\
+  V'',H,R,F \cup g \; \vdash e_2 \Downarrow v, H',F' \\
+}{
+  V,H,R,F \; \vdash \listcaseexcst{x}{e_1}{x_h}{x_t}{e_2} \Downarrow v,H',F'
+}
+
+\infern{
+	V_1 = V\restriction_{FV(e_1)}\\
+  R' = R \cup locs_{V_2,H}(\irl{lam}(x : \tau.e_2))\\
+  V_1,H,R',F \vdash e_1 \Downarrow v_1,H_1,F_1\\
+	V_2' = (V[x \mapsto v_1])\restriction_{FV(e_2)}\\
+  g = \{ l \in H_1 \mid l \notin F_1 \cup R \cup locs_{V_2',H_1}(e_2) \}\\
+  V_2',H_1,R, F_1 \cup g \vdash e_2 \Downarrow v_2,H_2,F_2 \\
+}{
+  V,H,R,F \; \vdash \irl{let}(e_1; x : \tau.e_2) \Downarrow v_2,H_2,F_2
+}
+\end{mathpar}
+
+\newpage
+
+As a simple example, take the rule (\text{E:CondT}): 
+
+\[
+\inferrule{
+  V(x) = \irl{T}\\
+	V' \subseteq V\\
+	dom(V') = FV(e_1)\\
+  g = \{l \in H \mid l \notin F \cup R \cup locs_{V,H}(e_1)\}\\
+  V',H,R,F \cup g\; \vdash e_1 \Downarrow v, H',F'
+}{
+  V,H,R,F \; \vdash \ifexabt{x}{e_1}{e_2} \Downarrow v, H',F'
+}(\text{E:CondT})
+\]
+
+This states that, to evaluate a conditional, look in the stack for the value of the branching boolean.
+In the case it is true, we proceed to evaluate the first branch. In the process,
+we update the stack so it only binds variables reachable from the first branch. This update is only necessary 
+to prove properties about the evaluation, and is not needed in an implementation.
+Furthermore, we collect cells in the heap
+that are not reachable from the root set ($R \cup locs_{V,H}(e_1)$) or already in the current free-list
+$F$, and add them ($g$) to the available cells for evaluating $e_1$. We could have removed the restriction 
+that the cells be not in the current free-list $F$, but this simplifies the presentation of the proofs 
+and the actual check can be removed in an implementation as the free-list is a set. \\
+
+Next, we look at a more complicated rule, (\text{E:MatchCons}): 
+
+\[
+\inferrule{
+  V(x) =  l\\
+  H(l) = \pairexcst{v_h}{v_t} \\
   V' \subseteq V\\
   dom(V') = FV(e_2) \setminus \{x_h,x_t\} \\
   V'' = V'[x_h \mapsto v_h, x_t \mapsto v_t]\\
@@ -420,8 +517,18 @@ A \emph{program} is then a $\Sigma$ indexed map $P$ from $\ms{Var}$ to pairs $(y
   V'',H,R,F \cup g \; \vdash e_2 \Downarrow v, H',F' \\
 }{
   V,H,R,F \; \vdash \listcaseexcst{x}{e_1}{x_h}{x_t}{e_2} \Downarrow v,H',F'
-}
+}(\text{E:MatchCons})
+\]
 
+This states that, to map out of list, look in the stack for the value of the list. In the case it is a 
+heap location $l$, we check that it is mapped to a pair representing the head and tail. Similar to 
+the conditional, we restrict the stack to only variables in the cons branch, and collect all heap locations
+not reachable from the root set, adding it to the current free-list $F$. Finally, we evaluate $e_2$ with 
+the restricted stack and new free-list.\\
+
+As the last (and most involved) example, we look at the rule (\text{E:Let}):
+
+\[
 \infern{
   V = V_1 \sqcup V_2\\
   dom(V_1) = FV(e_1)\\
@@ -434,11 +541,44 @@ A \emph{program} is then a $\Sigma$ indexed map $P$ from $\ms{Var}$ to pairs $(y
 }{
   V,H,R,F \; \vdash \irl{let}(e_1; x : \tau.e_2) \Downarrow v_2,H_2,F_2
 }
+\]
 
+This states that, to evaluate a sequence of expressions ($e_1,e_2$), we evaluate the first expression 
+with the corresponding restricted stack $V_1$ and a expanded continuation set $R'$. The extra locations come 
+from the free variables of $e_2$ (not including the bound variable $x$), which we cannot collect during 
+the evaluation of $e_1$. Next, we extend the restricted stack $V_2$ with the result $v_1$, 
+and evaluate $e_2$ with this stack and the original continuation set $R$. \\
 
-\end{mathpar}
+Of course, in many real-world languages, variable aliasing does not actually incur overhead proportional to the
+size of the value; instead, the aliased value simply gains one more reference. \ms{free} (rules introduced in \ref{sec:free}) is 
+the version of the garbage collection semantics designed to capture ``shallow'' copying. It is identical to \ms{copy} 
+except for the variable sharing rule.
+We use \ms{copy} to mediate between the type system and \ms{free}.
+The chart below shows the plan for proving the soundess of the type 
+system w.r.t \ms{free}:
+
+\tikzstyle{process} = [rectangle, text centered, draw=black, fill=orange!30]
+\tikzstyle{arrow} = [thick,->,>=stealth]
+
+\begin{center}
+\begin{tikzpicture}[node distance=5cm]
+\node (type) [process] {Type Rules};
+\node (copy) [process, right of=type, xshift=2cm] {\ms{copy}};
+\node (free) [process, below of=copy] {\ms{free}};
+
+\draw [arrow] (type) -- node[anchor=south] {Is sound w.r.t (\ref{itm:soundness})} (copy);
+\draw [arrow] (copy) -- node[anchor=west] {Over-approximates (\ref{itm:frugal})} (free);
+\draw [dashed,->] (type) -- node[anchor=south] {} (free);
+
+\end{tikzpicture}
+\end{center}
+
+Where the dashed arrow represents the intended result.
+
 \section{Operational semantics}
-In order to prove the soundess of the type system, we also define a simplified operational semantics that does not account for garbage collection. 
+In order to state and prove the soundess of the type system, we also define a simplified operational semantics
+that does not account for garbage collection. This technique is similar to the one employed in 
+\cite{Hofmann:2003:SPH:604131.604148}.
 
 \[
 \fbox{$\mathcal{S} \vdash e \Downarrow v, H'$}
@@ -484,7 +624,7 @@ way from the garbage collection semantics.
 \infern{
   V = V'[x \mapsto v']\\
 	L \cap dom(H) = \emptyset\\
-  |L| = \ssize{H}{v'}\\
+  |L| = dom(reach_H(v'))\\
   H',v'' = copy(H,L,v')\\
   V'[x_1 \mapsto v',x_2 \mapsto v''],H' \; \vdash e \Downarrow v,H''
 }{
@@ -509,7 +649,8 @@ n + 1 &\in \denote{\irl{nat}} \text{ if } n \in \denote{\irl{nat}}\\
 \cons{a}{l} &\in \denote{L(A)} \text{ if } a \in \denote{A} \text{ and } l \in \denote{L(A)}\\
 \end{align*}
 
-Where semantic set for each type is the least set such that the above holds. Note $\pi(x,y)$ is the usual set-theoretic pairing function, and write $[a_1,...,a_n]$ for $\pi(a_1,...,\pi(a_n,[]))$. \\
+Where semantic set for each type is the least set such that the above holds. Note $\pi(x,y)$ is the usual set-theoretic pairing function, and write $[a_1,...,a_n]$ for $\pi(a_1,...,\pi(a_n,[]))$.
+We also refer to the elements of a semantic set as structures. \\
 
 Now we give the judgements relating heap values to semantic values, in the form \fbox{$H \vDash v \mapsto a : A$}, which can be read as: under heap $H$, heap value $v$ defines the semantic value $a \in \denote{A}$.  
 
@@ -557,6 +698,8 @@ Now we give the judgements relating heap values to semantic values, in the form 
   H \vDash v_t \mapsto [a_2,\ldots,a_n] : L(A)
 }(\text{V:Cons})
 \end{mathpar}
+
+\iffalse
 \section{Stack vs Heap Allocated Types}
 In order to share variables, we need to distinguish between types that are allocated on the stack and the heap. 
 We write \fbox{$\stack{A}$} to denote that values of type $A$ will be allocataed \emph{entirely} on the stack at run time (no references into the heap). 
@@ -577,11 +720,39 @@ We write \fbox{$\stack{A}$} to denote that values of type $A$ will be allocataed
   \stack{A_2}
 }(\text{S:Product})
 \end{mathpar}
+\fi
+
+\section{Linear Potential}\label{sec:potential}
+We introduce linear potential for structures corresponding to the base types.
+With linear potential, each component of a structure is associated with a constant amount of potential. 
+Given a structure $a$ in a heap $H$, where  $H \vDash v \mapsto a : A$, we define its potential 
+$\Phi_H(a : A)$ by recursion on $A$: 
+
+\begin{align*}
+&\Phi_H(a : A) = 0 &A \in \{\unittycst, \booltyabt, \irl{nat}\}\\
+&\Phi_H(\pairexcst{a_1}{a_2} : \prodtycst{A_1}{A_2}) = \Phi_H(a_1 : A_1) + \Phi_H(a_2 : A_2)\\
+&\Phi_H([a_1,...a_n] : L^p(A)) = p\cdot n + \sum_{1 \le i \le n} \Phi_H(a_i : A)  
+\end{align*}
 
 \section{Linear Garbage Collection Type Rules}
 \label{sec:typing}
+The type system \fogc consists of rules of the form \fbox{$\Sigma;\Gamma \sststile{q'}{q} e : A$}, read as 
+under signature $\Sigma$, context $\Gamma$, $e$ has type $A$ starting with $q$ units of constant potential and 
+ending with $q'$ units.\\
 
-The linear version of the type system takes into account of garbaged collected cells by returning potential locally in a match construct. Since we are interested in the number of heap cells, all constants are assumed to be nonnegative. The second let rule expresses the fact that since stack types don't reference heap cells, any heap cells used in the evaluation of $e_1$ can be deallocated, as there are no longer references to them in $v_1$. 
+The linear version of the type system takes into account of garbaged collected cells by returning potential locally in a match construct. Since we are interested in the number of heap cells, 
+there is an implicit side condition which ensures all constants are assumed to be nonnegative.\\
+
+The type system is based on the affine type system in \ref{Hoffmann:2017:TAR:3009837.3009842}. 
+The only major difference is the rule for L:MatL, in which an additional unit of potential is returned. This reflects the 
+fact (Lemma \ref{itm:na}) once a cons-cell is matched on, there can be no live references from the root set to it, and thus 
+we are justified in restituting the potential to type the subexpression $e_2$. 
+
+
+\iffalse
+The second let rule expresses the fact that since stack types don't reference heap cells, 
+any heap cells used in the evaluation of $e_1$ can be deallocated, as there are no longer references to them in $v_1$. 
+\fi
 
 \begin{mathpar}
 \inferr{
@@ -722,6 +893,26 @@ Now if we take $\dagger :  L^p(A) \mapsto L(A)$ as the map that erases resource 
 
 \newpage
 \section{Soundness for Linear GC}
+We state and prove the soundness of $\ms{FO}^{gc}$ for \emph{well-formed} computations. We need the following 
+definitions to state well-formedness:
+
+\begin{definition}(Non-aliasing context)
+Given a context $(V,H)$, let
+$x,y \in dom(V)$, $x \ne y$, and $r_x = reach_H(V(x))$, $r_y = reach_H(V(y))$.
+It is non-aliasing given that:
+\begin{enumerate}
+\item $\ms{set}(r_x), \ms{set}(r_y)$
+\item $r_x \cap r_y = \emptyset$
+\end{enumerate}
+Denote this by $\na{V,H}$.
+\end{definition}
+
+For a stack $V$ and a heap $H$, whenever $\na{V,H}$ holds, visually, one can think of the situation as the following: the induced graph of heap $H$ with variables on the stack as additional leaf nodes is a forest: a disjoint union of directed trees; consequently, there is at most one path from a live variable on the stack $V$ to a location in $H$ by following the pointers.
+
+\begin{definition}[Stability]
+Given heaps $H,H'$, a set of locations is \emph{stable} if $\forall l \in R$. $H(l) = H'(l)$. Denote this by
+$\stable{R,H,H'}$.
+\end{definition}
 
 \begin{definition}[Well-formed computation]
 Given a configuration $\mathcal{C} = (V,H,R,F)$ and an expression $e$, 
@@ -729,7 +920,7 @@ we say the 5-tuple $(\mathcal{C},e)$ is a \emph{computation}; it is a \emph{well
 given the following:
 \begin{enumerate}
 \item $dom(V) = FV(e)$
-\item $\na{V,H}$, and
+\item $\na{V,H}$
 \item $\dist{\{R,F,locs_{V,H}(e)\}}$
 \end{enumerate} 
 And we write $\wfc{V}{H}{R}{F}{e}$ to denote this fact.
@@ -1380,30 +1571,230 @@ in $\mathsf{copy}$ has a corresponding one in $\mathsf{free}$ that can be instan
 an equal or smaller freelist. Before formalizing this idea, we extend context equivalence to a preorder on 
 configurations: 
 
+\begin{definition}[Compute Potential]
+Given a configuration $\mathcal{C} = V,H,R,F$, define the \emph{compute potential} 
+of the configuration $\kappa$ as $|F| + |H \setminus F|$.
+\end{definition}
+
+\begin{lemma}[Compute Invariance (copy)]
+If $V,H,R,F \vdash^{\mathsf{copy}} e \Downarrow v,H',F'$, then $\kappa(H,F) = \kappa(H',F')$.
+\end{lemma}
+
+\iffalse
+\begin{proof}
+Induction on the evaluation judgement.\\
+\begin{description}
+  \item[Case 1: E:Var]
+  \begin{align*}
+		&V,H,R,F \vdash^{\mathsf{copy}} e \Downarrow V(x),H,F \tag{case}\\
+		&\kappa(H,F) = \kappa(H,F)
+  \end{align*}
+  \item[Case 2: E:Const*]
+	Similar to E:Var.
+  \item[Case 4: E:App]
+  \begin{align*}
+	&V,H,R,F \vdash \appcst{f}{x} \Downarrow v,H',F' \tag{case}\\
+  &V'[y_f \mapsto v'],H,R,F \cup g \vdash e_f \Downarrow v,H',F' \tag{case}\\
+	&\kappa(H,F\cup g) = \kappa(H',F') \tag{IH}\\
+	&\kappa(H,F \cup g) = |F \cup g| + |H \setminus (F \cup g)| \tag{Def. compute potential}\\
+	&\quad = |F| + |H \setminus F| \tag{$F \cap g = \emptyset$ and $g \subseteq H$}\\
+	&\quad = \kappa(H,F)\\
+	&\kappa(H,F) = \kappa(H',F')\\
+  \end{align*}
+  \item[Case 5: E:CondT]
+	Similar to E:App
+  \item[Case 6: E:CondF] 
+  Similar to E:CondT
+  \item[Case 7: E:Let]
+  \begin{align*}
+  &V,H,R,F \; \vdash \irl{let}(e_1; x : \tau.e_2) \Downarrow v_2,H_2,F_2 \tag{case}\\
+	&V_1,H,R',F \vdash e_1 \Downarrow v_1,H_1,F_1 \tag{case}\\
+	&\kappa(H,F) = \kappa(H_1,F_1) \tag{IH}\\
+  &V_2',H_1,R, F_1 \cup g \vdash e_2 \Downarrow v_2,H_2,F_2 \tag{case}\\
+	&\kappa(H_1, F_1 \cup g) = \kappa(H_2,F_2) \tag{IH}\\
+	&\kappa(H_1, F_1 \cup g) = |F_1 \cup g| + |H_1 \setminus (F_1 \cup g)| \tag{Def. compute potential}\\
+	&\quad = |F_1 \cup g| + |(H_1 \setminus F_1) \cap (H_1 \setminus g)|\\
+	&\quad = |F_1 \cup g| + |(H_1 \setminus F_1) \setminus g|\\
+	&\quad = |F_1| + |g| + |H_1 \setminus F_1| - | g| \tag{$F \cap g = \emptyset$ and $g \in H_1$}\\
+	&\quad = |F_1| + |H_1 \setminus F_1| \\
+	&\quad = \kappa(H_1,F_1)\\
+	&\kappa(H,F) = \kappa(H_2,F_2)
+  \end{align*}
+	\item[Case 8: E:Pair]
+  Similar to E:Const*
+  \item[Case 9: E:MatP]
+  Similar to E:App
+  \item[Case 10: E:Nil]
+  Similar to E:Const*
+  \item[Case 11: E:Cons]
+  \begin{align*}
+	&\kappa(H,F) = |F| + |H \setminus F| \tag{Def. compute potential}\\
+	&\kappa(H', F \setminus \{l\}) = |F \setminus \{l\}| + |H' \setminus (F \setminus \{l\})|
+				\tag{Def. compute potential}\\
+	&\quad = (|F| - 1) + (|H' \setminus F| + 1)\\
+	&\quad = |F| + |H' \setminus F|\\
+	&\textbf{case } l \in H: \\
+	&|H'| = |H| \tag{Def. replacement}\\
+	&\kappa(H',F \setminus \{l\}) = |F| + |H \setminus F| = \kappa(H,F)\\
+	&\textbf{case } l \notin H: \\
+	&H' \setminus F = H \setminus F \tag{$l \notin H$ and $l \in F$}\\
+	&|F| + |H' \setminus F| = |F| + |H \setminus F|\\
+	&\kappa(H',F \setminus \{l\}) = |F| + |H \setminus F| = \kappa(H,F)\\
+  \end{align*}
+  \item[Case 12: E:MatNil]
+  Similar to E:App
+  \item[Case 13: E:MatCons]
+	Similar to E:App
+  \item[Case 14: E:Share]
+	\begin{align*}
+		&V,H,R,F \; \vdash \sharecpcst{x}{x_1}{x_2}{e} \Downarrow v,H'',F' \tag{case}\\
+ 		&V_2,H',R,F \setminus L \; \vdash e \Downarrow v,H'',F' \tag{case}\\
+		&\kappa(H',F \setminus L) = \kappa(H'',F') \tag{IH}\\
+		&\kappa(H',F \setminus L) = |F \setminus L| + |H' \setminus (F \setminus L)| \tag{Def. compute potential}\\
+		&\quad = |F| + |H' \setminus F| \tag{Set algebra}\\
+		&\text{NTS } H' \setminus F = H \setminus F \\
+		&\text{Let } l \in H' \setminus F\\
+		&l \in H', l \notin F \\
+		&l \in H \cup L \tag{Locality of copy}\\
+		&\textbf{case } l \in H: \text{ done }\\
+		&\textbf{case } l \in L: \text{ contradiction  since } L \subseteq F\\
+		&\text{Hence } l \in H\\
+		&\text{Let } l \in H \setminus F\\
+		&l \in H, l \notin F \\
+		&l \in H' \tag{Monotonicity of copy}\\
+		&\text{Thus } H' \setminus F = H \setminus F \\
+		&\kappa(H',F \setminus L) = |F| + |H \setminus F|\\
+	\end{align*}
+  \end{description}
+\end{proof}
+
+\begin{lemma}[Compute Invariance (free)]
+If $V,H,R,F \vdash^{\mathsf{free}} e \Downarrow v,H',F'$, then $\kappa(H,F) = \kappa(H',F')$.
+\end{lemma}
+
+\begin{proof}
+Same proof as for the copy semantics, except the share case, which proceed similar to E:App.
+\end{proof}
+
+\begin{lemma}[Collect Preservation]
+If $g \in dom(H)$ and $F \cap g = \emptyset$, then $\kappa(H,F \cup g) = \kappa(H,F)$.
+\end{lemma}
+
+\begin{proof}
+\begin{align*}
+&\kappa(H,F\cup g) = |F \cup g| + |H \setminus (F \cup g)| \tag{Def. compute potential}\\
+&\quad = |F \cup g| + |(H \setminus F) \cap (H \setminus g)|\\
+&\quad = |F \cup g| + |(H \setminus F) \setminus g|\\
+&\quad = |F| + |g| + |H \setminus F| - |g| \tag{$g \in dom(H)$ and $F \cap g = \emptyset$}\\
+&\quad = |F| + |H \setminus F|\\
+&\quad = \kappa(H,F)
+\end{align*}
+\end{proof}
+\fi
+
+For each pair of structurally equivalent values $\veq{H}{H'}{v}{v'}$, there is an induced bijection between
+the reach locations of each respective value that serves as the evidence for their structural equivalence.
+We give the representative rules:
+
+\begin{mathpar}
+\inferrule{
+	m_1 : \veq{H}{H'}{v_1}{v_1'}\\
+	m_2 : \veq{H}{H'}{v_2}{v_2'}
+}{
+	m_1 \uplus m_2 : \veq{H}{H'}{\pairexcst{v_1}{v_2}}{\pairexcst{v_1'}{v_2'}}
+}(\text{M:Pair})
+
+\inferrule{
+	m : \veq{H}{H'}{H(l)}{H(l')}
+}{
+	m \uplus \{l \to l'\} : \veq{H}{H'}{l}{l'}
+}(\text{M:Loc})
+\end{mathpar}
+
+Extending to a context, we write $L : V_1,H_1 \sim V_2,H_2$ if for all $x \in dom(V_1)$, 
+$L(x) : \veq{H_1}{H_2}{V_1(x)}{V_2(x)}$.\\
+
+\begin{definition} A configuration $(V,H,R,F)$ is well-formed if $dom(H) \subseteq reach_H(V) \cup R \cup F$.
+\end{definition}
+
+Now consider two well-formed configurations $\mathcal{C}_1 = (V_1,H_1,R_1,F_1),
+ \mathcal{C}_2 = (V_2,H_2,R_2,F_2)$.\\
+
+We define the induced mapping
+$\gamma : dom(H_1) \setminus F_1 \to \mathcal{P}(dom(H_2) \setminus F_2)$ 
+between $\mathcal{C}_1, \mathcal{C}_2$ from $L$: $\gamma(l) = (\biguplus_{x \in dom(V_1)} L(x)) (l)$.
+Note that by construction, for any $l$, $\gamma(l)$ is nonempty, and thus we can choose an arbitrary 
+$l' \in \gamma(l)$ to be the representation for that part; call this $rep(l)$.\\
+
+A mapping $f : A \to \mathcal{P}(B)$ is a \emph{partition} on $B$ the image of 
+$A$ forms a disjoint union of $B$ 
+(e.g. $\forall x,y \in A, f(x) \cap f(y) = \emptyset \land \bigcup f(A) = B$). Furthermore,
+a partition is \emph{proper} if for any $x \in A$, $f(x) \neq \emptyset$.\\
+
+A simple corollary is the fact that if $V_2,H_2$ is a linear context (e.g. $\na{V_2,H_2}$ holds), then
+$|\gamma(l)| = |(reach_{H_1}(V_1))(l)|$, where $ reach_{H_1}(V_1) = \biguplus_{x \in dom(V)} reach_{H_1}(x)$. 
+In general for a multiset $S$, when this holds, we say that 
+$\gamma$ is a \emph{counting partition} for $S$.\\
+
+For a partition $f : A \to \mathcal{P}(B)$, we write the set of equivalence classes
+as $ec(f) = \{f(x) \mid x \in A\} = f(A)$, i.e. the image of $f$ on its domain $A$.\\
+
+For an evaluation $\mathcal{C} = (V,H,R,F) \vdash e \Downarrow v,H',F'$, denote its garbage collection
+as $collect(\mathca{C} \vdash v,H',F') = \{l \in H' \mid l \notin F' \cup R \cup reach_H'(v)\}$.
+
 \begin{definition}
-A configuration $\mathcal{C}_1 = (\mathcal{S}_1,R_1,F_1)$ is less than a configuration
-$\mathcal{C}_2 = (\mathcal{S}_2,R_2,F_2)$ iff
+A configuration $\mathcal{C}_2 = (V_2,H_2,R_2,F_2)$ is a \emph{copy extension} of another configuration
+$\mathcal{C}_1 = (V_1,H_1,R_1,F_1)$ iff
 \begin{enumerate}
-\item $|F_1| \le |F_2|$
-\item $R_1 = R_2$
-\item $\mathcal{S}_1 \sim \mathcal{S}_2$
+\item $V_1,H_1 \sim V_2,H_2$
+\item There is a proper partition $\gamma : dom(H_1) \setminus F_1 \to \mathcal{P}(dom(H_2) \setminus F_2)$ 
+such that for all $l \in dom(\gamma)$, $|\gamma(l)| = reach_{H_1}(V_1)(l) + R_1(l)$
+\item There is a mapping $\eta : (dom(H_1) \setminus F_1) \to dom(V_1) \to 
+	\mathcal{P}(dom(H_2) \setminus F_2)$ such that 
+for all $l \notin R_1$, $\eta(l)(x) = reach_{H_2}(x) \cap \gamma(l)$. Futhermore, 
+for all $l$ and $x$, $|\eta(l)(x)| = reach_{H_1}(V_1(x))(l)$.
+\item $R_1 \subseteq dom(H_1) \setminus F_1$ and $R_2 = \bigcup \gamma(R_1)$
+\item $|F_1| = |F_2| + |\oh{\gamma}|$, where 
+	$\oh{\gamma} = \bigcup_{P \in ec(\gamma)} P \setminus (rep(P))$
 \end{enumerate}
-Write this as $\mathcal{C}_1 \le \mathcal{C}_2$.
+Write this as $\mathcal{C}_1 \preceq \mathcal{C}_2$.
 \end{definition} 
 
-Now the lemma:
+Note that $\preceq$ is reflexive. Now the key lemma:
 
 \begin{lemma}
-Let $\mathcal{C}_1 \vdash^{\mathsf{copy}} e \Downarrow v,H',F'$, and $H' \vDash v \mapsto a : A$.
-Then for all configurations $\mathcal{C}_2$ such that $\mathcal{C}_2 \le \mathcal{C}_1$,
+	Let $(\mathcal{C}_2,e)$ be a linear computation. Given that 
+	$\mathcal{C}_2 \vdash^{\mathsf{copy}} e \Downarrow v,H',F'$, and $H' \vDash v \mapsto a : A$, 
+	for all well-formed configurations $\mathcal{C}_1$ such that $\mathcal{C}_1 \preceq \mathcal{C}_2$,
 there is exists a triple
-$(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ s.t.
+$(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ and 
+	$\gamma' : dom(Y') \setminus M' \to \mathcal{P}(dom(H') \setminus F')$ s.t.
 	\begin{enumerate}
-			\item $\mathcal{C}_2 \vdash^{\mathsf{free}} e \Downarrow w,Y',M'$
+			\item $\mathcal{C}_1 \vdash^{\mathsf{free}} e \Downarrow w,Y',M'$
 			\item $\veq{H'}{Y'}{v}{w}$
-			\item $|M'| \ge |F'|$
+			\item $\gamma'$ is a proper partition, such that for all $l \in dom(\gamma')$, 
+				$|\gamma'(l)| = |reach_{Y_1}(w_1)(l)| + S(l) + |\gamma'(l) \cap collect(\mathcal{C}_2 \vdash^{\mathsf{copy}} e \Downarrow v,H',F')|$
+			\item $|reach_{H_1}(v) \cap \gamma'(l)| = reach_{Y_1}(w)(l)$
+			\item $R_2$ = \bigcup \gamma'(R_1)$ 
+			\item $|M'| = |F'| + |\oh{\gamma'}|$
 	\end{enumerate}
 \end{lemma}
+
+For a configuration $\mathcal{C} = (V,H,R,F)$, denote the current garbage w.r.t a set of root variables 
+$X \subseteq dom(V)$ 
+as $clean(\mathca{C},X) = \{l \in H \mid l \notin F \cup R \cup reach_H(X)\}$. Some auxiliary lemmas: 
+
+\begin{lemma}\label{itm:aux}
+Let $V_2,H_2,R_2,F_2 \vdash^{\mathsf{copy}} e \Downarrow v,H',F'$, and 
+$V_1,H_1,R_1,F_1 \preceq V_2,H_2,R_2,F_2$ because $(-,\gamma,\eta,-,-)$. Then the following hold:
+\begin{enumerate}
+\item for all $l \in dom(H_1) \setminus F_1$, 
+$X \subseteq dom(V)$, $\gamma(l) \subseteq clean(\mathcal{C}_2,X)$ implies that 
+$l \in clean(\mathcal{C}_1,X)$.
+\end{enumerate}
+\end{lemma}
+In particular, this means that we can (somewhat obviously), execute a computation using the free semantics
+if the computation suceeded with the copy semantics. 
 
 \begin{proof}
 Induction on the evaluation judgement.\\
@@ -1411,12 +1802,12 @@ Induction on the evaluation judgement.\\
   \item[Case 1: E:Var]
   \begin{align*}
 		&V,H,R,F \vdash^{\mathsf{copy}} e \Downarrow V(x),H,F \tag{case}\\
-		&\text{Suppose } H \vDash V(x) \mapsto a : A.
-			\text{ We need to show a triple that satisfies the 3 post-conditions.}\\
-		&\text{Take } (v',H'',F'') = (V(x),H,F)\\
-		&\emph{(1)}\quad V,H,R,F \vdash^{\mathsf{free}} e \Downarrow v',H'',F'' \tag{F:Var}\\
-		&\emph{(2)}\quad H'' \vDash v' \mapsto a : A \tag{assumption}\\
-		&\emph{(3)}\quad |F''| = |F| \ge |F|
+		&\text{Let } W,Y,S,M \preceq V,H,R,F\\
+		&\text{We need to show a triple that satisfies the 3 post-conditions.}\\
+		&\text{Take } (w,Y', M') = (W(x),Y,M)\\
+		&\emph{(1)}\quad W,Y,S,M \vdash^{\mathsf{free}} e \Downarrow w,Y,M \tag{F:Var}\\
+		&\emph{(2)}\quad  \veq{H}{Y'}{V(x)}{w} \tag{Definition of $\sim$}\\
+		&\emph{(3)}\quad \kappa(Y,M) = \kappa(H,F) \tag{Definition of cp. ext.}\\
   \end{align*}
   \item[Case 2: E:Const*]
   Due to similarity, we show only for E:ConstI
@@ -1426,12 +1817,113 @@ Induction on the evaluation judgement.\\
   \item[Case 5: E:CondT]
   \begin{align*}
 		&V,H,R,F \; \vdash^{\mathsf{copy}} \ifexabt{x}{e_1}{e_2} \Downarrow v, H',F' \tag{case}\\
-		&\text{Suppose } H' \vDash v \mapsto a : A. 
-			\text{ We need to show a triple that satisfies the 3 post-conditions.}\\
-		&\text{By IH, we have } (v',H'',F'') \text{ such that }\\
-		&\emph{(1)}\quad V',H,R,F \cup g \vdash^{\mathsf{free}} e_1 \Downarrow v',H'',F''\\
-		&\emph{(2)}\quad H'' \vDash v' \mapsto a : A \\
-		&\emph{(3)}\quad |F''| \ge |F'|\\
+		&\text{Let } W,Y,S,M \preceq V,H,R,F \\
+		&\text{Let } W' = W \restriction_{V'}\\
+		&\text{Let } j = \{l \in Y | l \notin M \cup S \cup locs_{W,Y}(e_1) \}\\
+		&\text{NTS } W',Y,S,M \cup j \preceq V',H,R,F \cup g\\
+		&\emph{(1)}\quad W',Y \sim V',H \tag{$W,Y \sim V,H$}\\
+		&\emph{(2)}\quad \text{NTF a proper partition }
+		 \gamma' : dom(Y) \setminus (M \sqcup j) \to \mathcal{P}(dom(H)\setminus (F \cup g))  \\
+		&\quad \text{Let } \gamma'(l) = \gamma \restriction_{dom(Y)\setminus(M \sqcup j)}(l) \setminus g\\
+		&\quad \text{First, show $\gamma'$ is a partition}\\
+		&\quad \text{Let } l, l' \in dom(Y) \setminus (M \sqcup j)\\
+		&\quad \gamma'(l) \cap \gamma'(l') = \emptyset \tag{$\gamma$ is partition}\\
+		&\quad \gamma'(dom(Y) \setminus (M \sqcup j)) = \gamma(dom(Y) \setminus (M \sqcup j)) \setminus g\\
+		&\quad = (\bigsqcup_{l \in dom(Y) \setminus M} \gamma(l) \setminus \bigsqcup_{l \in j} \gamma(l)) 
+			\setminus g\\
+		&\quad = ((dom(H) \setminus F) \setminus (\bigsqcup_{l \in j} \gamma(l))) \setminus g 
+			\tag{$\gamma$ is partition}\\
+		&\quad = (dom(H) \setminus F) \setminus g \tag{$\bigsqcup_{l \in j} \gamma(l) \subseteq g$}\\
+		&\quad = dom(H) \setminus (F \sqcup g)\\
+		&\quad \text{Hence } \gamma' \text{ is a partition}\\
+		&\quad \gamma' \text{ is also proper: }\\
+		&\quad \text{Let } l \in dom(Y) \setminus (M \sqcup j)\\
+		&\quad \gamma'(l) = \gamma(l) \setminus g\\
+		&\quad \text{AFSOC } \gamma(l) \subseteq g\\ 
+		&\quad l \in j \tag{By Lemma \ref{itm:aux}}\\
+		&\quad \text{Contradiction since assumed } l \notin j\\ 
+		&\quad \text{Now, let } l \in dom(\gamma')\\
+		&\quad \gamma'(l) = \gamma(l) \setminus g \tag{definition}\\ 
+		&\quad |\gamma'(l)| = |\gamma(l)| - |\gamma(l) \cap g|\\
+		&\quad = reach_Y(W)(l) + S(l) - |\gamma(l) \cap g|\\
+		&\quad = reach_Y(W)(l) + S(l) - |\gamma(l) \cap g|\\
+		&\quad = \gamma(l) \tag{$\gamma(l) \subseteq R$ and $g \cap R = \emptyset$}\\
+		&\quad |\gamma'(l)| = |\gamma(l)| = S(l)\\
+		&\emph{(3)}\quad \text{NTF } \eta' : (dom(Y) \setminus (M \sqcup j)) \to dom(V') \to 
+	\mathcal{P}(dom(H) \setminus (F \cup g))\\
+		&\quad \eta'(l)(x) = \eta(l)(x) \setminus g\\
+		&\text{Let } l \notin $S$\\
+		&\quad \text{First, NTS } \eta'(l) \text{ is a partition:}\\
+		&\quad \text{Let } x, x' \in dom(V')\\
+		&\quad \eta'(l)(x) \cap \eta'(l)(x') = \emptyset \tag{$\eta(l)$ is partition}\\
+		&\quad \eta'(l)(dom(V')) = \eta(l)(dom(V'))\\
+		&\quad = \\
+		&\emph{(4)}\quad S \subseteq dom(Y) \setminus (M \cup j) \text{ since } S \cap j = \emptyset\\
+		&\quad \text{NTS } R = \bigcup \gamma'(S)\\
+		&\quad \forall l \in S, \gamma'(l) = \gamma(l)\\
+		&\quad \gamma'(l) = \gamma \restriction_{dom(Y)\setminus(M \sqcup j)}(l) \setminus g\\
+		&\quad = \gamma(l) \setminus g\\
+		&\quad = \gamma(l) \tag{$\gamma(l) \subseteq R$ and $R \cap g = \emptyset$}\\
+		&\emph{(5)}\quad \text{NTS } |M \cup j| = |F \cup g| + |\oh{\gamma'}|\\
+		&\quad \text{STS } |M| + |j| = |F| + | g| + |\oh{\gamma'}|\\
+		&\quad \text{By assumption }, |M| = |F| + |\oh{\gamma}|\\
+		&\quad \text{STS } |j| + |\oh{\gamma}| = |g| + |\oh{\gamma'}|\\
+		&\quad \text{NTF a bijection } f : j \oplus \oh{\gamma} \to g \sqcup \oh{\gamma'}\\
+		&\quad \text{First, we show that } g = (\bigsqcup_{l \in j} \gamma(l)) \sqcup L \text{ for some } L\\
+		&\quad \text{TODO: Show this }\\
+		&\quad \text{Let } \mathcal{C}_1 = \{\gamma(l) \mid l \in j\},
+				\mathcal{C}_2 = ec(\gamma) \setminus \mathcal{C}_1\\
+		&\quad \text{Clearly, } \oh{\gamma} = 
+		\bigsqcup_{C  \in \mathcal{C}_1} C \setminus rep(C) \sqcup \bigsqcup_{C  \in \mathcal{C}_2} C \setminus rep(C)\\
+		&\quad \text{Let } D_1 = \bigsqcup_{C  \in \mathcal{C}_1} C \setminus rep(C), 
+		D_2 = \bigsqcup_{C  \in \mathcal{C}_2} C \setminus rep(C)\\
+		&\quad \text{We define the bijection } 
+			f \text{ by parts: } 
+			f_1 : j \oplus D_1 \to \bigsqcup_{C \in \mathcal{C}_2} C, f_2 : D_2 \to L \sqcup \oh{\gamma'}\\
+		&\quad f_1(l) =  
+		\begin{cases}
+			rep(\gamma(l)) &l = (\ms{inl},l')\\
+			l' &l = (\ms{inr},l')
+		\end{cases}\\
+		&\quad \text{Clearly, } f_1 \text{ is a bijection, and } |j| + |D_1| = |\bigsqcup_{C \in \mathcal{C}_1} C\\
+		&\quad \text{To avoid the problem of maintaining a single representative for a class (which might be 
+		collected), }\\
+		&\quad \text{note the following: }\\
+		&\quad |\mathcal{C}_2| = |ec(\gamma) \setminus \{\gamma(l) \mid l \in j\}|\\
+		&\quad = |ec(\gamma \restriction_{dom(Y) \setminus (M \sqcup j)})|\\
+		&\quad = |ec(\gamma')|\\
+		&\text{Since both } \gamma,\gamma' \text{ are counting partitions we have the following: }\\
+		&|D_2| = |L \sqcup \oh{\gamma'}| = |L \sqcup \bigsqcup_{C \in ec(\gamma')} C \setminus rep(C)| \text{ iff }
+		|\bigsqcup_{C  \in \mathcal{C}_2} C| = |L \sqcup \bigsqcup_{C \in ec(\gamma')} C|\\ 
+		&\quad \text{In fact, the latter two sets are equal: }\\
+		&\quad \text{let } l \in \bigsqcup_{C  \in \mathcal{C}_2} C\\
+		&\quad l \in H \setminus F \tag{Def. of partition}\\
+		&\quad \textbf{case } l \in g\\
+		&\quad\quad l \notin \bigsqcup_{l \in j} \gamma(l) \tag{Def. of $\mathcal{C_2}$}\\
+		&\quad\quad l \in L \tag{Def. of $g$}\\
+		&\quad\quad l \in L \sqcup \bigsqcup_{C \in ec(\gamma')} C\\
+		&\quad \textbf{case } l \notin g\\
+		&\quad\quad l \in H \setminus (F \sqcup g)\\
+		&\quad\quad \text{Exists } C \in ec(\gamma') \text{ s.t. } l \in C \tag{Def. of partition}\\
+		&\quad\quad l \in \bigsqcup_{C \in ec(\gamma')} C\\
+		&\quad\quad l \in L \sqcup \bigsqcup_{C \in ec(\gamma')} C\\
+		&\quad\text{For the other direction, let } l \in L \sqcup \bigsqcup_{C \in ec(\gamma')} C\\
+		&\quad\textbf{case } l \in L\\
+		&\quad\quad l \in H \setminus F \tag{Def. of $L$}\\
+		&\quad\quad \text{Exists } C \in ec(\gamma) \text{ s.t. } l \in C \tag{Def. of partition}\\
+		&\quad\quad l \in \bigsqcup_{C \in ec(\gamma)} C\\
+		&\quad\textbf{case } \bigsqcup_{C \in ec(\gamma')} C\\
+		&\quad\quad l \in H \setminus (F \sqcup g) \tag{Def. of partition}\\
+		&\quad\quad l \in H \setminus F \\
+		&\quad\quad \text{Exists } C \in ec(\gamma) \text{ s.t. } l \in C \tag{Def. of partition}\\
+		&\quad\quad l \in \bigsqcup_{C \in ec(\gamma)} C\\
+		&\quad\text{Hence we show that } |D_2| = |L \sqcup \oh{\gamma'}|, \text{ and together with the previous 
+		equality, } |j| + |\oh{\gamma}| = |g| + |\oh{\gamma'}|\\
+  	&V',H,R,F \cup g\; \vdash^{\mathsf{copy}} e_1 \Downarrow v, H',F' \tag{case}\\
+		&\text{By IH on $(V',H,R,F\cup g)$, we have } (w,Y',M',\gamma'') \text{ such that }\\
+		&\emph{(1)}\quad  W',Y,S,M \cup j  \vdash^{\mathsf{free}} e_1 \Downarrow w,Y',M'\\
+		&\emph{(2)}\quad \gamma'' \text{ is a counting partition for } reach_{Y'}(w) \uplus R\\
+		&\emph{(3)}\quad |M'| = |F'| + |\oh{\gamma''}|\\
 		&\text{Apply F:CondT to \emph{(1)}, we are done.}
   \end{align*}
   \item[Case 6: E:CondF] 
@@ -1466,6 +1958,14 @@ Induction on the evaluation judgement.\\
 	\end{align*}
   \end{description}
 \end{proof}
+
+\label{sect:bib}
+\bibliographystyle{plain}
+%\bibliographystyle{alpha}
+%\bibliographystyle{unsrt}
+%\bibliographystyle{abbrv}
+\bibliography{rules5}
+
 
 \section{Examples}
 
@@ -1583,5 +2083,11 @@ Type derivation:
 	}(\text{L:Cons})
 }(\text{L:MatL})
 \]
+
+\section{Implementation}
+
+\section{Experimentation}
+
+\section{Future Work}
 
 \end{document}
