@@ -172,17 +172,47 @@ Serguei A. Mokhov\inst{1}\thanks{Designed and implemented the class style}
 \maketitle
 
 \begin{abstract}
-In today’s complex software systems, resource consumption such as time, memory, and energy is
-increasingly more relevant. Manually analyzing and predicting resource consumption is cumbersome
-and error prone. As a result, programming language research studies techniques that support developers
-by automating and guiding such a resource analysis. Most current techniques for resource bound
-inference work in an environment with manual memory management, or simply assume there is no
-automatic memory management. As a result, memory bounds derived by the aforementioned techniques
-are not accurate when the underlying system employs garbage collection. We
-develop new techniques for automatic bound inference in the presence of garbage collection, and 
-implement them as an extension to Resource Aware ML (RaML). We show that our system is able to 
-derive tight symbolic bounds for heap usage of common algorithms for which current analysis give 
-asymptotically worse bounds.
+  The memory footprint of a program is an important performance metric
+  that determines if a program can be safely executed on a given
+  system. Predicting and formally analyzing the memory footprint is a
+  challenging problem, particularly for high-level languages with
+  automatic memory management.
+  %
+  However, most existing techniques that support developers by
+  automating and guiding the derivation of bounds on the heap memory
+  requirements, assume manual memory management or simply ignore
+  deallocation in the analysis. As a result, the derived memory bounds
+  are not accurate when the underlying system employs garbage
+  collection.
+
+  This article introduces a novel system for deriving upper bounds on
+  the heap-space requirements of functional programs with garbage
+  collection.
+  %
+  The cost model is based on a perfect garbage collector that
+  immediately deallocates memory cells when they become unreachable.
+  %
+  Heap-space bounds are derived using type-based automatic amortized
+  resource analysis (AARA), a template-based technique that
+  efficiently reduces bound inference to linear programming.
+  %
+  The first technical contribution of the work is an extension of AARA
+  to take into account automatic deallocation. A key observation is
+  that deallocation of a perfect collector can be modeled with
+  destructive pattern matching if data structures are used in a linear
+  way. However, the analysis uses destructive pattern matching to
+  accurately model deallocation even if data is shared.
+  %
+  The second technical contribution is a new operational cost
+  semantics that models a perfect garbage collector and the soundness
+  proof of the extended AARA with respect to this cost semantics.
+  %
+  The analysis and the cost semantics have been implemented as an
+  extension to Resource Aware ML (RaML). An experimental evaluation
+  shows that the system is able to derive tight symbolic heap-space
+  bounds for common algorithms. Often the bounds are asymptotic
+  improvements over bounds that RaML derives without taking into
+  account garbage collection.
 \end{abstract}
 
 % The table of contents below is added for your convenience. Please do not use
