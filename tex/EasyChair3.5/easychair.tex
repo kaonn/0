@@ -104,6 +104,7 @@
 \newcommand{\shareabt}[4]{\irl{share}(#1;#2,#3.#4)}
 \newcommand{\ssize}[2]{\left\Vert #2 \right\Vert_{#1}}
 \newcommand{\card}[1]{card(#1)}
+\newcommand{\val}[1]{\irl{val}(#1)}
 \newcommand{\gc}[3]{\mathsf{gc}(#1,#2,#3)}
 \newcommand{\wfc}[5]{\mathsf{linear}(#1,#2,#3,#4,#5)}
 \newcommand{\veq}[4]{#3 \sim^{#1}_{#2} #4}
@@ -390,9 +391,9 @@ justified by the (valid) mode $(+,+,-)$.
 Notice that primitives and types with statically-known sizes are stack-allocated 
 ($\booltycst, \irl{nat}, \prodtycst{\tau_1}{\tau_2}$) and use no heap cells. 
 The notion of reachability naturally lifts to expressions:
-\begin{equation*}
+\begin{align*}
   &locs_{V,H}(e) = \bigcup\limits_{x \in FV(e)} reach_H(V(x))\\\\
-\end{equation*}
+\end{align*}
 Where $FV : \ms{Exp} \to \mathcal{P}(\ms{Var})$ denotes the set of free-variables of expressions as usual.\\
 
 \section{Towards the Garbage Collection Cost Semantics}
@@ -905,7 +906,7 @@ presentation clearer; furthermore, the linearity of $\ms{copy}$ is an interestin
 regardless of the type system. 
 
 %------------------------------------------------------------------------------
-\section{Soundness of \fogc}
+\section{Soundness of $\fogc$}
 
 Recall that the semantics \ms{copy} makes a deep copy of every variable that is used more than once 
 in a program.  Of course, in many real-world languages, variable aliasing
@@ -1077,7 +1078,7 @@ Write this as $\mathcal{C}_1 \preceq \mathcal{C}_2$.
 \end{definition} 
 
 For an evaluation $\mathcal{C} = (V,H,R,F) \vdash e \Downarrow v,H',F'$, denote its garbage as
-$collect(\mathca{C} \vdash v,H',F') = \{l \in H' \mid l \notin F' \cup R \cup reach_H'(v)\}$. 
+$collect(\mathcal{C} \vdash v,H',F') = \{l \in H' \mid l \notin F' \cup R \cup reach_H'(v)\}$. 
 Now the key lemma:
 
 \begin{lemma}\label{itm:frugal}
@@ -1093,14 +1094,14 @@ $(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ and
 			\item $\gamma'$ is a proper partition, such that for all $l \in dom(\gamma')$, 
 				$|\gamma'(l)| = |reach_{Y_1}(w_1)(l)| + S(l) + |\gamma'(l) \cap collect(\mathcal{C}_2 \vdash^{\mathsf{copy}} e \Downarrow v,H',F')|$
 			\item $|reach_{H_1}(v) \cap \gamma'(l)| = reach_{Y_1}(w)(l)$
-			\item $R_2$ = \bigcup \gamma'(R_1)$ 
+			\item $R_2 = \bigcup \gamma'(R_1)$ 
 			\item $|M'| = |F'| + |\oh{\gamma'}|$
 	\end{enumerate}
 \end{lemma}
 
 For a configuration $\mathcal{C} = (V,H,R,F)$, denote the current garbage w.r.t a set of root variables 
 $X \subseteq dom(V)$ 
-as $clean(\mathca{C},X) = \{l \in H \mid l \notin F \cup R \cup reach_H(X)\}$. Some auxiliary lemmas: 
+as $clean(\mathcal{C},X) = \{l \in H \mid l \notin F \cup R \cup reach_H(X)\}$. Some auxiliary lemmas: 
 
 \begin{lemma}\label{itm:aux}
 Let $V_2,H_2,R_2,F_2 \vdash^{\mathsf{copy}} e \Downarrow v,H',F'$, and 

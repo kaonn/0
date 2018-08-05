@@ -6,7 +6,7 @@ all: rules5.pdf paper.pdf
 
 # Generalized rule: how to build a .pdf from each .tex
 %.pdf: %.tex
-	pdflatex -interaction nonstopmode $<
+	pdflatex $<
 
 touch:
 	touch *.tex
