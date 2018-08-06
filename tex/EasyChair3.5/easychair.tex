@@ -27,6 +27,8 @@
 \usepackage{mathtools}
 \usepackage{hyperref}
 \usepackage{tikz}
+\usepackage{booktabs}
+\usepackage{adjustbox}
 \usetikzlibrary{positioning} 
 
 \allowdisplaybreaks
@@ -121,7 +123,7 @@
 %%
 % Regular title as in the article class.
 %
-\title{Automatic Resource Bound Analysis for Functional Programs with Garbage Collection}
+\title{Automatic Space Bound Analysis for Functional Programs with Garbage Collection}
 
 % Authors are joined by \and. Their affiliations are given by \inst, which indexes
 % into the list defined using \institute
@@ -173,40 +175,28 @@ Serguei A. Mokhov\inst{1}\thanks{Designed and implemented the class style}
 \maketitle
 
 \begin{abstract}
-  The memory footprint of a program is an important performance metric
-  that determines if a program can be safely executed on a given
-  system. Predicting and formally analyzing the memory footprint is a
-  challenging problem, particularly for high-level languages with
-  automatic memory management.
-  %
-  However, most existing techniques that support developers by
-  automating and guiding the derivation of bounds on the heap memory
-  requirements, assume manual memory management or simply ignore
-  deallocation in the analysis. As a result, the derived memory bounds
-  are not accurate when the underlying system employs garbage
-  collection.
-
   This article introduces a novel system for deriving upper bounds on
   the heap-space requirements of functional programs with garbage
   collection.
   %
-  The cost model is based on a perfect garbage collector that
+  The space cost model is based on a perfect garbage collector that
   immediately deallocates memory cells when they become unreachable.
   %
   Heap-space bounds are derived using type-based automatic amortized
   resource analysis (AARA), a template-based technique that
   efficiently reduces bound inference to linear programming.
   %
-  The first technical contribution of the work is an extension of AARA
+	The first technical contribution of the work is a new operational cost
+  semantics that models a perfect garbage collector.
+  %
+  The second technical contribution is an extension of AARA
   to take into account automatic deallocation. A key observation is
   that deallocation of a perfect collector can be modeled with
   destructive pattern matching if data structures are used in a linear
   way. However, the analysis uses destructive pattern matching to
   accurately model deallocation even if data is shared.
-  %
-  The second technical contribution is a new operational cost
-  semantics that models a perfect garbage collector and the soundness
-  proof of the extended AARA with respect to this cost semantics.
+  The soundness of the extended AARA with respect to the new cost semantics 
+	is proven in two parts via an intermediate linear cost semantics.
   %
   The analysis and the cost semantics have been implemented as an
   extension to Resource Aware ML (RaML). An experimental evaluation
@@ -234,16 +224,23 @@ Serguei A. Mokhov\inst{1}\thanks{Designed and implemented the class style}
 %------------------------------------------------------------------------------
 \section{Introduction}
 \label{sect:introduction}
+The memory footprint of a program is an important performance metric
+that determines if a program can be safely executed on a given
+system. Due to the challenges of modelling garbage collection,
+most existing techniques for
+automating and guiding the derivation of bounds on the heap memory
+requirements assume manual memory management or simply ignore
+deallocation in the analysis. As a result, the derived bounds
+are not accurate when the underlying system employs garbage
+collection.
 
-We present an algorithm for statically determining the symbolic cost bound 
-of the space complexity for first-order, garbage-collected functional programs. 
-The algorithm is based on Automatic Amortized Resource Analysis (AARA) as implemented 
-in Resource Aware ML (RaML) ~\cite{Hoffmann:2017:TAR:3009837.3009842}. \\
-
-We define the execution of the given language by giving it an
-operational cost semantics. The semantics is a big-step
+In the first section, we describe the target language --
+first-order, garbage-collected functional programs.
+We define the language by an operational cost semantics $\ms{free}$ 
+which keeps track of garbage collection. The semantics is a big-step
 (or natural) semantics in the style of Spoonhower and Minamide (\cite{Spoonhower:2008:SPP:1411204.1411240} and 
-\cite{DBLP:journals/entcs/Minamide99}), which assigns any program a space cost. This cost is
+\cite{DBLP:journals/entcs/Minamide99}), which assigns any program a space usage. 
+Operationally, this cost is
 the high watermark on the heap, or the maximum number of cells used in the mutable store during 
 evaluation. While \cite{Spoonhower:2008:SPP:1411204.1411240} and 
 \cite{DBLP:journals/entcs/Minamide99} compute this cost at the leaves of a 
@@ -252,6 +249,25 @@ which represents the cells available for evaluation.
 The concept of the free-list can be found in Hofmann et. al. (\cite{Hofmann:2003:SPH:604131.604148}).
 However, unlike \cite{Hofmann:2003:SPH:604131.604148}, in order to account for garbage collection,
 we define the free-list as a set of locations instead of single number denoting its size.
+
+In the next couple sections, we present a new type system $\fogc$
+for statically determining the symbolic cost bound 
+of the space complexity for the aforementioned garbage collected programs.
+The bound inference is an extension to Automatic Amortized Resource Analysis (AARA) 
+and implemented in Resource Aware ML (RaML) ~\cite{Hoffmann:2017:TAR:3009837.3009842}. 
+As the the underlying type system is linear, we introduce an auxiliary cost semantics 
+$\ms{copy}$ which is exactly the same as $\ms{free}$, except that variables are used in 
+a linear way. We prove the soundness of $\ms{copy}$ with respect to $\fogc$, then prove that
+$\ms{copy}$ is an over-approximation of $\ms{free}$ in the sense that any program that can be 
+successfully completed when interpreted with $\ms{copy}$ can also be completed with $\ms{free}$ 
+using the same starting free-list.
+
+Lastly, we discuss the implementation and evaluate the system on a variety of functions. Our 
+results suggest that our new analysis provides asymptotic bound improvements to several classes 
+of commonly used functions and programming patterns. We then examine the reasons for these 
+improvements and design decisions throughout the system. Lastly, we conclude with thoughts for 
+ and directions for future work. 
+
 
 \section{Notation}
 \label{sect:notation}
@@ -1146,6 +1162,30 @@ is created by allocating closures for function declarations.\\
 \label{sect:evaluation}
 
 
+
+% Please add the following required packages to your document preamble:
+% \usepackage{booktabs}
+\begin{tiny}
+\begin{table}[]
+	\begin{adjustbox}{width=1.2\textwidth,center=\textwidth}
+		\begin{tabular}{@{}llllllllll@{}}
+			\toprule
+			\textit{\textbf{function}} & computed bound & asymptotic & constraints & time & gc metric & asymptotic & constraints & time & optimal \\ \midrule
+			quicksort & 1.00 + 3.50*M + 1.50*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 8515 & 0.52 & 0 & O(1) & 8519 & 0.48 & 0 \\
+			mergesort & 1.00 - 4.67*M + 6.33*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 9572 & 0.64 & -0.50*M + 0.50*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 9578 & 0.58 & \textbackslash{}floor(\textbackslash{}log(M)) \\
+			ocamlsort & 7.50 + 5.50*M + 1.00*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 8565 & 0.51 & 1.00 + 1.00*M & O(M) & 8573 & 0.50 & M+1 \\
+			selection sort & 2.00 + 3.00*M + 1.00*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 639 & 0.06 & 0 & O(1) & 642 & 0.05 & 0 \\
+			eratosthenes & 1.00 + 1.50*M + 0.50*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 515 & 0.06 & 0 & O(1) & 517 & 0.04 & 0 \\
+			dfs & 3.00 + 2.00*M & O(M) & 5481 & 0.90 & 2 & O(1) & 5483 & 0.36 & 2 \\
+			bfs & 5.00 + 10.00*M & O(M) & 24737 & 4.15 & 4 & O(1) & 24742 & 1.62 & 4 \\
+			transpose & 1.00 + 3.50*L*M + 0.50*L*M\textasciicircum{}2 & O(L*M\textasciicircum{}2) & 10680 & 0.50 & 1.00 + 2.00*L*M & O(L*M) & 10684 & 0.50 & max(0,2*L-1) \\
+			map\_it & 2.00 + 2.00*L*M + 4.00*M & O(L*M) & 30699 & 1.58 & 1.00*M + 1.00*N & O(M+N) & 30703 & 1.57 & 0 \\
+			pairs & 1.00 + 1.00*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 10214 & 0.60 & -0.50*M + 1.00*M*N + 0.50*M\textasciicircum{}2 & O(M\textasciicircum{}2+M*N) & 10217 & 0.64 & 0.5*M\textasciicircum{}2-0.5*M+3 \\ \midrule
+			 &  &  &  &  &  &  &  &  & 
+		\end{tabular}
+	\end{adjustbox}
+\end{table}
+\end{tiny}
 
 \section{Future Work}
 \label{sect:future-work}
