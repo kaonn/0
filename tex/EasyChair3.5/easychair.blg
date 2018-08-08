@@ -3,13 +3,9 @@ Capacity: max_strings=100000, hash_size=100000, hash_prime=85009
 The top-level auxiliary file: easychair.aux
 The style file: plain.bst
 Database file #1: easychair.bib
-Warning--I didn't find a database entry for "easychair"
-Warning--I didn't find a database entry for "ctan"
-Warning--I didn't find a database entry for "texniccenter"
-Warning--I didn't find a database entry for "miktex"
 You've used 4 entries,
             2118 wiz_defined-function locations,
-            533 strings with 5101 characters,
+            530 strings with 5079 characters,
 and the built_in function-call counts, 1809 in all, are:
 = -- 200
 > -- 61
@@ -48,4 +44,3 @@ warning$ -- 0
 while$ -- 19
 width$ -- 5
 write$ -- 55
-(There were 4 warnings)

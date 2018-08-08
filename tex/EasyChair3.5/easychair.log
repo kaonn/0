@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017/Debian) (preloaded format=pdflatex 2018.3.11)  6 AUG 2018 10:27
+This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017/Debian) (preloaded format=pdflatex 2018.3.11)  8 AUG 2018 08:25
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -956,20 +956,20 @@ LaTeX Warning: Label `a' multiply defined.
 )
 \openout1 = `easychair.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 173.
-LaTeX Font Info:    ... okay on input line 173.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 173.
-LaTeX Font Info:    ... okay on input line 173.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 173.
-LaTeX Font Info:    ... okay on input line 173.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 173.
-LaTeX Font Info:    ... okay on input line 173.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 173.
-LaTeX Font Info:    ... okay on input line 173.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 173.
-LaTeX Font Info:    ... okay on input line 173.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 173.
-LaTeX Font Info:    ... okay on input line 173.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 174.
+LaTeX Font Info:    ... okay on input line 174.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 174.
+LaTeX Font Info:    ... okay on input line 174.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 174.
+LaTeX Font Info:    ... okay on input line 174.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 174.
+LaTeX Font Info:    ... okay on input line 174.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 174.
+LaTeX Font Info:    ... okay on input line 174.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 174.
+LaTeX Font Info:    ... okay on input line 174.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 174.
+LaTeX Font Info:    ... okay on input line 174.
  (/usr/share/texlive/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
 \scratchcounter=\count188
@@ -1001,7 +1001,7 @@ File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
 e
 ))
 \AtBeginShipoutBox=\box87
-Package hyperref Info: Link coloring ON on input line 173.
+Package hyperref Info: Link coloring ON on input line 174.
 
 (/usr/share/texlive/texmf-dist/tex/latex/hyperref/nameref.sty
 Package: nameref 2016/05/21 v2.44 Cross-referencing by name of section
@@ -1011,9 +1011,9 @@ Package: gettitlestring 2016/05/16 v1.5 Cleanup title references (HO)
 )
 \c@section@level=\count194
 )
-LaTeX Info: Redefining \ref on input line 173.
-LaTeX Info: Redefining \pageref on input line 173.
-LaTeX Info: Redefining \nameref on input line 173.
+LaTeX Info: Redefining \ref on input line 174.
+LaTeX Info: Redefining \pageref on input line 174.
+LaTeX Info: Redefining \nameref on input line 174.
 
 (./easychair.out) (./easychair.out)
 \@outlinefile=\write5
@@ -1059,24 +1059,24 @@ LaTeX Info: Redefining \nameref on input line 173.
 
 Package lastpage Info: Please have a look at the pageslts package at
 (lastpage)             https://www.ctan.org/pkg/pageslts
-(lastpage)             ! on input line 173.
+(lastpage)             ! on input line 174.
 ABD: EveryShipout initializing macros
-LaTeX Font Info:    Try loading font information for U+lasy on input line 175.
+LaTeX Font Info:    Try loading font information for U+lasy on input line 176.
 
 (/usr/share/texlive/texmf-dist/tex/latex/base/ulasy.fd
 File: ulasy.fd 1998/08/17 v2.2e LaTeX symbol font definitions
 )
-LaTeX Font Info:    Try loading font information for U+msa on input line 175.
+LaTeX Font Info:    Try loading font information for U+msa on input line 176.
 
 (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Try loading font information for U+msb on input line 175.
+LaTeX Font Info:    Try loading font information for U+msb on input line 176.
 
 (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
-LaTeX Font Info:    Try loading font information for U+stmry on input line 175.
+LaTeX Font Info:    Try loading font information for U+stmry on input line 176.
 
 
 (/usr/share/texlive/texmf-dist/tex/latex/stmaryrd/Ustmry.fd) (./easychair.toc
@@ -1086,128 +1086,133 @@ LaTeX Font Info:    Try loading font information for U+stmry on input line 175.
 \tf@toc=\write6
 \openout6 = `easychair.toc'.
 
+ [2]
+Underfull \vbox (badness 10000) has occurred while \output is active []
 
-Underfull \hbox (badness 10000) in paragraph at lines 275--278
-
- []
-
-[2]
-Underfull \hbox (badness 10000) in paragraph at lines 337--346
-
- []
-
-[3]
-Underfull \hbox (badness 10000) in paragraph at lines 412--414
+ [3]
+Underfull \hbox (badness 10000) in paragraph at lines 359--368
 
  []
 
 [4]
-Underfull \hbox (badness 10000) in paragraph at lines 472--481
+Underfull \hbox (badness 10000) in paragraph at lines 439--441
 
  []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 482--484
-
- []
-
-
-Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 493.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 493.
 
 [5]
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [6]
-Underfull \hbox (badness 10000) in paragraph at lines 650--652
-
- []
-
-[7]
-Underfull \hbox (badness 10000) in paragraph at lines 668--670
+Underfull \hbox (badness 10000) in paragraph at lines 498--505
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 723--726
+Underfull \hbox (badness 10000) in paragraph at lines 506--508
 
  []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 727--729
-
- []
-
-
-LaTeX Warning: Reference `Hoffmann:2017:TAR:3009837.3009842' on page 8 undefine
-d on input line 730.
-
-
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [8]
-[9]
-
-Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 925.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `superscript' on input line 925.
+(hyperref)                removing `math shift' on input line 517.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
-(hyperref)                removing `math shift' on input line 925.
+(hyperref)                removing `math shift' on input line 517.
 
-[10]
-Underfull \hbox (badness 10000) in paragraph at lines 954--955
+[6] [7]
+Underfull \hbox (badness 10000) in paragraph at lines 689--691
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 705--707
 
  []
 
-[11] [12]
-Overfull \hbox (2.65797pt too wide) in paragraph at lines 1123--1125
-[][]\OT1/cmr/bx/n/10 Lemma 1.9. []\OT1/cmr/m/it/10 Let $\OML/cmm/m/it/10 V[]; H
-[]; R[]; F[] \OMS/cmsy/m/n/10 `[] \OML/cmm/m/it/10 e \OMS/cmsy/m/n/10 + \OML/cm
-m/m/it/10 v; H[]; F[]$\OT1/cmr/m/it/10 , and $\OML/cmm/m/it/10 V[]; H[]; R[]; F
-[] \OMS/cmsy/m/n/10 ^^V \OML/cmm/m/it/10 V[]; H[]; R[]; F[]$ \OT1/cmr/m/it/10 b
-e-cause $\OT1/cmr/m/n/10 (\OMS/cmsy/m/n/10 ^^@\OML/cmm/m/it/10 ; ^^M; ^^Q; \OMS
-/cmsy/m/n/10 ^^@\OML/cmm/m/it/10 ; \OMS/cmsy/m/n/10 ^^@\OT1/cmr/m/n/10 )$\OT1/c
-mr/m/it/10 .
+
+LaTeX Warning: Reference `Hoffmann11' on page 8 undefined on input line 761.
+
+[8]
+
+LaTeX Warning: Reference `Hoffmann:2017:TAR:3009837.3009842' on page 9 undefine
+d on input line 790.
+
+
+Underfull \vbox (badness 7064) has occurred while \output is active []
+
+ [9]
+
+LaTeX Warning: Command \L invalid in math mode on input line 890.
+
+
+LaTeX Warning: Command \L invalid in math mode on input line 890.
+
+
+LaTeX Warning: Command \L invalid in math mode on input line 917.
+
+
+Overfull \hbox (0.43031pt too wide) detected at line 918
+[]
  []
 
+[10] [11]
 
-Underfull \hbox (badness 10000) in paragraph at lines 1154--1159
+Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
+(hyperref)                removing `math shift' on input line 1083.
 
+
+Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
+(hyperref)                removing `superscript' on input line 1083.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (PDFDocEncoding):
+(hyperref)                removing `math shift' on input line 1083.
+
+[12] [13] [14]
+Overfull \hbox (13.94482pt too wide) in paragraph at lines 1344--1346
+[][]\OT1/cmr/bx/n/10 Definition 13.2. []\OT1/cmr/m/n/10 For an eval-u-a-tion $\
+OMS/cmsy/m/n/10 C \OT1/cmr/m/n/10 = (\OML/cmm/m/it/10 V; H; R; F\OT1/cmr/m/n/10
+ ) \OMS/cmsy/m/n/10 ` \OML/cmm/m/it/10 e \OMS/cmsy/m/n/10 + \OML/cmm/m/it/10 v;
+ H[]; F[]$\OT1/cmr/m/n/10 , de-note its garbage as $\OML/cmm/m/it/10 collect\OT
+1/cmr/m/n/10 (\OML/cmm/m/it/10 R; v; H[]; F[]\OT1/cmr/m/n/10 ) =
  []
+
+[15] [16]
+
+LaTeX Warning: No positions in optional float specifier.
+               Default added (so using `tbp') on input line 1485.
+
+LaTeX Font Info:    Try loading font information for OML+cmr on input line 1489
+.
+(/usr/share/texlive/texmf-dist/tex/latex/base/omlcmr.fd
+File: omlcmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
+)
+LaTeX Font Info:    Font shape `OML/cmr/m/n' in size <10> not available
+(Font)              Font shape `OML/cmm/m/it' tried instead on input line 1489.
+
 
 
 LaTeX Warning: No positions in optional float specifier.
-               Default added (so using `tbp') on input line 1169.
+               Default added (so using `tbp') on input line 1504.
 
-LaTeX Font Info:    Try loading font information for OMS+cmr on input line 1175
+LaTeX Font Info:    Try loading font information for OMS+cmr on input line 1511
 .
 (/usr/share/texlive/texmf-dist/tex/latex/base/omscmr.fd
 File: omscmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
 )
 LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <10> not available
-(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 1175.
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 1511.
 
  (./easychair.bbl
-[13]) 
+[17]) 
 AED: lastpage setting LastPage
-[14]
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 1210.
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 1210.
+[18]
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 1545.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 1545.
  (./easychair.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 1210.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 1210.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 1545.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 1545.
 
 Package rerunfilecheck Info: File `easychair.out' has not changed.
-(rerunfilecheck)             Checksum: EC277365E5541BCF3EADEF6F5F69083C;885.
+(rerunfilecheck)             Checksum: E051C79805E22DD92B54C1B6C09023F4;937.
 
 
 LaTeX Warning: There were undefined references.
@@ -1215,16 +1220,16 @@ LaTeX Warning: There were undefined references.
 
 LaTeX Warning: There were multiply-defined labels.
 
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 1210.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 1545.
  ) 
 Here is how much of TeX's memory you used:
- 22165 strings out of 492990
- 387636 string characters out of 6135005
- 494590 words of memory out of 5000000
- 25169 multiletter control sequences out of 15000+600000
+ 22199 strings out of 492990
+ 388071 string characters out of 6135005
+ 493624 words of memory out of 5000000
+ 25187 multiletter control sequences out of 15000+600000
  20484 words of font info for 86 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 55i,21n,54p,986b,623s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 55i,26n,54p,986b,623s stack positions out of 5000i,500n,10000p,200000b,80000s
 pdfTeX warning (dest): name{Hfootnote.3} has been referenced but does not exi
 st, replaced by a fixed one
 
@@ -1261,14 +1266,15 @@ texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/share/texlive
 /texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></usr/share/texlive/texmf
 -dist/fonts/type1/public/amsfonts/cm/cmti9.pfb></usr/share/texlive/texmf-dist/f
 onts/type1/public/amsfonts/cm/cmtt10.pfb></usr/share/texlive/texmf-dist/fonts/t
-ype1/public/amsfonts/cm/cmtt9.pfb></usr/share/texlive/texmf-dist/fonts/type1/pu
-blic/amsfonts/symbols/msam10.pfb></usr/share/texlive/texmf-dist/fonts/type1/pub
-lic/amsfonts/symbols/msbm10.pfb></usr/share/texlive/texmf-dist/fonts/type1/publ
-ic/stmaryrd/stmary10.pfb>
-Output written on easychair.pdf (14 pages, 417913 bytes).
+ype1/public/amsfonts/cm/cmtt8.pfb></usr/share/texlive/texmf-dist/fonts/type1/pu
+blic/amsfonts/cm/cmtt9.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/am
+sfonts/symbols/msam10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/ams
+fonts/symbols/msbm10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/stma
+ryrd/stmary10.pfb>
+Output written on easychair.pdf (18 pages, 454904 bytes).
 PDF statistics:
- 373 PDF objects out of 1000 (max. 8388607)
- 320 compressed objects within 4 object streams
- 82 named destinations out of 1000 (max. 500000)
- 133 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 408 PDF objects out of 1000 (max. 8388607)
+ 350 compressed objects within 4 object streams
+ 95 named destinations out of 1000 (max. 500000)
+ 141 words of extra memory for PDF output out of 10000 (max. 10000000)
 

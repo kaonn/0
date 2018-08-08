@@ -5,11 +5,12 @@
 \BOOKMARK [1][-]{section.5}{Towards the Garbage Collection Cost Semantics}{}% 5
 \BOOKMARK [1][-]{section.6}{Garbage Collection Cost Semantics}{}% 6
 \BOOKMARK [1][-]{section.7}{The Garbage Collection Cost Semantics copy}{}% 7
-\BOOKMARK [1][-]{section.8}{Preparing for Soundness}{}% 8
-\BOOKMARK [1][-]{section.9}{Linear Garbage Collection Type Rules}{}% 9
-\BOOKMARK [1][-]{section.10}{Linearity of Copy Semantics}{}% 10
-\BOOKMARK [1][-]{section.11}{Soundness of FOgc}{}% 11
-\BOOKMARK [1][-]{section.12}{Garbage Collection Cost Semantics free}{}% 12
-\BOOKMARK [1][-]{section.13}{Implementation}{}% 13
-\BOOKMARK [1][-]{section.14}{Evaluation}{}% 14
-\BOOKMARK [1][-]{section.15}{Future Work}{}% 15
+\BOOKMARK [1][-]{section.8}{Denotational Semantics}{}% 8
+\BOOKMARK [1][-]{section.9}{Linear Potential}{}% 9
+\BOOKMARK [1][-]{section.10}{Linear Garbage Collection Type Rules}{}% 10
+\BOOKMARK [1][-]{section.11}{Linearity of Copy Semantics}{}% 11
+\BOOKMARK [1][-]{section.12}{Soundness of FOgc}{}% 12
+\BOOKMARK [1][-]{section.13}{Garbage Collection Cost Semantics free}{}% 13
+\BOOKMARK [1][-]{section.14}{Implementation}{}% 14
+\BOOKMARK [1][-]{section.15}{Evaluation}{}% 15
+\BOOKMARK [1][-]{section.16}{Future Work}{}% 16
