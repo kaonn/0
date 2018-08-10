@@ -68,14 +68,8 @@
 \newcommand{\hwnumber}{1}
 % =========================================================================== %
 
-\newcounter{group}
-\setcounter{group}{1}
-\newtheorem{theorem}{Task}[group]
-% Remove '\newpage' below to preview your doc compactly.
-% Remember to put it back before submitting to Gradescope.
-\newcommand{\task}{\newpage\begin{theorem}\end{theorem}}
-\newcommand{\nextgroup}{\stepcounter{group}}
-\newcommand{\skipaheadtask}{\stepcounter{theorem}}
+\newtheorem{theorem}{Theorem}
+
 \newcommand{\ms}[1]{\ensuremath{\mathsf{#1}}}
 \newcommand{\irl}[1]{\mathtt{#1}}
 \newcounter{rule}
@@ -118,9 +112,9 @@
 \newcommand{\jan}[1]{{\color{red} #1}}
 \newtheorem{lemma}[theorem]{Lemma}
 \newtheorem{attempt}[theorem]{Attempt}
-\newtheorem{corollary}{Corollary}[theorem]
+\newtheorem{corollary}[theorem]{Corollary}
 \theoremstyle{definition}
-\newtheorem{definition}{Definition}[section]
+\newtheorem{definition}{Definition}
 %\makeindex
 
 %% Front Matter
