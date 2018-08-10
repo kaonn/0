@@ -30,6 +30,7 @@
 \usepackage{booktabs}
 \usepackage{adjustbox}
 \usepackage{color}
+\usepackage{wrapfig}
 \usetikzlibrary{positioning} 
 
 \allowdisplaybreaks
@@ -242,7 +243,7 @@ for statically determining the symbolic cost bound
 of the space complexity for the aforementioned garbage collected programs.
 The bound inference is an extension to Automatic Amortized Resource Analysis (AARA) 
 and implemented in Resource Aware ML (RaML) ~\cite{Hoffmann:2017:TAR:3009837.3009842}. 
-As the the underlying type system is linear, we introduce an auxiliary cost semantics 
+As the the underlying type system is linear, we introduce an auxiliary linear cost semantics 
 $\ms{copy}$ which is exactly the same as $\ms{free}$, except that variables are used in 
 a linear way. We prove the soundness of $\ms{copy}$ with respect to $\fogc$, then prove that
 $\ms{copy}$ is an over-approximation of $\ms{free}$ in the sense that any program that can be 
@@ -350,10 +351,7 @@ The one nonstandard construct is the $\sharecst{x}{x_1}{x_2}{e}$, which we will 
 detail in the following sections. We introduce two distinct notions of ``linearity'', one on 
 the syntactic level, and one on the semantic level. Syntactic linearity is linearity in 
 expression variables, while semantic linearity is linearity in locations, which we introduce next.
-Although throughout the sections, semantic 
-linearity will depend on the semantics at hand, everything we work with respects syntactic linearity.
-The sharing construct allows us to maintain syntactic linearity while working with 
-multiple semantics that might or might not respect semantic linearity.\\
+We say that a semantics is linear if it respects semantic linearity.
 
 In line the previous works on space cost semantics, we employ a heap (also known as 
 environment) which persistently binds locations to values (normalized terms).
@@ -504,18 +502,7 @@ root set, it becomes collected and added to the free-list as available for reall
 As before, the continuation set $R$ represents the set of locations 
 required to compute the continuation \emph{excluding} the current expression.
 Define the  \emph{root set} as the union of the locations in the continuation set $R$ 
-and the locations in the current expression $e$. First, we have E:Var:
-
-\[
-	\infern
-{ V(x) = v\\
-}
-{V,H,R,F \; \vdash x \Downarrow v,H,F}
-\]
-
-Note that in contrast to the semantics in the previous section, looking up a variable incurs no
-cost. This ensures that we will be able prove the soundness of the type system. Next, we have 
-E:Let:
+and the locations in the current expression $e$. For example, F:Let
 
 \[
 	\infern{
@@ -538,6 +525,11 @@ $V_2$ with the result $v_1$, and evaluate $e_2$ with this stack and the original
 set $R$. Below are the abridged rules:
 
 \begin{mathpar}
+\infern
+{ V(x) = v\\
+}
+{V,H,R,F \; \vdash x \Downarrow v,H,F}
+
 \infern{
   V(x) = \irl{T}\\
   g = \{l \in H \mid l \notin F \cup R \cup locs_{V,H}(e_1)\}\\
@@ -611,14 +603,17 @@ set $R$. Below are the abridged rules:
 }(\text{F:Share})
 \end{mathpar}
 
-In particular, note that since we don't allow local function definitions, no closures are created 
+Note that in contrast to the semantics in the previous section, looking up a variable incurs no
+cost. This ensures that we will be able prove the soundness of the type system. 
+Also, since we don't allow local function definitions, no closures are created 
 during evaluation. However, our implementation uses closures to implement the global block of 
 function definitions. Also note that we restrict the domain of the stack to the appropriate
 variables during evaluation. This is only to facilitate the proof of the linearity of $\ms{copy}$, 
 and not necessary for the implementation. These issues are discussed in \ref{sect:implementation}.
 
-For example, we can implement and analyze the following simple dfs algorithm on trees:
-
+\begin{wrapfigure}{r}{0.5\textwidth}
+	\vspace{-20pt}
+		\begin{center}
 \begin{verbatim}
 type btree = Leaf | Node of int*btree*btree
 
@@ -639,7 +634,16 @@ let dfs t x =
 
   dfs_aux [t]
 \end{verbatim}
+			\end{center}
+				\vspace{-20pt}
+			\caption{dfs algorithm}
+		\vspace{-10pt}
+\label{fig:dfs}
+\end{wrapfigure}
 
+
+For example, we can implement and analyze the following simple dfs algorithm on trees 
+\ref{fig:dfs}.
 The search starts at the root, and checks if the node is the target. If not, 
 the left and right subtrees are queued in that order, and recursively searches.
 We now analyze by hand its heap usage under $\ms{free}$. Tree \texttt{t} is given 
@@ -655,67 +659,18 @@ the cons in \texttt{t::ts} to allocate \texttt{t1::t2::ts}, and the search conti
 no overhead. Since no runs through \texttt{dfs\_aux} require additional heap locations, 
 it is zero overhead. Thus, this dfs implementation has a constant space cost of 2.
 
-We can now demonstrate running a closed 
-expression. We write a helper function for generating near-balanced trees from lists: 
+Now, we can run dfs on an example tree 
+\texttt{t = Node(1,Node(2,Node(4,Leaf,Leaf),Leaf),Node(3,Leaf,Leaf))}:
+\[
+\emptyset,\emptyset,\emptyset,\{l_1,...,l_1\} 
+	\vdash \texttt{dfs t 3}, l_1, H', 
+	\{l_2, l_4, l_6, l_7, l_9, l_10, l_11,\}
+\], where $H'$ is the heap in \ref{fig:heap}
 
+\begin{wrapfigure}{r}{0.5\textwidth}
+	\vspace{-20pt}
+		\begin{center}
 \begin{verbatim}
-(* 
-make_btree [1;2;3;4] =
-Node ( 1, 
-	Node ( 2, 
-		Node ( 4,Leaf (), Leaf () ), 
-		Leaf () ),
-	Node ( 3, Leaf (), Leaf () ))
-*)
-let make_btree l =
-
-  let rec split l =
-    match l with
-      | [] -> ([],[])
-      | x1::xs ->
-	match xs with
-	  | [] -> ([x1],[])
-	  | x2::xs ->
-	    let (a,b) = split xs in
-	    (x1::a,x2::b)
-  in
-
-  let rec mk_tree l =
-    match l with
-      | [] -> Leaf
-      | x::xs ->
-	let (a,b) = split xs in
-	let (t1,t2) = (mk_tree a, mk_tree b) in
-	Node(x,t1,t2)
-  in
-
-  mk_tree l
-\end{verbatim}
-
-The follow judgment holds: $\emptyset,\emptyset,\emptyset,\{l_1,...,l_9\} 
-	\vdash \texttt{mk\_tree [1;2;3;4]}, l_9, H', \emptyset$, where $H'$ is
-
-\begin{verbatim}
-[
-	l1 |--> Null
-	l2 |--> Null 
-	l3 |--> Null 
-	l4 |--> Null 
-	l5 |--> Null 
-	l6 |--> <4, Leaf@[l1], Leaf@[l2]>, 
-	l7 |--> <2, Node@[l6], Leaf@[l4]>, 
-	l8 |--> <3, Leaf@[l3], Leaf@[l5]>, 
-	l9 |--> <1, Node@[l7], Node@[l8]>
-]
-\end{verbatim}
-
-Next, we can run dfs on this example tree:\\
-$\emptyset,\emptyset,\emptyset,\{l_1,...,l_1\} 
-	\vdash \texttt{dfs (mk\_tree [1;2;3;4]) 3}, l_1, H', 
-	\{l_2, l_4, l_6, l_7, l_9, l_10, l_11,\}$, where $H'$ is
-
-\begin{verbatim}
-[
 	l1 |--> Node@[l8] 
 	l2 |--> <freed>
 	l3 |--> Null 
@@ -727,8 +682,13 @@ $\emptyset,\emptyset,\emptyset,\{l_1,...,l_1\}
 	l9 |--> <freed>
 	l10 |--> <freed>
 	l11 |--> <freed>
-]
 \end{verbatim}
+		\end{center}
+				\vspace{-20pt}
+			\caption{$H'$}
+		\vspace{-10pt}
+\label{fig:heap}
+\end{wrapfigure}
 
 From this run, we see that the space overhead of dfs is 2 heap locations, which agrees with 
 our manual derivation. In the next section, we see that the type system will also be 
@@ -762,6 +722,102 @@ requires 2 cons constructors (but 0 potential per cons cell). So we need a total
 of constant potential. Thus the overall allocation cost of dfs is $2m+3$, where $m$ is the number 
 of \texttt{Node} constructors in the input.
 
+\subsubsection{Denotational Semantics}
+
+Before giving the type rules, we need to formalize linear potential as explained above.
+Since potential is associated with the \emph{structure} of a value and not the particular heap 
+locations, we need a mapping from
+heap values to semantic values (or structures) of a type. 
+First give a denotational semantics for (define the structures of) the first-order types: 
+
+\begin{align*}
+	\denote{\unittyabt} &= \{\val{\irl{Null}}\}\\
+	\denote{\booltyabt} &= \{\val{\irl{T}}, \val{\irl{F}}\}\\
+	\denote{\irl{nat}} &= \mathbb{N}\\
+\pairexcst{a_1}{a_2} &\in \denote{\prodtycst{A_1}{A_2}} 
+	\text{ if } a_1 \in \denote{A_1} \text{ and } a_2 \in \denote{A_2}\\
+\nilexcst &\in \denote{L(A)}\\
+\consexcst{a}{l} &\in \denote{L(A)} \text{ if } a \in \denote{A} \text{ and } l \in \denote{L(A)}\\
+\end{align*}
+
+Where semantic set for each type is the least set such that the above holds. Write $[a_1,...,a_n]$ for $\consexcst(a_1,...,\consexcst(a_n,\nilexcst))$.
+We also refer to the elements of a semantic set as structures. \\
+
+Now we give the judgements relating heap values to semantic values, in the form \fbox{$H \vDash v \mapsto a : A$}, which can be read as: under heap $H$, heap value $v$ defines the semantic value $a \in \denote{A}$.  
+
+\begin{mathpar}
+\inferr{
+  H \vDash \val{n} \mapsto n : \irl{nat}
+}{
+  n \in \mathbb{Z}
+}(\text{V:ConstI})
+
+\inferr{
+	H \vDash \val{\irl{Null}} \mapsto \val{\irl{Null}} : \unittyabt
+}{
+}(\text{V:ConstI})
+
+\inferr{
+  H \vDash \val{\irl{Null}} \mapsto \val{\irl{Null}} : L(A)
+}{
+  A \in \ms{BType}
+}(\text{V:Nil})
+
+\inferr{
+  H \vDash \val{\irl{T}} \mapsto  \val{\irl{T}} : \booltyabt
+}{
+}(\text{V:True})
+
+\inferr{
+  H \vDash \val{\irl{F}} \mapsto \val{\irl{F}}  : \booltyabt
+}{
+}(\text{V:False})
+
+	\inferr{
+		H \vDash \pairexcst{v_1}{v_2} \mapsto \pairexcst{a_1}{a_2} : \prodtycst{A_1}{A_2}
+	}{
+		H \vDash v_1 \mapsto a_1 : A_1 \\
+		H \vDash v_2 \mapsto a_2 : A_2
+	}(\text{V:Pair})
+	
+\inferr{
+  H \vDash l \mapsto [a_1,\ldots,a_n] : L(A)
+}{
+  l \in \ms{Loc}\\
+  H(l) = \pairexcst{v_h}{v_t}\\
+  H \vDash v_h \mapsto a_1 : A\\
+  H \vDash v_t \mapsto [a_2,\ldots,a_n] : L(A)
+}(\text{V:Cons})
+\end{mathpar}
+
+Given a stack $V$, we write $H \vDash V : \Gamma$ if $dom(V) = dom(\Gamma)$ and
+for every $x : A \in \Gamma$, $H \vDash V(x) \mapsto a : A$ for some $a \in \llbracket A \rrbracket$.
+
+\subsubsection{Linear Potential}
+We introduce linear potential for structures corresponding to the base types. The definition of
+linear potential is standard material, and can be found in \ref{Hoffmann11}, which is also
+a good source for an introduction to AARA.
+With linear potential, each component of a structure is associated with a constant amount of 
+potential.  Given a structure $a$ in a heap $H$, where  $H \vDash v \mapsto a : A$, we define 
+its potential $\Phi_H(a : A)$ by recursion on $A$: 
+
+\begin{align*}
+&\Phi_H(a : A) = 0 &A \in \{\unittycst, \booltyabt, \irl{nat}\}\\
+&\Phi_H(\pairexcst{a_1}{a_2} : \prodtycst{A_1}{A_2}) = \Phi_H(a_1 : A_1) + \Phi_H(a_2 : A_2)\\
+&\Phi_H([a_1,...a_n] : L^p(A)) = p\cdot n + \sum_{1 \le i \le n} \Phi_H(a_i : A)  
+\end{align*}
+
+Now define $A \curlyvee A_1,A_2,n$ as the sharing relation for resource-annotated types:
+\begin{align*}
+	&L^p(A) \curlyvee^n L^q(A_1),L^r(A_2) & \text{if } p = q + r + n \;\text{and}\; 
+			A \curlyvee^n A_1,A_2\\
+	&\prodtycst{A}{B} \curlyvee^n \prodtycst{A_1}{B_1}, \prodtycst{A_2}{B_2}
+		&\text{ if } A \curlyvee^n A_1,A_2 \text{ and } B \curlyvee^n B_1,B_2\\
+	&A \curlyvee^n  A,A& \text{ if } A \in \{\unittycst, \booltycst, \irl{nat}\}\\
+\end{align*}
+The sharing relation captures the amount of potential needed to copy a type $A$ where each 
+cons node in any structure in $\llbracket A \rrbracket$ has a copying overhead $n$.
+
 \subsubsection{Type Rules}
 \label{sect:typing}
 The type system $\fogc$ consists of rules of the form \fbox{$\Sigma;\Gamma \sststile{q'}{q} e : A$}, 
@@ -769,38 +825,8 @@ read as under signature $\Sigma$, context $\Gamma$, $e$ has type $A$ starting wi
 constant potential and ending with $q'$ units.
 
 The type system is based on the affine type system in \ref{Hoffmann:2017:TAR:3009837.3009842}. 
-First, we explain the rule L:MatL:
-
-\[
-\inferr{
-  \Sigma; \Gamma, x : L^p(A) \sststile{q'}{q} \listcaseexcst{x}{e_1}{x_h}{x_t}{e_2} : B
-}{
-  \Sigma; \Gamma \sststile{q'}{q} e_1 : B \\
-  \Sigma; \Gamma, x_h : A, x_t : L^p(A) \sststile{q'}{q + p + 1} e_2 : B
-}(\text{L:MatL})
-\]
-
-The key insight for the new type system that we can model garbaged collected locations by 
-returning potential locally in a match construct. 
-This is validated by the fact (Lemma \ref{itm:na}) that once a cons-cell is matched on, 
-there can be no live references from the root set to it, and thus 
-we are justified in restituting the potential to type the subexpression $e_2$. The next 
-interesting rule is L:ShareCopy:
-
-\[
-\inferr{
-  \Sigma; \Gamma, x : A \sststile{q'}{q} \sharecpcst{x}{x_1}{x_2}{e} : B
-}{
-  A \;\curlyvee \;A_1, A_2,1\\
-  \Sigma; \Gamma, x_1 : A_1, x_2 : A_2 \sststile{q'}{q} e : B
-}(\text{L:ShareCopy})
-\]
-
-To share a variabe of type $A$, we need to split the potential between two new annotated types 
-$A_1$ and $A_2$. In addition, we have to pay an ``overhead'' of 1 for every cons node 
-in any structure in $\llbracket A \rrbracket$.
-
-Lastly, since we are interested in the number of heap locations, 
+We give a review of the rules below.
+Since we are interested in the number of heap locations, 
 there is an implicit side condition in all rules
 which ensures all constants are assumed to be nonnegative.
 
@@ -846,6 +872,20 @@ which ensures all constants are assumed to be nonnegative.
 }(\text{L:Cons})
 
 \inferr{
+  \Sigma; \Gamma, x : L^p(A) \sststile{q'}{q} \listcaseexcst{x}{e_1}{x_h}{x_t}{e_2} : B
+}{
+  \Sigma; \Gamma \sststile{q'}{q} e_1 : B \\
+  \Sigma; \Gamma, x_h : A, x_t : L^p(A) \sststile{q'}{q + p + 1} e_2 : B
+}(\text{L:MatL})
+
+\inferr{
+  \Sigma; \Gamma, x : A \sststile{q'}{q} \sharecpcst{x}{x_1}{x_2}{e} : B
+}{
+  A \;\curlyvee \;A_1, A_2\\
+  \Sigma; \Gamma, x_1 : A_1, x_2 : A_2 \sststile{q'}{q} e : B
+}(\text{L:ShareCopy})
+
+\inferr{
   \Sigma; \Gamma_1, \Gamma_2 \sststile{q'}{q} \irl{let}(e_1; x : \tau.e_2) : B
 }{
   \Sigma; \Gamma_1 \sststile{p}{q} e_1 : A \\
@@ -853,6 +893,41 @@ which ensures all constants are assumed to be nonnegative.
 }(\text{L:Let})
 
 \end{mathpar}
+
+The new type system replaces the rules L:MatL and L:Share. The observation is that if we ensure 
+that locations are used linearly, we can use destructive pattern matching to model 
+local garbage collection by returning the potential associated with the constructor location
+(notice the extra $+1$ in the second premise):
+
+\[
+\inferr{
+  \Sigma; \Gamma, x : L^p(A) \sststile{q'}{q} \listcaseexcst{x}{e_1}{x_h}{x_t}{e_2} : B
+}{
+  \Sigma; \Gamma \sststile{q'}{q} e_1 : B \\
+  \Sigma; \Gamma, x_h : A, x_t : L^p(A) \sststile{q'}{q + p + 1} e_2 : B
+}(\text{L:MatL})
+\]
+
+This is validated by the fact (Lemma \ref{itm:na}) that in the auxiliary linear semantics 
+$\ms{copy}$ (introduced to prove soundness in \ref{sect:soundcopy} of $\fogc$) 
+once a cons-cell is matched on, 
+there can be no live references from the root set to it, and thus 
+we are justified in restituting the potential to type the subexpression $e_2$. The next 
+interesting rule is L:Share:
+
+\[
+\inferr{
+  \Sigma; \Gamma, x : A \sststile{q'}{q} \sharecpcst{x}{x_1}{x_2}{e} : B
+}{
+  A \;\curlyvee^1 \;A_1, A_2\\
+  \Sigma; \Gamma, x_1 : A_1, x_2 : A_2 \sststile{q'}{q} e : B
+}(\text{L:Share})
+\]
+
+To share a variabe of type $A$, we need to split the potential between two new annotated types 
+$A_1$ and $A_2$ as usual. In addition, we have to pay an ``overhead'' of 1 for every cons node 
+in any structure in $\llbracket A \rrbracket$. This is used to model the copying overhead 
+in the sharing rule in $\ms{copy}$.
 
 For example, we can give the following typing derivation to append. 
 Note that the program and signature is populated with global function declarations (in this case,
@@ -1180,6 +1255,7 @@ $\ms{free}$ if the computation suceeded in a run with $\ms{copy}$, and that inde
 $\ms{copy}$ is an over approximation of $\ms{free}$.
 
 \subsubsection{Soundness of $\ms{copy}$}
+\label{sect:soundcopy}
 
 To formally state the soundness theorem,
 we need to introduce an auxiliary operational semantics (call this \ms{oper}) 
@@ -1234,101 +1310,6 @@ $\ctxeq{V_2,H_2}{V_2,H_2}$
 Stated simply, two contexts are equivalent when they have the same domain and equal variables bind 
 equal semantic values. 
 
-\subsubsection{Denotational Semantics}
-
-The last ingredient we need before stating the soundness theorem is defining linear potential.
-Since potential is associated with the \emph{structure} of a value and not the particular heap 
-locations, we need a mapping from
-heap values to semantic values (or structures) of a type. 
-First give a denotational semantics for (define the structures of) the first-order types: 
-
-\begin{align*}
-	\denote{\unittyabt} &= \{\val{\irl{Null}}\}\\
-	\denote{\booltyabt} &= \{\val{\irl{T}}, \val{\irl{F}}\}\\
-	\denote{\irl{nat}} &= \mathbb{N}\\
-\pairexcst{a_1}{a_2} &\in \denote{\prodtycst{A_1}{A_2}} 
-	\text{ if } a_1 \in \denote{A_1} \text{ and } a_2 \in \denote{A_2}\\
-\nilexcst &\in \denote{L(A)}\\
-\consexcst{a}{l} &\in \denote{L(A)} \text{ if } a \in \denote{A} \text{ and } l \in \denote{L(A)}\\
-\end{align*}
-
-Where semantic set for each type is the least set such that the above holds. Write $[a_1,...,a_n]$ for $\consexcst(a_1,...,\consexcst(a_n,\nilexcst))$.
-We also refer to the elements of a semantic set as structures. \\
-
-Now we give the judgements relating heap values to semantic values, in the form \fbox{$H \vDash v \mapsto a : A$}, which can be read as: under heap $H$, heap value $v$ defines the semantic value $a \in \denote{A}$.  
-
-\begin{mathpar}
-\inferr{
-  H \vDash \val{n} \mapsto n : \irl{nat}
-}{
-  n \in \mathbb{Z}
-}(\text{V:ConstI})
-
-\inferr{
-	H \vDash \val{\irl{Null}} \mapsto \val{\irl{Null}} : \unittyabt
-}{
-}(\text{V:ConstI})
-
-\inferr{
-  H \vDash \val{\irl{Null}} \mapsto \val{\irl{Null}} : L(A)
-}{
-  A \in \ms{BType}
-}(\text{V:Nil})
-
-\inferr{
-  H \vDash \val{\irl{T}} \mapsto  \val{\irl{T}} : \booltyabt
-}{
-}(\text{V:True})
-
-\inferr{
-  H \vDash \val{\irl{F}} \mapsto \val{\irl{F}}  : \booltyabt
-}{
-}(\text{V:False})
-
-	\inferr{
-		H \vDash \pairexcst{v_1}{v_2} \mapsto \pairexcst{a_1}{a_2} : \prodtycst{A_1}{A_2}
-	}{
-		H \vDash v_1 \mapsto a_1 : A_1 \\
-		H \vDash v_2 \mapsto a_2 : A_2
-	}(\text{V:Pair})
-	
-\inferr{
-  H \vDash l \mapsto [a_1,\ldots,a_n] : L(A)
-}{
-  l \in \ms{Loc}\\
-  H(l) = \pairexcst{v_h}{v_t}\\
-  H \vDash v_h \mapsto a_1 : A\\
-  H \vDash v_t \mapsto [a_2,\ldots,a_n] : L(A)
-}(\text{V:Cons})
-\end{mathpar}
-
-Given a stack $V$, we write $H \vDash V : \Gamma$ if $dom(V) = dom(\Gamma)$ and
-for every $x : A \in \Gamma$, $H \vDash V(x) \mapsto a : A$ for some $a \in \llbracket A \rrbracket$.
-
-\subsubsection{Linear Potential}
-We introduce linear potential for structures corresponding to the base types. The definition of
-linear potential is standard material, and can be found in \ref{Hoffmann11}, which is also
-a good source for an introduction to AARA.
-With linear potential, each component of a structure is associated with a constant amount of 
-potential.  Given a structure $a$ in a heap $H$, where  $H \vDash v \mapsto a : A$, we define 
-its potential $\Phi_H(a : A)$ by recursion on $A$: 
-
-\begin{align*}
-&\Phi_H(a : A) = 0 &A \in \{\unittycst, \booltyabt, \irl{nat}\}\\
-&\Phi_H(\pairexcst{a_1}{a_2} : \prodtycst{A_1}{A_2}) = \Phi_H(a_1 : A_1) + \Phi_H(a_2 : A_2)\\
-&\Phi_H([a_1,...a_n] : L^p(A)) = p\cdot n + \sum_{1 \le i \le n} \Phi_H(a_i : A)  
-\end{align*}
-
-Now define $A \curlyvee A_1,A_2,n$ as the sharing relation for resource-annotated types:
-\begin{align*}
-	&L^p(A) \curlyvee^n L^q(A_1),L^r(A_2) & \text{if } p = q + r + n \;\text{and}\; 
-			A \curlyvee^n A_1,A_2\\
-	&\prodtycst{A}{B} \curlyvee^n \prodtycst{A_1}{B_1}, \prodtycst{A_2}{B_2}
-		&\text{ if } A \curlyvee^n A_1,A_2 \text{ and } B \curlyvee^n B_1,B_2\\
-	&A \curlyvee^n  A,A& \text{ if } A \in \{\unittycst, \booltycst, \irl{nat}\}\\
-\end{align*}
-The sharing relation captures the amount of potential needed to copy a type $A$ where each 
-cons node in any structure in $\llbracket A \rrbracket$ has a copying overhead $n$.
 
 We are ready to state the soundness theorem now:
 
@@ -1630,8 +1611,8 @@ we discuss possible solutions and different approaches in the next sections.
 	\end{adjustbox}
 \end{table}
 
-\section{Future Work}
-\label{sect:future-work}
+\section{Conclusion}
+\label{sect:conclusion}
 
 \jan{Related work}
 
