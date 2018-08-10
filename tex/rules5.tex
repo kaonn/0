@@ -91,11 +91,14 @@
 \newcommand{\shareabt}[4]{\irl{share}(#1;#2,#3.#4)}
 \newcommand{\ssize}[2]{\left\Vert #2 \right\Vert_{#1}}
 \newcommand{\card}[1]{card(#1)}
+\newcommand{\val}[1]{\irl{val}(#1)}
 \newcommand{\gc}[3]{\mathsf{gc}(#1,#2,#3)}
 \newcommand{\wfc}[5]{\mathsf{wfc}(#1,#2,#3,#4,#5)}
 \newcommand{\veq}[4]{#3 \sim^{#1}_{#2} #4}
 \newcommand{\ctxeq}[2]{(#1) \sim (#2)}
 \newcommand{\oh}[1]{\oslash(#1)}
+\newcommand{\fogc}{\ms{FO}^{gc}}
+\newcommand{\cf}[1]{#1^{cf}}
 \newtheorem{lemma}[theorem]{Lemma}
 \newtheorem{corollary}{Corollary}[theorem]
 \theoremstyle{definition}
@@ -107,7 +110,6 @@
 \setlength{\parindent}{0pt}
 
 \begin{document}
-\RaggedRight
 \maketitle
 \pagenumbering{gobble}
 
@@ -294,9 +296,9 @@ We write $L = reach_H(v)$ to indicate this is a functional relation justified by
 \end{mathpar}
 
 The notion of reachability naturally lifts to expressions via $locs_{V,H}$:
-\begin{equation*}
+\begin{align*}
   &locs_{V,H}(e) = \bigcup\limits_{x \in FV(e)} reach_H(V(x))\\\\
-\end{equation*}
+\end{align*}
 Where $FV : \ms{Exp} \to \mathcal{P}(\ms{Var})$ denotes the set of free-variables of expressions as usual.
 We define $FV^{\star} : \ms{Exp} \to \wp(\ms{Var})$, the multiset of free variables of expressions,
 as the usual $FV$ inductively over the structure of $e$; the only unusual thing is that multiple occurences
@@ -736,7 +738,7 @@ $\Phi_H(a : A)$ by recursion on $A$:
 
 \section{Linear Garbage Collection Type Rules}
 \label{sec:typing}
-The type system \fogc consists of rules of the form \fbox{$\Sigma;\Gamma \sststile{q'}{q} e : A$}, read as 
+The type system $\fogc$ consists of rules of the form \fbox{$\Sigma;\Gamma \sststile{q'}{q} e : A$}, read as 
 under signature $\Sigma$, context $\Gamma$, $e$ has type $A$ starting with $q$ units of constant potential and 
 ending with $q'$ units.\\
 
@@ -1739,8 +1741,44 @@ $\gamma$ is a \emph{counting partition} for $S$.\\
 For a partition $f : A \to \mathcal{P}(B)$, we write the set of equivalence classes
 as $ec(f) = \{f(x) \mid x \in A\} = f(A)$, i.e. the image of $f$ on its domain $A$.\\
 
-For an evaluation $\mathcal{C} = (V,H,R,F) \vdash e \Downarrow v,H',F'$, denote its garbage collection
-as $collect(\mathca{C} \vdash v,H',F') = \{l \in H' \mid l \notin F' \cup R \cup reach_H'(v)\}$.
+For an evaluation $\mathcal{C} = (V,H,R,F) \vdash e \Downarrow v,H',F'$, denote its
+garbage collection
+as $collect(R,v,H',F') = \{l \in H' \mid l \notin F' \cup R \cup reach_H'(v)\}$.
+
+\begin{definition}
+	Let \ms{dir} be the set \{\ms{L},\ms{R},\ms{N}\}, denoting left, right, and next 
+	respectively. We can index values via directions:
+	\begin{align*}
+		get_H(Just(\pairexcst{v_1}{v_2},\ms{L})) &= Just(v_1)\\
+		get_H(Just(\pairexcst{v_1}{v_2},\ms{R})) &= Just(v_2)\\
+		get_H(Just(\pairexcst{v_1}{v_2}),_) &= None\\
+		get_H(Just(l),\ms{N}) &= Just(H(l)) \\
+		get_H(Just(l), \_) &= None\\
+		get_H(r,\_) &= r
+	\end{align*}
+	Let $P$ be a sequence of directions. Extend $get$ to sequence of directions:
+	\begin{align*}
+		find_H(v,D::P) &= find_H(get_H(v,D),P)\\
+		find_H(v,[]) &= v
+	\end{align*}
+	Call $P$ valid w.r.t a value $v$ if $find_H(v,P) = Just (v')$ for some $v'$.
+	Write $V_H(x;P)$ for $fromJust(find_H(V(x),P))$ given a valid sequence $P$ w.r.t $V(x)$,
+	and $reach_H(V(x;P))$ for $reach_H(V_H(x;P))$.
+	Given a map $m : X \to \mathcal{S}(\ms{dir})$ from varibles to valid sequences of directions, 
+	Define $reachPath_{V,H}(X,m) = \biguplus_{x \in X} reach_H(V(x;m(x)))$.
+	
+\end{definition}
+
+\begin{lemma}
+	Let $V_1,H_1 \sim V_2,H_2$. Then for all $x \in dom(V_1)$ and sequence of directions $P$, 
+	Either $find_{H_1}(V_1(x),P) = find_{H_2}(V_2(x),P) = None$ or 
+	$find_{H_1}(V_1(x),P) = v_1$, $find_{H_2}(V_2(x),P) = v_2$ and
+	$\veq{H_1}{H_2}{v_1}{v_2}$
+\end{lemma}
+
+\begin{proof}
+	Induction on length of $P$ and then $H \vdash v \mapsto a : A$.
+\end{proof}
 
 \begin{definition}
 A configuration $\mathcal{C}_2 = (V_2,H_2,R_2,F_2)$ is a \emph{copy extension} of another configuration
@@ -1749,11 +1787,10 @@ $\mathcal{C}_1 = (V_1,H_1,R_1,F_1)$ iff
 \item $V_1,H_1 \sim V_2,H_2$
 \item There is a proper partition $\gamma : dom(H_1) \setminus F_1 \to \mathcal{P}(dom(H_2) \setminus F_2)$ 
 such that for all $l \in dom(\gamma)$, $|\gamma(l)| = reach_{H_1}(V_1)(l) + R_1(l)$
-\item There is a mapping $\eta : (dom(H_1) \setminus F_1) \to dom(V_1) \to 
-	\mathcal{P}(dom(H_2) \setminus F_2)$ such that 
-for all $l \notin R_1$, $\eta(l)(x) = reach_{H_2}(x) \cap \gamma(l)$. Futhermore, 
-for all $l$ and $x$, $|\eta(l)(x)| = reach_{H_1}(V_1(x))(l)$.
-\item $R_1 \subseteq dom(H_1) \setminus F_1$ and $R_2 = \bigcup \gamma(R_1)$
+\item for all $l \in dom(\gamma)$, $x \in dom(V_1)$, valid sequence of directions $P$ w.r.t $V_1(x)$,
+	$|reach_{H_2}(V_2(x;P)) \cap \gamma(l)| = reach_{H_1}(V_1(x;P))(l)$.
+\item $R_1 \subseteq dom(H_1) \setminus F_1$ and 
+	for all $l \in R_1$, $|\gamma(l) \cup R_2| = R_1(l)$
 \item $|F_1| = |F_2| + |\oh{\gamma}|$, where 
 	$\oh{\gamma} = \bigcup_{P \in ec(\gamma)} P \setminus (rep(P))$
 \end{enumerate}
@@ -1773,26 +1810,49 @@ $(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ and
 			\item $\mathcal{C}_1 \vdash^{\mathsf{free}} e \Downarrow w,Y',M'$
 			\item $\veq{H'}{Y'}{v}{w}$
 			\item $\gamma'$ is a proper partition, such that for all $l \in dom(\gamma')$, 
-				$|\gamma'(l)| = |reach_{Y_1}(w_1)(l)| + S(l) + |\gamma'(l) \cap collect(\mathcal{C}_2 \vdash^{\mathsf{copy}} e \Downarrow v,H',F')|$
-			\item $|reach_{H_1}(v) \cap \gamma'(l)| = reach_{Y_1}(w)(l)$
-			\item $R_2$ = \bigcup \gamma'(R_1)$ 
+				$|\gamma'(l)| = |reach_{Y_1}(w_1)(l)| + S(l)$
+			\item For all $P$, $|reach_{H'}(find_{H'}(v;P)) \cap \gamma'(l)| = 
+				reach_{Y'}(find_{Y'}(w;P))(l)$
+			\item $\gamma'(l) \cap R = \gamma(l) \cap R$
 			\item $|M'| = |F'| + |\oh{\gamma'}|$
 	\end{enumerate}
 \end{lemma}
 
 For a configuration $\mathcal{C} = (V,H,R,F)$, denote the current garbage w.r.t a set of root variables 
 $X \subseteq dom(V)$ 
-as $clean(\mathca{C},X) = \{l \in H \mid l \notin F \cup R \cup reach_H(X)\}$. Some auxiliary lemmas: 
+as $clean(\mathcal{C},L) = \{l \in H \mid l \notin F \cup R \cup L\}$. Some auxiliary lemmas: 
 
 \begin{lemma}\label{itm:aux}
 Let $V_2,H_2,R_2,F_2 \vdash^{\mathsf{copy}} e \Downarrow v,H',F'$, and 
 $V_1,H_1,R_1,F_1 \preceq V_2,H_2,R_2,F_2$ because $(-,\gamma,\eta,-,-)$. Then the following hold:
-\begin{enumerate}
-\item for all $l \in dom(H_1) \setminus F_1$, 
-$X \subseteq dom(V)$, $\gamma(l) \subseteq clean(\mathcal{C}_2,X)$ implies that 
-$l \in clean(\mathcal{C}_1,X)$.
-\end{enumerate}
+for all $l \in dom(H_1) \setminus F_1$, 
+	$X \subseteq dom(V)$, $m : X \to \mathcal{S}(\ms{dir})$, 
+	$\gamma(l) \subseteq clean(\mathcal{C}_2,reachPath_{V_2,H_2}(X,m))$ implies that 
+	$l \in clean(\mathcal{C}_1,reachPath_{V_1,H_1}(X,m))$.
 \end{lemma}
+
+\begin{proof}
+	\begin{align*}
+		&\gamma(l) \cap (F \cup R \cup reachPath_{V_2,H_2}(X,m)) = 
+			\emptyset \tag{definition of $clean$}\\
+		&\text{NTS } l \notin F_1 \cup R_1 \cup reach_{H_1}(X)\\
+		&\emph{(1) } l \notin F_1 \tag{assumption}\\
+		&\emph{(2) } l \notin R_1\\
+		&\quad \text{Know } \gamma(l) \cap R_2 = \emptyset\\
+		&\quad |\gamma(l) \cap R_2| = R_1(l) = 0 \tag{condition 4. of $\preceq$}\\
+		&\quad l \notin R_1\\
+		&\emph{(3) } l \notin reachPath_{V_1,H_1}(X,m)\\
+		&\quad \text{Know } \gamma(l) \cap reachPath_{V_2,H_2}(X,m) = \emptyset\\
+		&\quad \text{Let } x \in X\\
+		&\quad \gamma(l) \cap reach_{H_2}(V_2(x,m(x))) = \emptyset\\
+		&\quad |\gamma(l) \cap reach_{H_2}(V_2(x,m(x)))| = reach_{H_1}(V_1(x,m(x)))(l) 
+			\tag{condition 3. of $\preceq$}\\
+		&\quad reach_{H_1}(V_1(x,m(x)))(l) = 0\\
+		&\quad reachPath_{V_1,H_1}(X,m)(l) = 0\\
+		&\quad l \notin reachPath_{V_1,H_1}(X,m)\\
+		&\quad \text{Thus, } l \in clean(\mathcal{C}_1,reachPath_{V_1,H_1}(X,m))
+	\end{align*}
+\end{proof}
 In particular, this means that we can (somewhat obviously), execute a computation using the free semantics
 if the computation suceeded with the copy semantics. 
 
@@ -1842,35 +1902,37 @@ Induction on the evaluation judgement.\\
 		&\quad \text{AFSOC } \gamma(l) \subseteq g\\ 
 		&\quad l \in j \tag{By Lemma \ref{itm:aux}}\\
 		&\quad \text{Contradiction since assumed } l \notin j\\ 
-		&\quad \text{Now, let } l \in dom(\gamma')\\
+		&\quad \text{Now, NTS } |\gamma'(l)| = reach_{Y}(V')(l) + R(l)
+		&\quad \text{Let } l \in dom(\gamma')\\
 		&\quad \gamma'(l) = \gamma(l) \setminus g \tag{definition}\\ 
 		&\quad |\gamma'(l)| = |\gamma(l)| - |\gamma(l) \cap g|\\
 		&\quad = reach_Y(W)(l) + S(l) - |\gamma(l) \cap g|\\
 		&\quad = reach_Y(W)(l) + S(l) - |\gamma(l) \cap g|\\
-		&\quad = \gamma(l) \tag{$\gamma(l) \subseteq R$ and $g \cap R = \emptyset$}\\
-		&\quad |\gamma'(l)| = |\gamma(l)| = S(l)\\
-		&\emph{(3)}\quad \text{NTF } \eta' : (dom(Y) \setminus (M \sqcup j)) \to dom(V') \to 
-	\mathcal{P}(dom(H) \setminus (F \cup g))\\
-		&\quad \eta'(l)(x) = \eta(l)(x) \setminus g\\
-		&\text{Let } l \notin $S$\\
-		&\quad \text{First, NTS } \eta'(l) \text{ is a partition:}\\
-		&\quad \text{Let } x, x' \in dom(V')\\
-		&\quad \eta'(l)(x) \cap \eta'(l)(x') = \emptyset \tag{$\eta(l)$ is partition}\\
-		&\quad \eta'(l)(dom(V')) = \eta(l)(dom(V'))\\
-		&\quad = \\
+		&\quad \text{TODO (proof on whiteboard)}\\
+		&\emph{(3)}\quad \text{Let $l \in dom(\gamma'), x \in dom(W')$, 
+			$P$ valid sequence w.r.t $W'(x)$. NTS }\\ 
+		&|reach_{H}(V'(x;P)) \cap \gamma'(l)| = reach_{Y}(W'(x;P))(l)\\ 
+		&\quad \text{STS } |reach_{H}(V'(x;P)) \cap (\gamma(l) \setminus g)| = reach_{Y}(W'(x;P))(l) \\
+		&\quad g \cap reach_H(V'(x;P)) = \emptyset \tag{definition of $g$}\\
+		&\quad |reach_{H}(V'(x;P)) \cap (\gamma(l) \setminus g)| = 
+				|(reach_{H}(V'(x;P)) \setminus g) \cap \gamma(l)|\\
+		&\quad = |reach_{H}(V'(x;P)) \cap \gamma(l)|\\
+		&\quad = |reach_{H}(V(x;P)) \cap \gamma(l)|\\
+		&\quad = reach_{Y}(W(x;P))(l) \tag{condition 3. of $\preceq$}\\
+		&\quad = reach_{Y}(W'(x;P))(l) \\
 		&\emph{(4)}\quad S \subseteq dom(Y) \setminus (M \cup j) \text{ since } S \cap j = \emptyset\\
-		&\quad \text{NTS } R = \bigcup \gamma'(S)\\
-		&\quad \forall l \in S, \gamma'(l) = \gamma(l)\\
-		&\quad \gamma'(l) = \gamma \restriction_{dom(Y)\setminus(M \sqcup j)}(l) \setminus g\\
-		&\quad = \gamma(l) \setminus g\\
-		&\quad = \gamma(l) \tag{$\gamma(l) \subseteq R$ and $R \cap g = \emptyset$}\\
+		&\quad \text{Let } l \in S \text{. NTS } |\gamma'(l) \cap R| = S(l)\\
+		&\quad \text{STS } |(\gamma(l)\setminus g) \cap R| = S(l)\\
+		&\quad (\gamma(l)\setminus g) \cap R = \gamma(l) \cap (R \setminus g)\\
+		&\quad = \gamma(l) \cap R \tag{$g \cap R = \emptyset$}\\
+		&\quad |\gamma(l) \cap R| = S(l) \tag{condition 4. of $\preceq$}\\
 		&\emph{(5)}\quad \text{NTS } |M \cup j| = |F \cup g| + |\oh{\gamma'}|\\
 		&\quad \text{STS } |M| + |j| = |F| + | g| + |\oh{\gamma'}|\\
 		&\quad \text{By assumption }, |M| = |F| + |\oh{\gamma}|\\
 		&\quad \text{STS } |j| + |\oh{\gamma}| = |g| + |\oh{\gamma'}|\\
 		&\quad \text{NTF a bijection } f : j \oplus \oh{\gamma} \to g \sqcup \oh{\gamma'}\\
 		&\quad \text{First, we show that } g = (\bigsqcup_{l \in j} \gamma(l)) \sqcup L \text{ for some } L\\
-		&\quad \text{TODO: Show this }\\
+		&\quad \text{TODO: Show this (old papers)}\\
 		&\quad \text{Let } \mathcal{C}_1 = \{\gamma(l) \mid l \in j\},
 				\mathcal{C}_2 = ec(\gamma) \setminus \mathcal{C}_1\\
 		&\quad \text{Clearly, } \oh{\gamma} = 
@@ -1919,17 +1981,24 @@ Induction on the evaluation judgement.\\
 		&\quad\quad l \in \bigsqcup_{C \in ec(\gamma)} C\\
 		&\quad\text{Hence we show that } |D_2| = |L \sqcup \oh{\gamma'}|, \text{ and together with the previous 
 		equality, } |j| + |\oh{\gamma}| = |g| + |\oh{\gamma'}|\\
+		&\text{Thus we have } W',Y,S,F \cup j \preceq V',H,R,F \cup g\\
   	&V',H,R,F \cup g\; \vdash^{\mathsf{copy}} e_1 \Downarrow v, H',F' \tag{case}\\
 		&\text{By IH on $(V',H,R,F\cup g)$, we have } (w,Y',M',\gamma'') \text{ such that }\\
 		&\emph{(1)}\quad  W',Y,S,M \cup j  \vdash^{\mathsf{free}} e_1 \Downarrow w,Y',M'\\
-		&\emph{(2)}\quad \gamma'' \text{ is a counting partition for } reach_{Y'}(w) \uplus R\\
-		&\emph{(3)}\quad |M'| = |F'| + |\oh{\gamma''}|\\
+		&\emph{(2)}\quad \veq{H'}{Y'}{v}{w}\\
+		&\emph{(3)}\quad \gamma' \text{ is a proper partition, and } |\gamma''(l)| = 
+			reach_{Y'}(w)(l) + R(l)\\
+		&\emph{(4)}\quad \gamma''(l) \cap R = \gamma'(l) \cap R \\
+		&\quad \gamma'(l) \cap R = (\gamma(l) \setminus g) \cap R= \gamma(l) \cap R\\
+		&\emph{(5)}\quad |M'| = |F'| + |\oh{\gamma''}|\\
 		&\text{Apply F:CondT to \emph{(1)}, we are done.}
   \end{align*}
   \item[Case 6: E:CondF] 
   Similar to E:CondT
   \item[Case 7: E:Let]
   \begin{align*}
+		&V,H,R,F \; \vdash \irl{let}(e_1; x : \tau.e_2) \Downarrow v_2,H_2,F_2 \tag{case}\\
+		&
   \end{align*}
 	\item[Case 8: E:Pair]
   Similar to E:Const*
@@ -2057,6 +2126,7 @@ match l with
       append (l1, r)
 \end{verbatim}
 
+\iffalse
 \emph{map}: 
 
 \begin{verbatim}
@@ -2083,6 +2153,7 @@ Type derivation:
 	}(\text{L:Cons})
 }(\text{L:MatL})
 \]
+\fi
 
 \section{Implementation}
 

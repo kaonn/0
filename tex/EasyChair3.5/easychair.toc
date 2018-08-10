@@ -1,16 +1,16 @@
 \contentsline {section}{\numberline {1}Introduction}{2}{section.1}
-\contentsline {section}{\numberline {2}Notation}{2}{section.2}
-\contentsline {section}{\numberline {3}First Order Programs}{3}{section.3}
-\contentsline {section}{\numberline {4}Reachability}{5}{section.4}
-\contentsline {section}{\numberline {5}Towards the Garbage Collection Cost Semantics}{5}{section.5}
-\contentsline {section}{\numberline {6}Garbage Collection Cost Semantics}{6}{section.6}
-\contentsline {section}{\numberline {7}The Garbage Collection Cost Semantics $\ensuremath {\mathsf {copy}}$}{6}{section.7}
-\contentsline {section}{\numberline {8}Denotational Semantics}{8}{section.8}
-\contentsline {section}{\numberline {9}Linear Potential}{8}{section.9}
-\contentsline {section}{\numberline {10}Linear Garbage Collection Type Rules}{9}{section.10}
-\contentsline {section}{\numberline {11}Linearity of Copy Semantics}{11}{section.11}
-\contentsline {section}{\numberline {12}Soundness of $\ensuremath {\mathsf {FO}}^{gc}$}{12}{section.12}
-\contentsline {section}{\numberline {13}Garbage Collection Cost Semantics \ensuremath {\mathsf {free}}}{14}{section.13}
-\contentsline {section}{\numberline {14}Implementation}{16}{section.14}
-\contentsline {section}{\numberline {15}Evaluation}{17}{section.15}
-\contentsline {section}{\numberline {16}Future Work}{18}{section.16}
+\contentsline {section}{\numberline {2}Setting the Stage}{2}{section.2}
+\contentsline {subsubsection}{\numberline {2.0.1}Reachability}{4}{subsubsection.2.0.1}
+\contentsline {subsubsection}{\numberline {2.0.2}Towards the Garbage Collection Cost Semantics}{4}{subsubsection.2.0.2}
+\contentsline {section}{\numberline {3}Garbage Collection Cost Semantics \ensuremath {\mathsf {free}}}{5}{section.3}
+\contentsline {section}{\numberline {4}Automatic Amortized Resource Analysis}{8}{section.4}
+\contentsline {subsubsection}{\numberline {4.0.1}Type Rules}{9}{subsubsection.4.0.1}
+\contentsline {section}{\numberline {5}Soundness of $\ensuremath {\mathsf {FO}}^{gc}$}{10}{section.5}
+\contentsline {subsubsection}{\numberline {5.0.1}The Garbage Collection Cost Semantics $\ensuremath {\mathsf {copy}}$}{10}{subsubsection.5.0.1}
+\contentsline {subsubsection}{\numberline {5.0.2}Soundness of $\ensuremath {\mathsf {copy}}$}{13}{subsubsection.5.0.2}
+\contentsline {subsubsection}{\numberline {5.0.3}Denotational Semantics}{14}{subsubsection.5.0.3}
+\contentsline {subsubsection}{\numberline {5.0.4}Linear Potential}{14}{subsubsection.5.0.4}
+\contentsline {subsubsection}{\numberline {5.0.5}Linearity of Copy Semantics}{15}{subsubsection.5.0.5}
+\contentsline {section}{\numberline {6}Implementation}{17}{section.6}
+\contentsline {subsubsection}{\numberline {6.0.1}Evaluation}{17}{subsubsection.6.0.1}
+\contentsline {section}{\numberline {7}Future Work}{18}{section.7}
