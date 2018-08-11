@@ -472,9 +472,9 @@ set of the value.\\
 	V_1 = V\restriction_{FV(e_1)}\\
   R' = R \cup locs_{V_2,H}(\irl{lam}(x : \tau.e_2))\\
   V_1,H,R',F \vdash e_1 \Downarrow v_1,H_1,F_1\\
-	V_2' = (V[x \mapsto v_1])\restriction_{FV(e_2)}\\
-  g = \{ l \in H_1 \mid l \notin F_1 \cup R \cup locs_{V_2',H_1}(e_2) \}\\
-  V_2',H_1,R, F_1 \cup g \vdash e_2 \Downarrow v_2,H_2,F_2 \\
+	V_2 = (V[x \mapsto v_1])\restriction_{FV(e_2)}\\
+  g = \{ l \in H_1 \mid l \notin F_1 \cup R \cup locs_{V_2,H_1}(e_2) \}\\
+  V_2,H_1,R, F_1 \cup g \vdash e_2 \Downarrow v_2,H_2,F_2 \\
 }{
   V,H,R,F \; \vdash \irl{let}(e_1; x : \tau.e_2) \Downarrow v_2,H_2,F_2
 }
@@ -1790,7 +1790,7 @@ such that for all $l \in dom(\gamma)$, $|\gamma(l)| = reach_{H_1}(V_1)(l) + R_1(
 \item for all $l \in dom(\gamma)$, $x \in dom(V_1)$, valid sequence of directions $P$ w.r.t $V_1(x)$,
 	$|reach_{H_2}(V_2(x;P)) \cap \gamma(l)| = reach_{H_1}(V_1(x;P))(l)$.
 \item $R_1 \subseteq dom(H_1) \setminus F_1$ and 
-	for all $l \in R_1$, $|\gamma(l) \cup R_2| = R_1(l)$
+	for all $l \in R_1$, $|\gamma(l) \cap R_2| = R_1(l)$
 \item $|F_1| = |F_2| + |\oh{\gamma}|$, where 
 	$\oh{\gamma} = \bigcup_{P \in ec(\gamma)} P \setminus (rep(P))$
 \end{enumerate}
@@ -1902,13 +1902,13 @@ Induction on the evaluation judgement.\\
 		&\quad \text{AFSOC } \gamma(l) \subseteq g\\ 
 		&\quad l \in j \tag{By Lemma \ref{itm:aux}}\\
 		&\quad \text{Contradiction since assumed } l \notin j\\ 
-		&\quad \text{Now, NTS } |\gamma'(l)| = reach_{Y}(V')(l) + R(l)
+		&\quad \text{Now, NTS } |\gamma'(l)| = reach_{Y}(W')(l) + S(l)
 		&\quad \text{Let } l \in dom(\gamma')\\
 		&\quad \gamma'(l) = \gamma(l) \setminus g \tag{definition}\\ 
 		&\quad |\gamma'(l)| = |\gamma(l)| - |\gamma(l) \cap g|\\
 		&\quad = reach_Y(W)(l) + S(l) - |\gamma(l) \cap g|\\
 		&\quad = reach_Y(W)(l) + S(l) - |\gamma(l) \cap g|\\
-		&\quad \text{TODO (proof on whiteboard)}\\
+		&\quad \text{TODO (proof in notebook)}\\
 		&\emph{(3)}\quad \text{Let $l \in dom(\gamma'), x \in dom(W')$, 
 			$P$ valid sequence w.r.t $W'(x)$. NTS }\\ 
 		&|reach_{H}(V'(x;P)) \cap \gamma'(l)| = reach_{Y}(W'(x;P))(l)\\ 
@@ -1998,7 +1998,226 @@ Induction on the evaluation judgement.\\
   \item[Case 7: E:Let]
   \begin{align*}
 		&V,H,R,F \; \vdash \irl{let}(e_1; x : \tau.e_2) \Downarrow v_2,H_2,F_2 \tag{case}\\
+		&W,Y,S,M \preceq V,H,R,F \tag{assumption}\\
+		&V_1,H,R',F \vdash e_1 \Downarrow v_1,H_1,F_1 \tag{admissibility}\\
+		&\text{Let } W_1 = W \restriction_{FV(e_1)}, S' = S \uplus locs_{W,Y}(\irl{lam}(x : \tau.e_2))\\
+		&\text{NTS } W_1,Y,S',M \preceq V_1,H,R',F\\
+		&\emph{(1)}\quad W_1,Y \sim V_1,H \tag{condition 1. of $\preceq$}\\
+		&\emph{(2)a.}\quad \gamma \text{ is a proper partition } \tag{condition 2. of $\preceq$}\\
+		&\emph{(2).b}\quad \text{NTS } |\gamma(l)| = reach_Y(W')(l) + S'(l)\\
+		&\quad |\gamma(l)| = reach_Y(W)(l) + S(l) \tag{condition 2. of $\preceq$}\\
+		&\quad = reach_Y(W')(l) + reach_Y(W\restriction_{FV(e_2)\setminus \{x\}})(l) + S(l)\\
+		&\quad = reach_Y(W')(l) + S'(l)\\
+		&\emph{(3)}\quad \text{Let. } l \in dom(\gamma), x \in dom(W'), P \text{ valid sequence of 
+		directions. Have }\\
+		&\quad |reach_H(V'(x;P)) \cap \gamma(l) = reach_Y(W'(x;P))(l) 
+			\tag{condition 3. of $\preceq$}\\
+		&\emph{(4).a}\quad \text{NTS } S' \subseteq dom(Y)\setminus M\\
+		&\quad S \subseteq dom(Y)\setminus M \tag{condition 4. of $\preceq$}\\
+		&\quad locs_{W,Y}(\irl{lam}(x : \tau.e_2)) \subseteq reach_Y(W) \subseteq dom(Y) \setminus M
+			\tag{well-formed configuration}\\
+		&\quad S' \subseteq dom(Y)\setminus M\\ 
+		&\emph{(4).b}\quad \text{Let } l \in S'. \text{ NTS } |\gamma(l) \cap R'| = S'(l)\\
+		&\quad \text{STS }  |\gamma(l) \cap (R \cup reach_H(FV(e_2) \setminus \{x\})| = S(l) + 
+			reach_Y(FV(e_2) \setminus \{x\})(l)\\
+		&\quad \text{STS } |(\gamma(l) \cap R) \cup (\gamma(l) \cap 
+			reach_H(V(FV(e_2) \setminus \{x\})))| 
+			= S(l) + reach_Y(W(FV(e_2) \setminus \{x\}))(l)\\
+		&\quad \text{STS } |(\gamma(l) \cap R)| + |\gamma(l) \cap reach_H(V(FV(e_2) \setminus \{x\}))| 
+			= S(l) + reach_Y(W(FV(e_2) \setminus \{x\}))(l) 
+			\tag{$R \cap reach_H(V(FV(e_2) \setminus \{x\})) = \emptyset$}\\
+		&\quad \text{STS } |\gamma(l) \cap reach_H(V(FV(e_2) \setminus \{x\}))| 
+			= reach_Y(W(FV(e_2) \setminus \{x\}))(l) \tag{condition 4. of $\preceq$}\\
+		&\quad \text{STS } |\gamma(l) \cap \bigcup_{x' \in FV(e_2) \setminus \{x\}} reach_H(V(x'))|
+			= (\biguplus_{x' \in FV(e_2) \setminus \{x\}} reach_Y(W(x')))(l)\\
+		&\quad \text{Let } x' \in FV(e_2) \setminus \{x\}\\
+		&\quad |\gamma(l) \cap reach_H(V(x'))| = reach_Y(W(x'))(l) \tag{condition 3. of $\preceq$}\\
+		&\emph{(5)}\quad \text{Have } |M| = |F| + |\oh{\gamma}| \tag{condition 5. of $\preceq$}\\
+		&\text{By IH on first premise, have the following: }\\
+		&\text{Fact 1}. W',Y,S',M \vdash^{\mathsf{free}} e \Downarrow w_1,Y_1,M_1\\
+		&\text{Fact 2}. \veq{H_1}{Y_1}{v}{w}\\
+		&\text{Fact 3}. \gamma_1 \text{ is a proper partition, such that for all } l \in dom(\gamma_1),
+				|\gamma_1(l)| = |reach_{Y_1}(w_1)(l)| + S(l)\\
+		&\text{Fact 4}. \text{For all } P, |reach_{H_1}(find_{H_1}(v_1;P)) \cap \gamma_1(l)| = 
+				reach_{Y_1}(find_{Y_1}(w_1;P))(l)\\
+		&\text{Fact 5}. \gamma_1(l) \cap R' = \gamma(l) \cap R'\\
+		&\text{Fact 6}. |M_1| = |F_1| + |\oh{\gamma_1}|\\
+		&V_2,H_1,R, F_1 \cup g \vdash e_2 \Downarrow v_2,H_2,F_2 \tag{admissibility}\\
+		&\text{Let } W_2 = (W[x \mapsto w_1])\restriction_{FV(e_2)}, 
+			j = \{ l \in H_1 \mid l \notin M_1 \cup S \cup locs_{W_2,Y_1}(e_2) \}\\
+		&\text{NTS } W_2,Y_1,S,M_1 \cup j \preceq V_2,H_1,R, F_1 \cup g\\
+		&\emph{(1)}\quad W_2,Y_1 \sim V_2,H_1 \tag{condition 1. of $\preceq$ and Fact 1}\\
+		&\emph{(2)}\quad \text{Let } \gamma_2 : dom(Y_1) \setminus (M_1 cup j) 
+			\to \mathcal{P}(dom(H_1)\setminus (F_1 \cup g)) \text{ be defined by } 
+			\gamma_2(l) = \gamma_1(l) \setminus g\\
+		&\quad \text{NTS } |\gamma_2(l)| = reach_{Y_1}(W_2)(l) + S(l)\\
+		&\quad
+  \end{align*}
+	\item[Case 8: E:Pair]
+  Similar to E:Const*
+  \item[Case 9: E:MatP]
+  Similar to E:MatCons
+  \item[Case 10: E:Nil]
+  Similar to E:Const*
+  \item[Case 11: E:Cons]
+  \begin{align*}
+  \end{align*}
+  \item[Case 12: E:MatNil]
+  Similar to E:Cond*
+  \item[Case 13: E:MatCons]
+  \begin{align*}
+  \end{align*}
+  \item[Case 14: E:Share]
+	\begin{align*}
+		&V,H,R,F \; \vdash^{\mathsf{copy}} \sharecpcst{x}{x_1}{x_2}{e} \Downarrow v,H'',F' \tag{case}\\
+		&\text{Suppose } H'' \vDash v \mapsto a : A. 
+			\text{ We need to show a configuration and a triple that satisfies the 3 post-conditions.}\\
+		&\text{By IH, we have } (w,K,M) \text{ such that }\\
+		&\emph{(1)}\quad V_2,H',R,F \setminus L \vdash^{\mathsf{free}} e \Downarrow w,K,M \tag{F:Var}\\
+		&\emph{(2)}\quad K \vDash w \mapsto a : A \\
+		&\emph{(3)}\quad |M| \ge |F'|\\
 		&
+	\end{align*}
+  \end{description}
+\end{proof}
+
+\label{sect:bib}
+\bibliographystyle{plain}
+%\bibliographystyle{alpha}
+%\bibliographystyle{unsrt}
+%\bibliographystyle{abbrv}
+\bibliography{rules5}
+
+
+\section{Examples}
+
+For brevity, we write the following examples using an extended syntax which is not in let-normal form, but
+which is equivalent to the restricted syntax in expressiveness and semantics. The 
+program and signature is populated with top level let declarations.\\
+
+\emph{append}:
+
+\begin{verbatim}
+let rec append (l1, l2) =
+  match l1 with
+    | [] -> l2
+    | x::xs -> let r = append (xs, l2) in x::r
+\end{verbatim}
+
+$P = [\texttt{append} \mapsto e_{\texttt{append}}]$\\
+$\Sigma = [\texttt{append} \xrightarrow{q/q} \prodtycst{L^p(A)}{L^p(A)} \to \L^p(A)]$\\
+
+Type derivation:
+\begin{tiny}
+\[
+\infer[\text{L:MatL}]{
+	\Sigma; l_1 : L^p(A), l_2 : L^p(A) \sststile{q}{q} 
+		\listcaseexcst{l_1}{l_2}{x}{xs}{\irl{let}\; r = append(xs,l_2) \; \irl{in}\; x::r } : L^p(A)
+}{
+	\infer[\text{L:Var}]{
+		\Sigma; l_2 : L^p(A) \sststile{q}{q} l_2 : L^p(A)
+	}{
+	}&
+	\infer[\text{L:Let}]{
+		\Sigma; l_2 : L^p(A), x : A, xs : L^p(A) \sststile{q}{q + p + 1} 
+				\irl{let}\; r = append(xs,l_2) \; \irl{in}\; x::r : L^p(A)
+	}{
+		\infer[\text{L:App}]{
+			\Sigma; L_2 : L^p(A), xs : L^p(A) \sststile{q+p+1}{q+p+1} append(xs,l_2) : L^p(A)
+		}{
+			append : \xrightarrow{q/q} \prodtycst{L^p(A)}{L^p(A)} \to \L^p(A) \in \Sigma
+		}&
+		\infer[\text{L:Cons}]{
+			\Sigma; x : A, r : L^p(A) \sststile{q}{q+p+1} x::r : L^p(A)
+		}{
+		}
+	}
+}
+\]
+\end{tiny}
+
+This can be read as \texttt{append} takes two lists, each with potential $p$ per element, and a constant
+potential $q$, and returns a list with potential $p$ per element and constant potential $q$. This 
+bound is tight and reflects the fact that append is constructing the concatenation ``in place'' by 
+collecting the cells in $l_1$. Thus, append induces no overhead heap cells in addition to its arguments.\\
+
+Now we show that quicksort is also has no overhead. First, the partition:\\
+
+\begin{verbatim}
+let rec partition (p, l) =
+  match l with
+    | [] -> ([],[])
+    | x::xs ->
+      let (l1,l2) = partition xs in
+      let r = x < p in
+      if r then
+        (x::l1,l2)
+      else
+        (l1,x::l2)
+\end{verbatim}
+
+$P = [partition \mapsto e_{partition}]$\\
+$\Sigma = [partition \mapsto \prodtycst{\irl{nat}}{L^p(\irl{nat})} \xrightarrow{} \prodtycst{L^p(\irl{nat})}{L^p(\irl{nat})}]$\\
+The type derivation for the Cons branch:
+
+\[
+\infer[]{
+	\Sigma; p : \irl{nat}, x : \irl{nat}, xs : L^p(\irl{nat}) \sststile{}{} 
+		\irl{let}\; r = \; \irl{in}\; x::r 
+}{
+}
+\]	
+\begin{verbatim}
+let rec quicksort l = 
+match l with
+  | [] -> []
+  | x::xs ->
+      let ys, zs = partition (x,xs) in
+			let l1 = quicksort ys in 
+			let l2 = quicksort zs in 
+			let r = x :: l2 in
+      append (l1, r)
+\end{verbatim}
+
+\iffalse
+\emph{map}: 
+
+\begin{verbatim}
+let rec map (f,l) = 
+	match l with
+	| [] -> []
+	| x::xs -> let r = f x in r :: map (f, xs)
+\end{verbatim}
+
+$P = [\texttt{map} \mapsto e_{\texttt{map}}]$\\
+$\Sigma = [\texttt{map} \mapsto \prodtycst{A \to B}{L^0(A)} \to \L^0(B)]$\\
+
+Type derivation:
+
+\[
+\inferr{
+	\Sigma; f : \arrtycst{A}{B}, l : L^0(A) \sststile{}{} \listcaseexcst{l}{[]}{x}{xs}{\appcst{f}{x} :: map(f,xs)} : 
+}{
+	\inferr{\Sigma; \cdot \sststile{}{} [] : L^0(A)}{
+	}(\text{L:Nil})\\
+	
+	\inferr{\Sigma; f : \arrtycst{A}{B}, x : A, xs : L^0(A) \sststile{}{} f(x) :: map(f,xs)}{
+		\inferr{\Sigma; f : \arrtycst{A}{B}, x : A \sststile{}{} }
+	}(\text{L:Cons})
+}(\text{L:MatL})
+\]
+\fi
+
+\section{Implementation}
+
+\section{Experimentation}
+
+\section{Future Work}
+
+\end{document}
+
+
+
   \end{align*}
 	\item[Case 8: E:Pair]
   Similar to E:Const*
