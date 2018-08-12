@@ -234,12 +234,21 @@ most existing techniques for automating and guiding the derivation of
 bounds on the heap memory requirements assume manual memory management
 or simply ignore deallocation in the analysis~\cite{}. As a result,
 the derived bounds are not accurate when the underlying system employs
-garbage collection. The only exceptions we are aware of are \jan{gc papers}
-However, ... \jan{what's bad?}
-%
-In contrast, \jan{ours is better}
+garbage collection. The only exceptions we are aware of are the works
+by Albert et al.~\cite{Albert09,Albert13}, by Braberman et
+al.~\cite{Braberman08}, and Unnikrishnan et
+al.~\cite{UnnikrishnanSL03,Unnikrishnan09}. They analyze the
+heap-space usage of programs with GC in two steps. First, they make
+the deallocation of GC explicit; for example with a static analysis
+for estimating object lifetimes~\cite{Albert13} or with a program
+translation~\cite{Unnikrishnan09}. Second, they extract and solve
+recurrence relations to derive a bound. The difference of our work is
+that it is based on a type system and that it is proved sound with
+respect to a formal cost semantics. Advantages of a type based
+approach include its natural compositionality and the type derivations
+as certificates for the resource bounds.
 
-\yue{unify type setting of code} We model the (highwater mark) memory
+We model the (highwater mark) memory
 usage based on a perfect garbage collector that immediately
 deallocates memory cells when they become unreachable. The bounds that
 are derived with for this cost model are not only a good theoretical
@@ -1571,7 +1580,7 @@ We leave the exploration of this area to future work.
 %\bibliographystyle{alpha}
 %\bibliographystyle{unsrt}
 %\bibliographystyle{abbrv}
-\bibliography{easychair}
+\bibliography{easychair,lit}
 
 %------------------------------------------------------------------------------
 \appendix

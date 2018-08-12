@@ -1,4 +1,28 @@
-\begin{thebibliography}{1}
+\begin{thebibliography}{10}
+
+\bibitem{Albert09}
+Elvira Albert, Samir Genaim, and Miguel G\'{o}mez-Zamalloa~Gil.
+\newblock {Live Heap Space Analysis for Languages with Garbage Collection}.
+\newblock In {\em Proceedings of the 2009 International Symposium on Memory
+  Management (ISMM'09)}, 2009.
+
+\bibitem{Albert13}
+Elvira Albert, Samir Genaim, and Miguel Gómez-Zamalloa.
+\newblock Heap space analysis for garbage collected languages.
+\newblock {\em Science of Computer Programming}, 78(9):1427 -- 1448, 2013.
+
+\bibitem{Braberman08}
+V\'{\i}ctor~A. Braberman, Federico Fern{\'a}ndez, Diego Garbervetsky, and
+  Sergio Yovine.
+\newblock {Parametric prediction of heap memory requirements}.
+\newblock In {\em 7th Int. Symp. on Memory Management (ISMM'08)}, pages
+  141--150, 2008.
+
+\bibitem{Hoffmann11}
+Jan Hoffmann.
+\newblock {\em {Types with Potential: Polynomial Resource Bounds via Automatic
+  Amortized Analysis}}.
+\newblock PhD thesis, Ludwig-Maximilians-Universi{\"a}t M{\"u}nchen, 2011.
 
 \bibitem{Hoffmann:2017:TAR:3009837.3009842}
 Jan Hoffmann, Ankush Das, and Shu-Chun Weng.
@@ -6,6 +30,13 @@ Jan Hoffmann, Ankush Das, and Shu-Chun Weng.
 \newblock In {\em Proceedings of the 44th ACM SIGPLAN Symposium on Principles
   of Programming Languages}, POPL 2017, pages 359--373, New York, NY, USA,
   2017. ACM.
+
+\bibitem{Hoffmann:2015:ASC:2769448.2769449}
+Jan Hoffmann and Zhong Shao.
+\newblock Automatic static cost analysis for parallel programs.
+\newblock In {\em Proceedings of the 24th European Symposium on Programming on
+  Programming Languages and Systems - Volume 9032}, pages 132--157, New York,
+  NY, USA, 2015. Springer-Verlag New York, Inc.
 
 \bibitem{Hofmann:2003:SPH:604131.604148}
 Martin Hofmann and Steffen Jost.
@@ -27,5 +58,17 @@ Daniel Spoonhower, Guy~E. Blelloch, Robert Harper, and Phillip~B. Gibbons.
 \newblock In {\em Proceedings of the 13th ACM SIGPLAN International Conference
   on Functional Programming}, ICFP '08, pages 253--264, New York, NY, USA,
   2008. ACM.
+
+\bibitem{Unnikrishnan09}
+Leena Unnikrishnan and Scott~D. Stoller.
+\newblock {Parametric Heap Usage Analysis for Functional Programs}.
+\newblock In {\em Proceedings of the 2009 International Symposium on Memory
+  Management (ISMM '09)}, 2009.
+
+\bibitem{UnnikrishnanSL03}
+Leena Unnikrishnan, Scott~D. Stoller, and Yanhong~A. Liu.
+\newblock {Optimized Live Heap Bound Analysis}.
+\newblock In {\em Verification, Model Checking, and Abstract Interpretation,
+  4th International Conference (VMCAI'03)}, pages 70--85, 2003.
 
 \end{thebibliography}
