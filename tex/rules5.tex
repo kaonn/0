@@ -1720,8 +1720,24 @@ We give the representative rules:
 Extending to a context, we write $L : V_1,H_1 \sim V_2,H_2$ if for all $x \in dom(V_1)$, 
 $L(x) : \veq{H_1}{H_2}{V_1(x)}{V_2(x)}$.\\
 
-\begin{definition} A configuration $(V,H,R,F)$ is well-formed if $dom(H) \subseteq reach_H(V) \cup R \cup F$.
+For a context $(V,H,R,F)$, denote the
+garbage w.r.t a set of locations $L$ 
+as $collect(R,L,H',F') = \{l \in H' \mid l \notin F' \cup R \cup L\}$.
+
+\begin{definition} A configuration $(V,H,R,F)$ is well-formed if 
+	\begin{enumerate}
+		\item $dom(H) \subseteq reach_H(V) \cup R \cup F$
+		\item $reach_H(V) \cup R \subseteq dom(H) \setminus F$
+		\item $collect(R,reach_H(V),H,F) = \emptyset$
+	\end{enumerate}
 \end{definition}
+
+\begin{lemma}\label{itm:eager}
+	Given a well-formed context $(V,H,R,F)$ and $V,H,R,F \vdash e \Downarrow v,H',F'$, 
+	$dom(H') \subseteq reach_H(v) \cup R \cup F'$,
+	$reach_H(v) \cup R \subseteq dom(H') \setminus F'$ and
+	$collect(R,reach_H'(v),H',F') = \emptyset$.
+\end{lemma}
 
 Now consider two well-formed configurations $\mathcal{C}_1 = (V_1,H_1,R_1,F_1),
  \mathcal{C}_2 = (V_2,H_2,R_2,F_2)$.\\
@@ -1730,7 +1746,8 @@ We define the induced mapping
 $\gamma : dom(H_1) \setminus F_1 \to \mathcal{P}(dom(H_2) \setminus F_2)$ 
 between $\mathcal{C}_1, \mathcal{C}_2$ from $L$: $\gamma(l) = (\biguplus_{x \in dom(V_1)} L(x)) (l)$.
 Note that by construction, for any $l$, $\gamma(l)$ is nonempty, and thus we can choose an arbitrary 
-$l' \in \gamma(l)$ to be the representation for that part; call this $rep(l)$.\\
+$l' \in \gamma(l)$ to be the representation for that part; call this 
+singlet set $\{l'\}$ $rep(l)$.\\
 
 A mapping $f : A \to \mathcal{P}(B)$ is a \emph{partition} on $B$ the image of 
 $A$ forms a disjoint union of $B$ 
@@ -1744,10 +1761,6 @@ $\gamma$ is a \emph{counting partition} for $S$.\\
 
 For a partition $f : A \to \mathcal{P}(B)$, we write the set of equivalence classes
 as $ec(f) = \{f(x) \mid x \in A\} = f(A)$, i.e. the image of $f$ on its domain $A$.\\
-
-For an evaluation $\mathcal{C} = (V,H,R,F) \vdash e \Downarrow v,H',F'$, denote its
-garbage collection
-as $collect(R,v,H',F') = \{l \in H' \mid l \notin F' \cup R \cup reach_H'(v)\}$.
 
 \begin{definition}
 	Let \ms{dir} be the set \{\ms{L},\ms{R},\ms{N}\}, denoting left, right, and next 
@@ -1793,10 +1806,9 @@ $\mathcal{C}_1 = (V_1,H_1,R_1,F_1)$ iff
 such that for all $l \in dom(\gamma)$, $|\gamma(l)| = reach_{H_1}(V_1)(l) + R_1(l)$
 \item for all $l \in dom(\gamma)$, $x \in dom(V_1)$, valid sequence of directions $P$ w.r.t $V_1(x)$,
 	$|reach_{H_2}(V_2(x;P)) \cap \gamma(l)| = reach_{H_1}(V_1(x;P))(l)$.
-\item $R_1 \subseteq dom(H_1) \setminus F_1$ and 
-	for all $l \in dom(\gamma)$, $|\gamma(l) \cap R_2| = R_1(l)$
+\item for all $l \in dom(\gamma)$, $|\gamma(l) \cap R_2| = R_1(l)$
 \item $|F_1| = |F_2| + |\oh{\gamma}|$, where 
-	$\oh{\gamma} = \bigcup_{P \in ec(\gamma)} P \setminus (rep(P))$
+	$\oh{\gamma} = \bigcup_{P \in ec(\gamma)} C \setminus rep(C)$
 \end{enumerate}
 Write this as $\mathcal{C}_1 \preceq \mathcal{C}_2$.
 \end{definition} 
@@ -1815,9 +1827,10 @@ $(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ and
 			\item $\veq{H'}{Y'}{v}{w}$
 			\item $\gamma'$ is a proper partition, such that for all $l \in dom(\gamma')$, 
 				$|\gamma'(l)| = reach_{Y_1}(w_1)(l) + S(l) + collect(R,v,H',F')$
-			\item For all $P$, $|reach_{H'}(find_{H'}(v;P)) \cap \gamma'(l)| = 
+			\item For all $P$ valid w.r.t $v$, $|reach_{H'}(find_{H'}(v;P)) \cap \gamma'(l)| = 
 				reach_{Y'}(find_{Y'}(w;P))(l)$
-			\item $\gamma'(l) \cap R = \gamma(l) \cap R$ and $S \subseteq dom(Y') \setminus F'$
+			\item $l \in dom(\gamma')$, 
+					$\gamma'(l) \cap R = \gamma(l) \cap R$ 
 			\item $|M'| = |F'| + |\oh{\gamma'}|$
 	\end{enumerate}
 \end{lemma}
@@ -1877,6 +1890,27 @@ for all $l \in dom(H_1) \setminus F_1$,
 		&\quad\gamma(l) \in clean(\mathcal{C}_2,reachPath_{V_2,H_2}(X,m))
 	\end{align*}
 \end{proof}
+
+\begin{lemma}\label{itm:copyRel}
+	Given  a proper partition $\gamma : dom(Y) \setminus M \to \mathcal{P}(dom(H)\setminus F)$, 
+	equivalent values $\veq{H}{Y}{v}{w}$, and the 
+	following:
+	\begin{enumerate}
+		\item $L \subseteq F$
+		\item $|L| = |dom(reach_H(v))|$
+		\item $H',v' = copy(H,L,v)$
+		\item $F' =	F \setminus L$
+	\end{enumerate}
+	there is a proper partition $\gamma' : dom(Y) \setminus M \to \mathcal{P}(dom(H) \setminus F')$ 
+	s.t.
+	$|\gamma'(l)| = |\gamma(l)| + \mathbbm{1}_{l \in reach_Y(w)}$, 
+	$|reach_H(v) \cap \gamma'(l)| = |reach_H(v') \cap \gamma'(l)| = |reach_H(v) \cap \gamma(l)|$.
+\end{lemma}
+
+\begin{proof}
+	Induction on $copy$.
+\end{proof}
+
 In particular, this means that we can (somewhat obviously), execute a computation using the free semantics
 if the computation suceeded with the copy semantics. 
 
@@ -2022,7 +2056,7 @@ Induction on the evaluation judgement.\\
 		&\emph{(1)}\quad  W',Y,S,M \cup j  \vdash^{\gcSem} e_1 \Downarrow w,Y',M'\\
 		&\emph{(2)}\quad \veq{H'}{Y'}{v}{w}\\
 		&\emph{(3)}\quad \gamma' \text{ is a proper partition, and } |\gamma''(l)| = 
-			reach_{Y'}(w)(l) + R(l) + collect(R,v,H',F')\\
+			reach_{Y'}(w)(l) + R(l)\\
 		&\emph{(4)}\quad \gamma''(l) \cap R = \gamma'(l) \cap R \\
 		&\quad \gamma'(l) \cap R = (\gamma(l) \setminus g) \cap R= \gamma(l) \cap R\\
 		&\emph{(5)}\quad |M'| = |F'| + |\oh{\gamma''}|\\
@@ -2072,7 +2106,7 @@ Induction on the evaluation judgement.\\
 		&\text{Fact 1}. W',Y,S',M \vdash^{\gcSem} e \Downarrow w_1,Y_1,M_1\\
 		&\text{Fact 2}. \veq{H_1}{Y_1}{v}{w}\\
 		&\text{Fact 3}. \gamma_1 \text{ is a proper partition, such that for all } l \in dom(\gamma_1),\\
-		&\quad|\gamma_1(l)| = |reach_{Y_1}(w_1)(l)| + S(l) + |\gamma_1(l) \cap collect(R',v_1,H_1,F_1)|\\
+		&\quad|\gamma_1(l)| = |reach_{Y_1}(w_1)(l)| + S(l)\\
 		&\text{Fact 4}. \text{For all } P, |reach_{H_1}(find_{H_1}(v_1;P)) \cap \gamma_1(l)| = 
 				reach_{Y_1}(find_{Y_1}(w_1;P))(l)\\
 		&\text{Fact 5}. \gamma_1(l) \cap R' = \gamma(l) \cap R' \text{ and } 
@@ -2089,24 +2123,21 @@ Induction on the evaluation judgement.\\
 		&\quad \text{NTS } |\gamma_2(l)| = reach_{Y_1}(W_2)(l) + S(l)\\
 		&\quad \text{STS } |\gamma_1(l)| = |\gamma_1(l) \cap g| + reach_{Y_1}(W_2)(l) + S(l)\\
 		&\quad \textbf{case } x \in FV(e_2):\\
-		&\quad\quad collect(R',v_1,H_1,F_1) = g\\
-		&\quad\quad |\gamma_1(l)| = reach_{Y_1}(w_1)(l) + S'(l) + |\gamma_1(l) \cap g| \tag{Fact 3}\\
+		&\quad\quad g =  collect(R',v_1,H_1,F_1) \\
+		&\quad\quad = \emptyset  \tag{By \ref{itm:eager}}\\
+		&\quad\quad |\gamma_1(l)| = reach_{Y_1}(w_1)(l) + S'(l) \tag{Fact 3}\\
 		&\quad\quad = reach_{Y_1}(w_1)(l) + 
-			reach_{Y}(W\restriction_{FV(e_2) \setminus \{x\}})(l) + S(l) + |\gamma_1(l) \cap g| \\
-		&\quad\quad = reach_{Y_1}(W_2)(l) + S(l) + |\gamma_1(l) \cap g| \\
+			reach_{Y}(W\restriction_{FV(e_2) \setminus \{x\}})(l) + S(l) \\
+		&\quad\quad = reach_{Y_1}(W_2)(l) + S(l)  \\
 		&\quad \textbf{case } x \notin FV(e_2):\\
-		&\quad\quad collect(R',v_1,H_1,F_1) \sqcup reach_{H_1}(v_1) = g\\
-		&\quad\quad |\gamma_1(l)| = reach_{Y_1}(w_1)(l) + S'(l) + 
-			|\gamma_1(l) \cap (g \setminus reach_{H_1}(v_1))| \tag{Fact 3}\\
-		&\quad\quad = reach_{Y_1}(w_1)(l) + S'(l) + |(\gamma_1(l) \cap g) \setminus reach_{H_1}(v_1)|\\
-		&\quad\quad = reach_{Y_1}(w_1)(l) + S'(l) + |\gamma_1(l) \cap g| - 
-			|\gamma_1(l) \cap g \cap reach_{H_1}(v_1)|\\
-		&\quad\quad = reach_{Y_1}(w_1)(l) + S'(l) + |\gamma_1(l) \cap g| - 
-			|\gamma_1(l) \cap reach_{H_1}(v_1)|\\
-		&\quad\quad = reach_{Y_1}(w_1)(l) + S'(l) + |\gamma_1(l) \cap g| - reach_{Y_1}(w_1)(l) 
-			\tag{Fact 4}\\
-		&\quad\quad = S'(l) + |\gamma_1(l) \cap g|\\
-		&\quad\quad = reach_{Y_1}(W_2)(l) + S(l) + |\gamma_1(l) \cap g|\\
+		&\quad\quad g = collect(R',v_1,H_1,F_1) \sqcup reach_{H_1}(v_1)\\
+		&\quad\quad = reach_{H_1}(v_1) \tag{By \ref{itm:eager}}\\
+		&\quad\quad |\gamma_1(l) \cap g| = reach_{Y_1}(w_1) \tag{Fact 3}\\
+		&\quad\quad \text{STS } |\gamma_1(l)| = reach_{Y_1}(w_1)(l) + reach_{Y_1}(W_2)(l) + S(l)\\
+		&\quad\quad = reach_{Y_1}(w_1)(l) + S'(l)  \tag{Fact 3}\\
+		&\quad\quad = reach_{Y_1}(w_1)(l) + reach_{Y}(W\restriction_{FV(e_2)\setminus \{x\}})(l) + S(l)\\
+		&\quad\quad = reach_{Y_1}(w_1)(l) + reach_{Y_1}(W\restriction_{FV(e_2)\setminus \{x\}})(l) + S(l) 		\tag{By \ref{itm:stable}}\\
+		&\quad\quad = reach_{Y_1}(W_2)(l) + S(l)\\
 		&\emph{(3)}\quad \text{Let $l \in dom(\gamma_2), x' \in dom(W_2)$, 
 			$P$ valid sequence w.r.t $W_2(x')$. NTS }\\ 
 		&|reach_{H_1}(V_2(x';P)) \cap \gamma_2(l)| = reach_{Y_1}(W_2(x';P))(l)\\ 
@@ -2120,7 +2151,7 @@ Induction on the evaluation judgement.\\
 		&\quad\quad |reach_{H_1}(V_2(x';P)) \cap \gamma_2(l)| = reach_{Y_1}(W_2(x';P))(l) 
 			\tag{$g \cap R' = \emptyset$}\\
 		&\emph{(4).a}\quad \text{NTS } S \subseteq dom(Y_1) \setminus (M_1 \cup j)\\
-		&\quad S' \subseteq dom(Y_1) \setminus M_1 \text{Fact 5.}\\
+		&\quad S' \subseteq dom(Y_1) \setminus M_1 \tag{Fact 5.}\\
 		&\quad S \subseteq dom(Y_1) \setminus M_1\\
 		&\quad S \cap j = \emptyset\\
 		&S \subseteq dom(Y_1) \setminus (M_1 \cup j)\\
@@ -2136,7 +2167,7 @@ Induction on the evaluation judgement.\\
 		&\text{Fact 1'}. W_2,Y_1,S,M_1 \cup j \vdash^{\gcSem} e_2 \Downarrow w_2,Y_2,M_2\\
 		&\text{Fact 2'}. \veq{H_2}{Y_2}{v_2}{w_2}\\
 		&\text{Fact 3'}. \gamma_3 \text{ is a proper partition, such that for all } l \in dom(\gamma_3),\\
-		&\quad|\gamma_3(l)| = |reach_{Y_2}(w_2)(l)| + S(l) + |\gamma_3(l) \cap collect(R,v_2,H_2,F_2)|\\
+		&\quad|\gamma_3(l)| = |reach_{Y_2}(w_2)(l)| + S(l) + |\gamma_3(l)|\\
 		&\text{Fact 4'}. \text{For all } P, |reach_{H_2}(find_{H_2}(v_2;P)) \cap \gamma_3(l)| = 
 				reach_{Y_2}(find_{Y_2}(w_2;P))(l)\\
 		&\text{Fact 5'}. \gamma_3(l) \cap R = \gamma_2(l) \cap R \text{ and } 
@@ -2162,12 +2193,61 @@ Induction on the evaluation judgement.\\
 			\consexcst{x_1}{x_2} \Downarrow m,Y' ,M \setminus \{m\} \tag{F:Cons}\\
 		&\emph{(2) } \veq{H}{Y}{v}{w} \tag{assumption}\\
 		&\emph{(3) } \text{Let } \gamma' : dom(Y') \setminus M' \to \mathcal{P}(dom(H')\setminus F')
-			\text{ be defined by } \gamma'(l') = \gamma(l')[m \mapsto \{l\}]\\
+			\text{ be defined by } \gamma'(l') = \gamma[m \mapsto \{l\}](l')\\
 		&\quad \gamma' \text{ is a proper partition } 
 			\tag{$\gamma$ proper and $l \notin dom(H) \setminus F$}\\
-		&\quad \text{NTS } |\gamma'(l')| = reach_{Y'}(m)(l') + S(l') + collect(R,l,H',F')\\
-		&\quad \text{STS } |\gamma(l')[m \mapsto \{l\}]| = 
-			reach_{Y'}(m)(l') + S(l') + collect(R,l,H',F')\\
+		&\quad \text{NTS } |\gamma'(l')| = reach_{Y'}(m)(l') + S(l')\\
+		&\quad \text{STS } |\gamma[m \mapsto \{l\}](l')| = 
+			reach_{Y'}(m)(l') + S(l')\\
+		&\textbf{case } l' = m:\\
+		&\quad |\gamma[m \mapsto \{l\}](l')| = |\{l\}| = 1
+		&\quad 	reach_{Y'}(m)(l') + S(l') = 1 + reach_{Y'}(w_1)(m) + reach_{Y'}(w_2)(m) + S(l')\\
+		&\quad = 1 + S(m) \tag{$M \cap reach_{Y}(W) = \emptyset$}\\
+		&\quad = 1 \tag{$M \cap S = \emptyset$}\\
+		&\textbf{case } l' \ne m:\\
+		&\quad |\gamma[m \mapsto \{l\}](l')| = |\gamma(l')| = reach_H(W)(l') + S(l') 
+			\tag{condition 2. of $\preceq$}\\
+		&\quad = reach_{H'}(w_1)(l') + reach_{H'}(w_2)(l') + S(l')\\
+		&\quad = \{m \mapsto 1\}(l') + reach_{H'}(w_1)(l') + reach_{H'}(w_2)(l') + S(l')\\
+		&\quad = reach_{H'}(m)(l') + S(l')\\
+		&\emph{(4) } \text{Let } l \in dom(\gamma'), P \text{ be a valid path w.r.t } l. \text{ NTS }
+		|reach_{H'}(find_{H'}(l;P)) \cap \gamma'(l')| = 
+				reach_{Y'}(find_{Y'}(m;P))(l')\\
+		&\textbf{case } P = []\\
+		&\quad |reach_{H'}(find_{H'}(l;P)) \cap \gamma'(l')| = |reach_{H'}(l) \cap \gamma'(l')|\\
+		&\quad = |(\{l\} \cup reach_{H'}(v_1) \cup reach_{H'}(v_2)) \cap \gamma'(l')|\\
+		&\quad = |\{l\} \cap \gamma(l')| + |reach_{H'}(v_1) \cap \gamma'(l')| 
+		+ |reach_{H'}(v_2) \cap \gamma'(l')| \\
+		&\quad = \mathbbm{1}_{l' = m} + reach_{Y'}(w_1)(l') + reach_{Y'}(w_2)(l') 
+			\tag{condition 3. of $\preceq$}\\
+		&\quad = reach_{Y'}(m)(l')\\
+		&\quad = reach_{Y'}(find_{Y'}(m;P))(l')\\
+		&\textbf{case } P = \ms{N}::P'\\
+		&\quad |reach_{H'}(find_{H'}(l;\ms{N}::P')) \cap \gamma'(l')| = 
+			|reach_{H'}(\pairexcst{v_1}{v_2}) \cap \gamma'(l')|\\
+		&\quad = reach_{Y'}(find_{Y'}(m;P))(l') \tag{similar to above}\\
+		&\emph{(5) } \text{NTS } S \subseteq dom(\gamma') 
+			\tag{condition 4. of $\preceq$ and $dom(\gamma) \subseteq dom(\gamma')$}\\
+		&\quad\text{Let } l' \in dom(\gamma'). \text{ NTS } 
+			\gamma(l') \cap R = \gamma(l) \cap R\\
+		&\quad \text{STS } \gamma[m \mapsto \{l\}](l') \cap R = \gamma(l') \cap R\\
+		&\textbf{case } l' = m:\\
+		&\quad \gamma[m \mapsto \{l\}](m) \cap R = \{l\} \cap R\\
+		&\quad = \emptyset \tag{well-formed configuration}\\
+		&\quad = \gamma(l') \cap R \tag{well-formed configuration}\\
+		&\textbf{case } l' \ne m:\\
+		&\quad \gamma[m \mapsto \{l\}](m) \cap R = \gamma(l') \cap R\\
+		&\emph{(6) } \text{NTS } |M'| = |F'| + \oh{\gamma'}\\
+		&\quad |M'| = |M| - 1\\
+		&\quad |F'| = |F| - 1\\
+		&\quad \oh{\gamma'} = \oh{\gamma[m \mapsto \{l\}]}\\
+		&\quad = \bigcup C \in ec(\gamma') C \setminus (rep(C))\\
+		&\quad = (\{l\} \setminus \{l\}) \cup \bigcup C \in ec(\gamma) C \setminus (rep(C))\\
+		&\quad = \bigcup C \in ec(\gamma) C \setminus (rep(C))\\
+		&\quad = \bigcup C \in ec(\gamma) C \setminus (rep(C))\\
+		&\quad = \oh{\gamma}\\
+		&\quad \text{STS } |M| - 1 = |F| - 1 + \oh{\gamma}\\
+		&\quad \text{Have } |M| = |F| + \oh{\gamma} \tag{condition 5. of $\preceq$}
 	\end{align*}
   \item[Case 12: E:MatNil]
   Similar to E:Cond*

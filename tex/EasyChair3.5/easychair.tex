@@ -109,7 +109,7 @@
 \newcommand{\ctxeq}[2]{(#1) \sim (#2)}
 \newcommand{\oh}[1]{\oslash(#1)}
 \newcommand{\fogc}{\ms{FO}^{gc}}
-\newcommand{\jan}[1]{{\color{red} #1}}
+\newcommand{\jan}[1]{{\color{red} [\emph{Jan: #1}]}}
 \newcommand{\yue}[1]{{\color{blue} [\emph{Yue: #1}]}}
 \newcommand{\gcSem}{\ensuremath{\mathcal{E}_{\ms{gc}}}}
 \newcommand{\copySem}{\ensuremath{\mathcal{E}_{\ms{copy}}}}
@@ -449,9 +449,8 @@ a tuple $\mathcal{C} = (V,H,R,F) \in \ms{Stack} \times \ms{Heap} \times \mathcal
 expression $(\mathcal{C}, e)$ a \emph{computation}.
 
 
-\subsubsection{Reachability}
+\textbf{Reachability}
 \label{sect:reachability}
-
 Before we define the rules for the cost semantics, we relate the heap locations to 
 expressions and value with the 3-place reachability relation $reach(H,v,L)$ on $\ms{Heap} \times \ms{Val} \times \wp(\ms{Loc})$, where $\wp$ is the powermultiset. 
 This is read as ``under heap $H$, the value $v$ reaches the multiset 
@@ -491,8 +490,7 @@ The notion of reachability naturally lifts to expressions:
 \end{align*}
 Where $FV : \ms{Exp} \to \mathcal{P}(\ms{Var})$ denotes the set of free-variables of expressions as usual.\\
 
-\subsubsection{Towards the Garbage Collection Cost Semantics}
-
+\textbf{Towards the Garbage Collection Cost Semantics}
 Now we are ready to give a first attempt to modeling the cost semantics for a
 tracing garbage collector. Before we present our new semantics, we explain an
 earlier version we tried (this particular one is adapted from  
@@ -500,7 +498,7 @@ earlier version we tried (this particular one is adapted from
 
 \[V,H,R \vdash e \Downarrow^s v,H\]
 
-Which can be read as under stack $V \in \ms{Stack}$, heap $H \in ms{Heap}$, 
+Which can be read as under stack $V \in \ms{Stack}$, heap $H \in \ms{Heap}$, 
 and continuation set $R \subseteq \ms{Loc}$, $e$ evaluates to $v$ 
 and $H'$ using $s$ heap locations. The idea is that $R$ keeps track of the set of locations 
 necessary to complete the evaluation \emph{after} $e$ is evaluated (hence the name continuation).
@@ -548,17 +546,24 @@ The garbage collection cost semantics \gcSem is defined by a collection of judge
 \]
 
 Where $\mathcal{C}$ is a configuration usually written as $V,H,R,F$. 
-P is a program with signature $\Sigma : \ms{Var} \to \ms{FTypes}$. 
+A \emph{signature}  $\Sigma : \ms{Var} \to \ms{FTypes}$ is a map from variables to 
+first-order types. 
+A \emph{program} $P$ is a $\Sigma$ indexed map from $\ms{Var}$ to pairs 
+$(y_f,e_f)_{f \in \Sigma}$, where $\Sigma(y_f) = A \to B$, 
+and $\Sigma;y_f : A \vdash e_f : B$ (the type system is discussed in $\ref{sect:typing}$). 
+We write $P : \Sigma$ to mean $P$ is a program with signature $\Sigma$. 
+Because the signature $\Sigma$ for the mapping of function names to first order functions 
+does not change during evaluation, we drop the subscript $\Sigma$ from $\vdash_{\Sigma}$ 
+when the context of evaluation is clear. Thus the evaluation judgement $\vdash$ 
+is indexed by a signatures $\Sigma$, which is a mutually
+recursive block of global first-order declarations to be used during evaluation.
 This can be read as: under stack $V$, heap $H$, continuation set $R$,
 free-list $F$, and program $P$ with signature $\Sigma$, the expression $e$ evaluates to $v$, 
 and engenders a new heap $H'$ and freelist $F'$. Compared to the previous section, the key
 ingredient we added is the freelist, which will serve as the set of available 
 locations (for allocation of data constructors). 
 
-A \emph{program} is a $\Sigma$ indexed map $P$ from $\ms{Var}$ to pairs $(y_f,e_f)_{f \in \Sigma}$, where $\Sigma(y_f) = A \to B$, and $\Sigma;y_f : A \vdash e_f : B$ (typing rules are discussed in $\ref{sect:typing}$). We write $P : \Sigma$ to mean $P$ is a program with signature $\Sigma$. Because the signature $\Sigma$ for the mapping of function names to first order functions does not change during evaluation, we drop the subscript $\Sigma$ from $\vdash_{\Sigma}$ when the context of evaluation is clear. Thus the evaluation judgement $\vdash$ is indexed by a signatures $\Sigma$, which is a mutually
-recursive block of global first-order declarations to be used during evaluation.
-
-\gcSem is to designed to model the heap usage of a program running with a 
+The semantics \gcSem is to designed to model the heap usage of a program running with a 
 tracing counting garbage collector: whenever a heap cell becomes unreachable from the 
 root set, it becomes collected and added to the free-list as available for reallocation.
 As before, the continuation set $R$ represents the set of locations 
@@ -783,8 +788,7 @@ requires 2 cons constructors (but 0 potential per cons cell). So we need a total
 of constant potential. Thus the overall allocation cost of dfs is $2m+3$, where $m$ is the number 
 of \texttt{Node} constructors in the input.
 
-\subsubsection{Denotational Semantics}
-
+\textbf{Denotational Semantics}
 Before giving the type rules, we need to formalize linear potential as explained above.
 Since potential is associated with the \emph{structure} of a value and not the particular heap 
 locations, we need a mapping from
@@ -854,7 +858,7 @@ Now we give the judgements relating heap values to semantic values, in the form 
 Given a stack $V$, we write $H \vDash V : \Gamma$ if $dom(V) = dom(\Gamma)$ and
 for every $x : A \in \Gamma$, $H \vDash V(x) \mapsto a : A$ for some $a \in \llbracket A \rrbracket$.
 
-\subsubsection{Linear Potential}
+\textbf{Linear Potential}
 We introduce linear potential for structures corresponding to the base types. The definition of
 linear potential is standard material, and can be found in \cite{Hoffmann11}, which is also
 a good source for an introduction to AARA. Below is the grammar for resource-annotated types:
@@ -895,7 +899,7 @@ Now define $A \curlyvee A_1,A_2,n$ as the sharing relation for resource-annotate
 The sharing relation captures the amount of potential needed to copy a type $A$ where each 
 cons node in any structure in $\llbracket A \rrbracket$ has a copying overhead $n$.
 
-\subsubsection{Type Rules}
+\textbf{Type Rules}
 \label{sect:typing}
 The type system $\fogc$ consists of rules of the form \fbox{$\Sigma;\Gamma \sststile{q'}{q} e : A$}, 
 read as under signature $\Sigma : \ms{Var} \to \ms{FTypes}$, 
@@ -1069,9 +1073,8 @@ approximates \gcSem, meaning that any computation that succeeds with \gcSem will
 an equally-sized or smaller freelist with \gcSem. Then we 
 show $\fogc$ is sound w.r.t. \copySem, and thus by the previous step sound w.r.t \gcSem.
 
-\subsubsection{The Garbage Collection Cost Semantics \copySem}
+\textbf{Linear Garbage Collection Cost Semantics}
 \label{sect:copy}
-
 In order to establish the soundness of the our intended semantics \gcSem, we need an 
 intermediary semantics which is \emph{semantically linear}: \copySem.  
 As mentioned in \ref{sect:fop}, this means that locations are linear, i.e. no location can be 
@@ -1302,9 +1305,8 @@ Thus, we have shown that we can execute a computation using the
 \gcSem if the computation suceeded in a run with \copySem, and that indeed 
 \copySem is an over approximation of \gcSem.
 
-\subsubsection{Soundness of \copySem}
+\textbf{Soundness of \copySem}
 \label{sect:soundcopy}
-
 To formally state the soundness theorem,
 we need to introduce an auxiliary operational semantics (call this \ms{oper}) 
 that does not use freelists or accounts for garbage collection. We use
@@ -1427,9 +1429,8 @@ during program evaluation. However, we allocate all closures from a separate fre
 a separate heap.  This ensures that data constructors are allocated from the correct freelist 
 and no space overhead is created by allocating closures for function declarations.
 
-\subsubsection{Evaluation}
+\textbf{Evaluation}
 \label{sect:evaluation}
-
 \begin{wraptable}{r}{0.5\textwidth}
 	\vspace{-20pt}
 		\begin{center}
