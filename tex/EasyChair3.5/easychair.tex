@@ -249,7 +249,7 @@ bound $b_f : \denote{A} \to \mathbb{N}$. In an execution of $f(a)$, we
 can then keep track of the memory usage and start the garbage
 collector whenever the bound $b_f(a)$ is reached. It is then
 guaranteed that the evaluation will succeed using $b_f(a)$ heap-memory
-cells.~\footnote{We are not considering memory fragmentation, which
+cells.\footnote{We are not considering memory fragmentation, which
   can be avoided using a copying collector.} To improve performance,
 it we could still trigger GC more often or allow memory use of more
 than $b_f(a)$ cells.
@@ -314,7 +314,9 @@ extension to Resource Aware ML (RaML). RaML is an implementation of
 AARA for a subset of OCaml that can derive multivariate polynomial
 bounds. However, we restrict the technical development in this paper
 to a simple first-order language with tuples, lists, and trees. The
-proofs and ideas carry over the more complex case of RaML.
+proofs and ideas carry over the more complex case of
+RaML.\footnote{An exception are function closures that we discuss in
+  the Section~\ref{sect:conclusion}.}
 %
 An experimental evaluation shows that the system is able to derive
 tight symbolic heap-space bounds for common algorithms. Our results
@@ -845,7 +847,7 @@ for every $x : A \in \Gamma$, $H \vDash V(x) \mapsto a : A$ for some $a \in \llb
 
 \subsubsection{Linear Potential}
 We introduce linear potential for structures corresponding to the base types. The definition of
-linear potential is standard material, and can be found in \ref{Hoffmann11}, which is also
+linear potential is standard material, and can be found in \cite{Hoffmann11}, which is also
 a good source for an introduction to AARA. Below is the grammar for resource-annotated types:
 
 \[
@@ -891,7 +893,7 @@ read as under signature $\Sigma : \ms{Var} \to \ms{FTypes}$,
 context $\Gamma : \ms{Var} \to \ms{BTypes}$, $e$ has type $A$ starting with $q$ units of 
 constant potential and ending with $q'$ units.
 
-The type system is based on the affine type system in \ref{Hoffmann:2017:TAR:3009837.3009842}. 
+The type system is based on the affine type system in \cite{Hoffmann:2017:TAR:3009837.3009842}. 
 We give a review of the rules below.
 Since we are interested in the number of heap locations, 
 there is an implicit side condition in all rules
@@ -1522,6 +1524,8 @@ we discuss possible solutions and different approaches in the next sections.
 \section{Conclusion}
 \label{sect:conclusion}
 
+\jan{discuss function closures}
+
 In this article, we introduced a novel operational cost semantics that models a perfect tracing 
 garbage collector and an extension to AARA that is sound with respect to the new semantics.
 We implemented the new semantics and analysis as modules in RaML and found through 
@@ -1554,7 +1558,7 @@ constructors by removing unit potential from every node in $A$, and type $e_2$ w
 the resulting type $A'-1$. This cost-free composition rule would bring the type system closer 
 to modeling the composition in the garbage collection cost semantics.
 
-In \ref{Hoffmann:2015:ASC:2769448.2769449}, the authors have successfully employed this 
+In \cite{Hoffmann:2015:ASC:2769448.2769449}, the authors have successfully employed this 
 cost-free metric to analyze parallel programs. Here, the difficulty is showing
 the simultaneous soundness of both destructive pattern matching and the cost-free composition. 
 Another complication is the choice between local variable sharing and global context sharing.
