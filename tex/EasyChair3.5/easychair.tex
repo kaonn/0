@@ -216,14 +216,20 @@ that determines if a program can be safely executed on a given
 system. Ideally, developers should describe or approximate the memory
 footprint of programs as functions of the inputs. However, such memory
 bounds are often difficult to derive and to prove sound.
-
+%
 To assist programmers with deriving memory bounds, the programming
-language community has developed automatic and semi-automatic
-analysis techniques.  \jan{heap-space bounds}
+language community has developed automatic and semi-automatic analysis
+techniques~\cite{Jost03,Chin08,Albert07b}
 %
 These systems are often special cases of more general resource bound
-analyses that are based on abstract interpretation~\cite, recurrence
-solving~\cite{}, type systems~\cite{}, or term rewriting~\cite{}.
+analyses that are based on abstract
+interpretation~\cite{GulwaniMC09,BlancHHK10,SinnZV14},
+recurrence
+solving~\cite{FloresH14,AlbertFR15,DannerLR15,KincaidBBR2017}, type
+systems~\cite{Jost10,HoffmannW15,LagoG11,CicekBGGH16,OOPSLA:WWC17,DasHP18},
+program logics~\cite{Atkey10,CarbonneauxHZ15,CarbonneauxHRS17,Radicek17}, proof
+assistants~\cite{Nipkow15,ChargueraudP15}, and term
+rewriting~\cite{AvanziniM13,NoschinskiEG13,FrohnNHBG16}.
 
 This article introduces a novel type system for automatically deriving
 upper bounds on the heap-space requirements of functional programs
@@ -232,21 +238,22 @@ with garbage collection (GC).
 Due to the challenges of modeling and predicting garbage collection,
 most existing techniques for automating and guiding the derivation of
 bounds on the heap memory requirements assume manual memory management
-or simply ignore deallocation in the analysis~\cite{}. As a result,
-the derived bounds are not accurate when the underlying system employs
-garbage collection. The only exceptions we are aware of are the works
-by Albert et al.~\cite{Albert09,Albert13}, by Braberman et
-al.~\cite{Braberman08}, and Unnikrishnan et
+or simply ignore deallocation in the
+analysis~\cite{Jost03,Jost06,SimoesVFJH12,Chin05,Chin08,Albert07b}. As
+a result, the derived bounds are not accurate when the underlying
+system employs garbage collection. The only exceptions we are aware of
+are the works by Albert et al.~\cite{Albert09,Albert13}, by Braberman
+et al.~\cite{Braberman08}, and Unnikrishnan et
 al.~\cite{UnnikrishnanSL03,Unnikrishnan09}. They analyze the
 heap-space usage of programs with GC in two steps. First, they make
 the deallocation of GC explicit; for example with a static analysis
 for estimating object lifetimes~\cite{Albert13} or with a program
 translation~\cite{Unnikrishnan09}. Second, they extract and solve
 recurrence relations to derive a bound. The difference of our work is
-that it is based on a type system and that it is proved sound with
-respect to a formal cost semantics. Advantages of a type based
-approach include its natural compositionality and the type derivations
-as certificates for the resource bounds.
+that our technique is based on a type system, which is proved sound
+with respect to a formal cost semantics. Advantages of a type-based
+approach include natural compositionality and the use of type
+derivations as certificates for resource bounds.
 
 We model the (highwater mark) memory
 usage based on a perfect garbage collector that immediately
@@ -267,21 +274,22 @@ than $b_f(a)$ cells.
 operational cost semantics that models a perfect garbage collector.
 %
 The cost semantics is a big-step (or natural) semantics that keeps
-track of the reachable memory cells, in the style of Spoonhower et
-al.~\cite{Spoonhower:2008:SPP:1411204.1411240} and Minamide et
-al.~\cite{DBLP:journals/entcs/Minamide99}. Operationally, this cost is
-the highwater mark on the heap usage, or the maximum number of cells
-used in the mutable store during evaluation, if we assume that cells
-are only used if they are reachable from the reminder of the
-computation. The notion of reachability is identical with the one that
-garbage collectors use to decide if a cell can be freed during
-evaluation. For simplicity, we assume that evaluation of constructors
-uses one heap cells and that all other operations do not use heap
-cells. However, the semantics can be instantiated with more realistic
-cost metrics. A difference to existing
-formulations~\cite{Spoonhower:2008:SPP:1411204.1411240,DBLP:journals/entcs/Minamide99}
+track of the reachable memory cells in the style Spoonhower et
+al.~\cite{Spoonhower:2008:SPP:1411204.1411240} and
+Minamide~\cite{DBLP:journals/entcs/Minamide99}. Operationally, this
+cost is the highwater mark on the heap usage, or the maximum number of
+cells used in the mutable store during evaluation, if we assume that
+cells are only used if they are reachable from the reminder of the
+computation. Our formalization of reachability is identical with the
+concept that garbage collectors implement to decide if a cell can be
+freed during evaluation. For simplicity, we assume that evaluation of
+constructors allocates one fresh heap cell and that all other
+operations do not allocate heap cells. However, the semantics can be
+instantiated with more realistic cost metrics. A difference to
+existing formulations of cost semantics with
+GC~\cite{Spoonhower:2008:SPP:1411204.1411240,DBLP:journals/entcs/Minamide99}
 is that we update the highwater mark when reachability changes at
-inner notes as the derivation of the evaluation judgement instead of
+inner notes of the derivation of the evaluation judgement instead of
 leaves. Moreover, we use a \emph{free-list}, which represents the
 cells available for evaluation. This alternative formulation is
 equivalent to the existing semantics and mainly motivated by the
@@ -293,19 +301,22 @@ to be of interest in its own right.
 \emph{Our second technical contribution} is the type system for
 deriving bounds on the heap-space for programs with perfect GC. The
 type system is an extension of type-based automatic amortized resource
-analysis (AARA)~\cite{}. AARA is template-based technique that
-introduces potential functions to efficiently automatically reduce
-bound inference to linear programming. Existing type systems based on
-AARA can derive bounds on the highwater mark of the heap usage for
-programs with manual deallocation~\cite{}, but can only derive a bound
-on the number number of total heap allocations for programs with
-GC~\cite{}. This is usually a crass over-approximation of the actual
-memory requirement. Our extension is based on the observation that
-deallocation of a perfect collector can be modeled with destructive
-pattern matching (deallocate the matched cell) if data structures are
-used in a linear way. In the type system, we extend this observation
-to non-linear programs and use destructive pattern matching to
-accurately model deallocation even if data is shared.
+analysis
+(AARA)~\cite{Jost03,Jost10,VasconcelosJFH15,HoffmannAH10,HoffmannW15,NgoDFH16}. AARA
+is template-based technique that introduces potential functions to
+efficiently automatically reduce bound inference to linear
+programming. Existing type systems based on AARA can derive bounds on
+the highwater mark of the heap usage for programs with manual
+deallocation~\cite{Jost10}, but can only derive a bound on the number
+number of total heap allocations for programs with
+GC~\cite{HoffmannW15}. This is usually a crass over-approximation of
+the actual memory requirement. Our extension is based on the
+observation that deallocation of a perfect collector can be modeled
+with destructive pattern matching (deallocate the matched cell) if
+data structures are used in a linear way. In the type system, we
+extend this observation to non-linear programs and use destructive
+pattern matching to accurately model deallocation even if data is
+shared.
 
 \emph{The third technical contribution} is to prove the soundness of
 the extended AARA with respect to the GC-based cost semantics. The
@@ -319,13 +330,13 @@ simulation proof---are quite involved. \yue{maybe you want to
   elaborate a bit!?}
 
 The analysis and the cost semantics have been implemented as an
-extension to Resource Aware ML (RaML). RaML is an implementation of
-AARA for a subset of OCaml that can derive multivariate polynomial
-bounds. However, we restrict the technical development in this paper
-to a simple first-order language with tuples, lists, and trees. The
-proofs and ideas carry over the more complex case of
-RaML.\footnote{An exception are function closures that we discuss in
-  the Section~\ref{sect:conclusion}.}
+extension to Resource Aware ML (RaML)~\cite{HoffmannAH10,HoffmannW15}. RaML is an
+implementation of AARA for a subset of OCaml that can derive
+multivariate polynomial bounds. However, we restrict the technical
+development in this paper to a simple first-order language with
+tuples, lists, and trees. The proofs and ideas carry over the more
+complex case of RaML.\footnote{An exception are function closures that
+  we discuss in the Section~\ref{sect:conclusion}.}
 %
 An experimental evaluation shows that the system is able to derive
 tight symbolic heap-space bounds for common algorithms. Our results
@@ -539,6 +550,8 @@ semantics from \cite{Hofmann:2003:SPH:604131.604148} with the above approach.
 
 \section{Garbage Collection Cost Semantics}
 \label{sect:semantics}
+
+\yue{add an short intro sentence; cite Morrisett95 Spoonhower:2008:SPP:1411204.1411240 and DBLP:journals/entcs/Minamide99}
 
 The garbage collection cost semantics \gcSem is defined by a collection of judgement of the form:
 \[
@@ -906,7 +919,7 @@ read as under signature $\Sigma : \ms{Var} \to \ms{FTypes}$,
 context $\Gamma : \ms{Var} \to \ms{BTypes}$, $e$ has type $A$ starting with $q$ units of 
 constant potential and ending with $q'$ units.
 
-The type system is based on the affine type system in \cite{Hoffmann:2017:TAR:3009837.3009842}. 
+The type system is based on the affine type system in \cite{HoffmannW15}. 
 We give a review of the rules below.
 Since we are interested in the number of heap locations, 
 there is an implicit side condition in all rules

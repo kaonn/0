@@ -1,5 +1,18 @@
 \begin{thebibliography}{10}
 
+\bibitem{AlbertFR15}
+Elvira Albert, Jes{\'{u}}s~Correas Fern{\'{a}}ndez, and Guillermo
+  Rom{\'{a}}n{-}D{\'{\i}}ez.
+\newblock {Non-cumulative Resource Analysis}.
+\newblock In {\em Tools and Algorithms for the Construction and Analysis of
+  Systems - 21st International Conference, (TACAS'15)}, 2015.
+
+\bibitem{Albert07b}
+Elvira Albert, Samir Genaim, and Miguel Gomez-Zamalloa.
+\newblock Heap space analysis for java bytecode.
+\newblock In {\em Proceedings of the 6th International Symposium on Memory
+  Management (ISMM'07)}, 2007.
+
 \bibitem{Albert09}
 Elvira Albert, Samir Genaim, and Miguel G\'{o}mez-Zamalloa~Gil.
 \newblock {Live Heap Space Analysis for Languages with Garbage Collection}.
@@ -11,6 +24,23 @@ Elvira Albert, Samir Genaim, and Miguel Gómez-Zamalloa.
 \newblock Heap space analysis for garbage collected languages.
 \newblock {\em Science of Computer Programming}, 78(9):1427 -- 1448, 2013.
 
+\bibitem{Atkey10}
+Robert Atkey.
+\newblock {Amortised Resource Analysis with Separation Logic}.
+\newblock In {\em {19th Euro. Symp. on Prog. (ESOP'10)}}, 2010.
+
+\bibitem{AvanziniM13}
+Martin Avanzini and Georg Moser.
+\newblock {A Combination Framework for Complexity}.
+\newblock In {\em 24th International Conference on Rewriting Techniques and
+  Applications ({RTA}'13)}, 2013.
+
+\bibitem{BlancHHK10}
+R{\'e}gis Blanc, Thomas~A. Henzinger, Thibaud Hottelier, and Laura Kov{\'a}cs.
+\newblock {ABC: Algebraic Bound Computation for Loops}.
+\newblock In {\em Logic for Prog., AI., and Reasoning - 16th Int. Conf.
+  (LPAR'10)}, 2010.
+
 \bibitem{Braberman08}
 V\'{\i}ctor~A. Braberman, Federico Fern{\'a}ndez, Diego Garbervetsky, and
   Sergio Yovine.
@@ -18,18 +48,87 @@ V\'{\i}ctor~A. Braberman, Federico Fern{\'a}ndez, Diego Garbervetsky, and
 \newblock In {\em 7th Int. Symp. on Memory Management (ISMM'08)}, pages
   141--150, 2008.
 
+\bibitem{CarbonneauxHRS17}
+Quentin Carbonneaux, Jan Hoffmann, Thomas Reps, and Zhong Shao.
+\newblock {Automated Resource Analysis with Coq Proof Objects}.
+\newblock In {\em 29th International Conference on Computer-Aided Verification
+  (CAV'17)}, 2017.
+
+\bibitem{CarbonneauxHZ15}
+Quentin Carbonneaux, Jan Hoffmann, and Zhong Shao.
+\newblock {Compositional Certified Resource Bounds}.
+\newblock In {\em 36th Conference on Programming Language Design and
+  Implementation (PLDI'15)}, 2015.
+\newblock Artifact submitted and approved.
+
+\bibitem{ChargueraudP15}
+Arthur Chargu{\'{e}}raud and Fran{\c{c}}ois Pottier.
+\newblock {Machine-Checked Verification of the Correctness and Amortized
+  Complexity of an Efficient Union-Find Implementation}.
+\newblock In {\em Interactive Theorem Proving - 6th International Conference
+  (ITP'15)}, 2015.
+
+\bibitem{Chin08}
+Wei-Ngan Chin, Huu~Hai Nguyen, Corneliu Popeea, and Shengchao Qin.
+\newblock {Analysing Memory Resource Bounds for Low-level Programs}.
+\newblock In {\em Proceedings of the 7th International Symposium on Memory
+  Management (ISMM'08)}, 2008.
+
+\bibitem{Chin05}
+Wei-Ngan Chin, Huu~Hai Nguyen, Shengchao Qin, and Martin Rinard.
+\newblock {Memory Usage Verification for OO Programs}.
+\newblock In {\em Proceedings of the 12th International Conference on Static
+  Analysis (SAS'05)}, 2005.
+
+\bibitem{DannerLR15}
+Norman Danner, Daniel~R. Licata, and Ramyaa Ramyaa.
+\newblock {Denotational Cost Semantics for Functional Languages with Inductive
+  Types}.
+\newblock In {\em {29th Int. Conf. on Functional Programming (ICFP'15)}}, 2012.
+
+\bibitem{DasHP18}
+Ankush Das, Jan Hoffmann, and Frank Pfenning.
+\newblock Parallel complexity analysis with temporal session types.
+\newblock In {\em 23rd International Conference on Functional Programming
+  (ICFP'18)}, 2018.
+\newblock Conditionally accepted.
+
+\bibitem{FloresH14}
+Antonio Flores{-}Montoya and Reiner H{\"{a}}hnle.
+\newblock {Resource Analysis of Complex Programs with Cost Equations}.
+\newblock In {\em Programming Languages and Systems - 12th Asian Symposiu
+  (APLAS'14)}, 2014.
+
+\bibitem{FrohnNHBG16}
+Florian Frohn, M.~Naaf, Jera Hensel, Marc Brockschmidt, and J{\"{u}}rgen Giesl.
+\newblock {Lower Runtime Bounds for Integer Programs}.
+\newblock In {\em Automated Reasoning - 8th International Joint Conference
+  (IJCAR'16)}, 2016.
+
+\bibitem{GulwaniMC09}
+Sumit Gulwani, Krishna~K. Mehra, and Trishul~M. Chilimbi.
+\newblock {SPEED: Precise and Efficient Static Estimation of Program
+  Computational Complexity}.
+\newblock In {\em {36th ACM Symp. on Principles of Prog. Langs. (POPL'09)}},
+  2009.
+
 \bibitem{Hoffmann11}
 Jan Hoffmann.
 \newblock {\em {Types with Potential: Polynomial Resource Bounds via Automatic
   Amortized Analysis}}.
-\newblock PhD thesis, Ludwig-Maximilians-Universi{\"a}t M{\"u}nchen, 2011.
+\newblock PhD thesis, Ludwig-Maximilians-Universit{\"a}t M{\"u}nchen, 2011.
 
-\bibitem{Hoffmann:2017:TAR:3009837.3009842}
+\bibitem{HoffmannAH10}
+Jan Hoffmann, Klaus Aehlig, and Martin Hofmann.
+\newblock {Multivariate Amortized Resource Analysis}.
+\newblock In {\em 38th Symposium on Principles of Programming Languages
+  (POPL'11)}, 2011.
+
+\bibitem{HoffmannW15}
 Jan Hoffmann, Ankush Das, and Shu-Chun Weng.
-\newblock Towards automatic resource bound analysis for ocaml.
-\newblock In {\em Proceedings of the 44th ACM SIGPLAN Symposium on Principles
-  of Programming Languages}, POPL 2017, pages 359--373, New York, NY, USA,
-  2017. ACM.
+\newblock {Towards Automatic Resource Bound Analysis for OCaml}.
+\newblock In {\em 44th Symposium on Principles of Programming Languages
+  (POPL'17)}, 2017.
 
 \bibitem{Hoffmann:2015:ASC:2769448.2769449}
 Jan Hoffmann and Zhong Shao.
@@ -37,6 +136,13 @@ Jan Hoffmann and Zhong Shao.
 \newblock In {\em Proceedings of the 24th European Symposium on Programming on
   Programming Languages and Systems - Volume 9032}, pages 132--157, New York,
   NY, USA, 2015. Springer-Verlag New York, Inc.
+
+\bibitem{Jost03}
+Martin Hofmann and Steffen Jost.
+\newblock {Static Prediction of Heap Space Usage for First-Order Functional
+  Programs}.
+\newblock In {\em {30th ACM Symp. on Principles of Prog. Langs. (POPL'03)}},
+  2003.
 
 \bibitem{Hofmann:2003:SPH:604131.604148}
 Martin Hofmann and Steffen Jost.
@@ -46,11 +152,74 @@ Martin Hofmann and Steffen Jost.
   Principles of Programming Languages}, POPL '03, pages 185--197, New York, NY,
   USA, 2003. ACM.
 
+\bibitem{Jost06}
+Martin Hofmann and Steffen Jost.
+\newblock {Type-Based Amortised Heap-Space Analysis}.
+\newblock In {\em 15th Euro. Symp. on Prog. (ESOP'06)}, 2006.
+
+\bibitem{Jost10}
+Steffen Jost, Kevin Hammond, Hans-Wolfgang Loidl, and Martin Hofmann.
+\newblock {Static Determination of Quantitative Resource Usage for Higher-Order
+  Programs}.
+\newblock In {\em {37th ACM Symp. on Principles of Prog. Langs. (POPL'10)}},
+  2010.
+
+\bibitem{KincaidBBR2017}
+Zachary Kincaid, Jason Breck, Ashkan~Forouhi Boroujeni, and Thomas Reps.
+\newblock Compositional recurrence analysis revisited.
+\newblock In {\em Conference on Programming Language Design and Implementation
+  (PLDI'17)}, 2017.
+
+\bibitem{LagoG11}
+Ugo~Dal Lago and Marco Gaboardi.
+\newblock {Linear Dependent Types and Relative Completeness}.
+\newblock In {\em {26th IEEE Symp. on Logic in Computer Science (LICS'11)}},
+  2011.
+
 \bibitem{DBLP:journals/entcs/Minamide99}
 Yasuhiko Minamide.
 \newblock Space-profiling semantics of the call-by-value lambda calculus and
   the {CPS} transformation.
 \newblock {\em Electr. Notes Theor. Comput. Sci.}, 26:105--120, 1999.
+
+\bibitem{NgoDFH16}
+Van~Chan Ngo, Mario Dehesa-Azuara, Matthew Fredrikson, and Jan Hoffmann.
+\newblock {Verifying and Synthesizing Constant-Resource Implementations with
+  Types}.
+\newblock In {\em 38th {IEEE} Symposium on Security and Privacy (S{\&}P '17)},
+  2017.
+
+\bibitem{Nipkow15}
+Tobias Nipkow.
+\newblock {Amortized Complexity Verified}.
+\newblock In {\em Interactive Theorem Proving - 6th International Conference
+  (ITP'15)}, 2015.
+
+\bibitem{NoschinskiEG13}
+Lars Noschinski, Fabian Emmes, and J{\"{u}}rgen Giesl.
+\newblock {Analyzing Innermost Runtime Complexity of Term Rewriting by
+  Dependency Pairs}.
+\newblock {\em J. Autom. Reasoning}, 51(1):27--56, 2013.
+
+\bibitem{Radicek17}
+Ivan Radi\v{c}ek, Gilles Barthe, Marco Gaboardi, Deepak Garg, and Florian
+  Zuleger.
+\newblock {Monadic Refinements for Relational Cost Analysis}.
+\newblock {\em {Proc. ACM Program. Lang.}}, 2(POPL), 2017.
+
+\bibitem{SimoesVFJH12}
+Hugo~R. Sim{\~o}es, Pedro~B. Vasconcelos, M{\'a}rio Florido, Steffen Jost, and
+  Kevin Hammond.
+\newblock {Automatic Amortised Analysis of Dynamic Memory Allocation for Lazy
+  Functional Programs}.
+\newblock In {\em {17th Int. Conf. on Funct. Prog. (ICFP'12)}}, 2012.
+
+\bibitem{SinnZV14}
+Moritz Sinn, Florian Zuleger, and Helmut Veith.
+\newblock {A Simple and Scalable Approach to Bound Analysis and Amortized
+  Complexity Analysis}.
+\newblock In {\em {Computer Aided Verification - 26th Int. Conf. (CAV'14)}},
+  2014.
 
 \bibitem{Spoonhower:2008:SPP:1411204.1411240}
 Daniel Spoonhower, Guy~E. Blelloch, Robert Harper, and Phillip~B. Gibbons.
@@ -70,5 +239,24 @@ Leena Unnikrishnan, Scott~D. Stoller, and Yanhong~A. Liu.
 \newblock {Optimized Live Heap Bound Analysis}.
 \newblock In {\em Verification, Model Checking, and Abstract Interpretation,
   4th International Conference (VMCAI'03)}, pages 70--85, 2003.
+
+\bibitem{VasconcelosJFH15}
+Pedro~B. Vasconcelos, Steffen Jost, M{\'{a}}rio Florido, and Kevin Hammond.
+\newblock {Type-Based Allocation Analysis for Co-recursion in Lazy Functional
+  Languages}.
+\newblock In {\em 24th European Symposium on Programming ({ESOP}'15)}, 2015.
+
+\bibitem{OOPSLA:WWC17}
+P.~Wang, D.~Wang, and A.~Chlipala.
+\newblock {TiML: A Functional Language for Practical Complexity Analysis with
+  Invariants}.
+\newblock In {\em Object-Oriented Prog., Syst., Lang., and Applications
+  (OOPSLA'17)}, 2017.
+
+\bibitem{CicekBGGH16}
+Ezgi Çiçek, Gilles Barthe, Marco Gaboardi, Deepak Garg, and Jan Hoffmann.
+\newblock {Relational Cost Analysis}.
+\newblock In {\em 44th Symposium on Principles of Programming Languages
+  (POPL'17)}, 2017.
 
 \end{thebibliography}
