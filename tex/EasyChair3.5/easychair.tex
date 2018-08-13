@@ -85,8 +85,8 @@
 }
 \newcommand{\inferr}[2]{\inferrule{#2}{#1}}
 \newcommand{\inferrr}[3]{\inferrule[#1]{#2}{#3}}
-\newcommand{\paircaseabt}[4]{\irl{case}(#2,#3.#4)}
-\newcommand{\paircasecst}[4]{\irl{case} \; #1\; \{(#2;#3) \hookrightarrow #4\}}
+\newcommand{\paircaseabt}[4]{\irl{match_P}(#2,#3.#4)}
+\newcommand{\paircasecst}[4]{\irl{match} \; #1\; \{(#2;#3) \hookrightarrow #4\}}
 \newcommand{\na}[1]{\mathsf{linear}(#1)}
 \newcommand{\nr}[1]{\mathsf{no\_ref}(#1)}
 \newcommand{\stable}[1]{\mathsf{stable}(#1)}
@@ -350,52 +350,84 @@ decisions throughout the system.
 \section{Setting the Stage}
 \label{sect:fop}
 
-In this paper, in order to make clear the ideas and proofs involving our new garbage-collection 
-cost semantics, we focus our attention to a first-order, 
+In the technical part of the paper, we focus our attention to a first-order, 
 strictly evaluated functional language. 
-The reader can think of our target language to be a very simple subset of OCaml or SML. 
-Furthermore, although we only demonstrate data types in the language with lists, 
-our techniques extend to the expected algebraic data types definable in ML; in fact, 
-our OCaml implementation leverages the OCaml compiler and supports type declarations in OCaml. 
+You can think this language to be a simple subset of OCaml or SML. 
+The only recursive data type in the language is the list type. 
+However, our work extend to the expected algebraic data types definable in RaML.
 Being first order, our language does not allow arbitrary local functional definitions. Instead,
-all functions are defined in a ``global header'' consisting of $n$ mutually recursive blocks. 
+all functions are defined at the top level and are mutually recursive by default.
 The types of these functions form a signature for the program, and the semantics and typing 
-judgments will be indexed by this signature. Thus, the types of the language can be expressed 
-as an arrow between zero-order (base)  types: \\
-
-\begin{wrapfigure}{l}{0.5\textwidth}
-
+judgments will be indexed by this signature.
+%
+\begin{wrapfigure}{r}{0.3\textwidth}
+\vspace{-4ex}
 	\[
 \begin{array}{r l l l}
-\ms{BTypes} & \tau \,\,\,\,\, ::= \\
+\end{array}
+\]
+\vspace{-3ex}
+			\caption{Simple Types}
+\vspace{-2ex}
+\label{fig:types}
+\end{wrapfigure}
+%
+Thus, the function types of the language can be expressed 
+as arrows between zero-order (base)  types. 
+%
+Types are formally defined in Figure~\ref{fig:types}. Like in all
+grammars, we provide the abstract (left) and concrete (right) syntax
+for every type former.\jan{cite pfpl}
+A \emph{signature}  $\Sigma : \ms{Var} \to \ms{FTypes}$ is a map from variables to 
+first-order types. 
+A \emph{program} $P$ is a $\Sigma$ indexed map from $\ms{Var}$ to pairs 
+$(y_f,e_f)_{f \in \Sigma}$, where $\Sigma(y_f) = \tau \to \tau'$, 
+and $\Sigma;y_f : \tau \vdash e_f : \tau'$ (the type system is discussed in Section~$\ref{sect:typing}$). 
+We write $P : \Sigma$ to mean $P$ is a program with signature $\Sigma$. 
+
+\begin{figure}[t!]
+\vspace{-2ex}
+\begin{minipage}[t]{0.33\linewidth}
+	\[
+\begin{array}{r l l l l}
+\hspace{-1em}\ms{BTypes} & \tau \,\,\,\,\, ::= \\
 	& \irl{nat}                	 			& \irl{nat}											\\
 	& \unittyabt                	 			& \unittycst								\\
   & \booltyabt                       & \booltycst                \\
   & \prodtyabt{\tau_1}{\tau_2}       & \prodtycst{\tau_1}{\tau_2}\\
   &\listtyabt{\tau}		& L(\tau)				\\						
   \\
-\ms{FTypes} & \rho \,\,\,\,\, ::= \\
+\hspace{-1em}\ms{FTypes} & \rho \,\,\,\,\, ::= \\
 	&\irl{arr}(\tau_1;\tau_2) 				& \arrtycst{\tau_1}{\tau_2}\\ 	
+\\
+\ms{Val}
+        & v   \,\,\,\,\, ::= \\
+ 	& \irl{val}(n)                                			& n 											\\	
+ 	& \irl{val}(\irl{T})                               			& \irl{T} 								 \\ 
+ 	& \irl{val}(\irl{F})                                			& \irl{F}								 \\ 
+ 	& \irl{val}(\irl{Null})                                  & \irl{Null} 								 \\ 
+ 	& \irl{val}(l)                                			& l 								 \\ 
+ 	& \irl{val}(\pairexabt{v_1}{v_2})                             & \pairexcst{v_1}{v_2} 					
+% \ms{Loc} & l   \,\,\,\,\, ::= \\
+%  	& \irl{loc}(l)                                		\\	\\
+% \ms{Var} & x   \,\,\,\,\, ::= \\
+%  	& \irl{var}(x)                                		\\	
 \end{array}
 \]
-			\caption{Types}
-\label{fig:types}
-\end{wrapfigure}
-
-Next, we have the (abridged) expressions: 
-\begin{wrapfigure}{r}{0.5\textwidth}
-	\vspace{-20pt}
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.59\linewidth}
 \[
 \begin{array}{r l l l}
 \ms{Exp}
         & e   \,\,\,\,\, ::= \\
- 	& x                                			& x 											\\	
+ 	& \irl{var}(x)                                			& x 											\\	
   & \irl{nat}[n]							& \numeral{n}											\\	
   & \irl{unit}							& ()											\\	
   & \irl{T}							& \irl{T}											\\	
   & \irl{F}	   					& \irl{F}											\\	
   & \ifexabt{x}{e_1}{e_2} & \ifexcst{x}{e_1}{e_2} \\ 
-  & \irl{lam}(x:\tau.e) 						&\lambda \; x : \tau. e 	\\	
+  % & \irl{lam}(x:\tau.e) 						&\lambda \; x : \tau. e 	\\	
   & \irl{ap}(f;x) 					& \appcst{f}{x} 									\\	
   & \irl{tpl}(x_1;x_2)     	& \pairexcst{x_1}{x_2}                								\\	
  	& \paircaseabt{p}{x_1}{x_2}{e_1}					& \paircasecst{p}{x_1}{x_2}{e_1}   \\	
@@ -406,59 +438,39 @@ Next, we have the (abridged) expressions:
   & \shareabt{x}{x_1}{x_2}{e} &\sharecst{x}{x_1}{x_2}{e}\\ 
 \end{array}
 \]
-				\vspace{-10pt}
-			\caption{Expressions}
-		\vspace{-10pt}
-\label{fig:exp}
-\end{wrapfigure}
+\end{minipage}
 
-In this paper, we restrict the language to terms that are in let-normal form to simplify the presentation. We allow an extended syntax in the implementation. 
-The one nonstandard construct is the $\sharecst{x}{x_1}{x_2}{e}$, which we will explain in more 
-detail in the following sections. We introduce two distinct notions of ``linearity'', one on 
+\caption{Simple Types, Values, and Expressions \yue{change abstract syntax of vars; change nats to ints}}
+\label{fig:exp}
+\end{figure}
+
+To simplify the presentation, the expressions of our language are in \emph{let normal form} (also called \emph{A normal form}).
+% We allow an extended syntax in the implementation. 
+The one nonstandard construct is $\sharecst{x}{x_1}{x_2}{e}$, which we will explain in more 
+detail in the following sections. We introduce two distinct notions of \emph{linearity}, one on 
 the syntactic level, and one on the semantic level. Syntactic linearity is linearity in 
 expression variables, while semantic linearity is linearity in locations, which we introduce next.
 We say that a semantics is linear if it respects semantic linearity.
 
-In line the previous works on space cost semantics, we employ a heap (also known as 
-environment) which persistently binds locations to values (normalized terms).
-As usual, we derive the cost of a program from the number of heap locations 
-number of heap locations used during execution. Locations is an infinite set of names for addressing
-the heap; we used natural numbers in the implementation:
-
-\begin{wrapfigure}{r}{0.5\textwidth}
-	\vspace{-20pt}
-	\[
-\begin{array}{r l l l l}
-\ms{Val}
-        & v   \,\,\,\,\, ::= \\
- 	& \irl{val}(n)                                			& n 											\\	
- 	& \irl{val}(\irl{T})                               			& \irl{T} 								 \\ 
- 	& \irl{val}(\irl{F})                                			& \irl{F}								 \\ 
- 	& \irl{val}(\irl{Null})                                  & \irl{Null} 								 \\ 
- 	& \irl{val}(l)                                			& l 								 \\ 
- 	& \irl{val}(\pairexabt{v_1}{v_2})                             & \pairexcst{v_1}{v_2} 								 \\ 
-  \\
-\ms{Loc} & l   \,\,\,\,\, ::= \\
- 	& \irl{loc}(l)                                		\\	
-\ms{Var} & l   \,\,\,\,\, ::= \\
- 	& \irl{var}(x)                                		\\	
-\end{array}
-\]
-				\vspace{-20pt}
-			\caption{Values, Locations, Variables}
-		\vspace{-10pt}
-\label{fig:val}
-\end{wrapfigure}
-
-For the rest of the paper, we use the following:  
-$\ms{Stack} \triangleq \{ V \mid V : \ms{Var} \to \ms{Val} \}$ and
-$\ms{Heap} \triangleq \{ H \mid H: \ms{Loc} \to \ms{Val} \}$
-for the set of stacks and heaps respectively.
-We refer to a tuple $\mathcal{S} = (V,H) \in \ms{Stack} \times \ms{Heap}$ as a \emph{context},
-a tuple $\mathcal{C} = (V,H,R,F) \in \ms{Stack} \times \ms{Heap} \times \mathcal{P}(\ms{Loc})
-\times \mathcal{P}(\ms{Loc})$ as a \emph{configuration}, and finally a pair of configuration and 
-expression $(\mathcal{C}, e)$ a \emph{computation}.
-
+In line the previous works on space cost
+semantics~\cite{Spoonhower:2008:SPP:1411204.1411240,DBLP:journals/entcs/Minamide99},
+we employ a heap, which persistently binds
+locations to values (normalized terms).  As usual, we derive the cost
+of a program from the number of heap locations number of heap
+locations used during execution. Locations is an infinite set of names
+for addressing the heap.
+%
+For the rest of the paper, we use the following:
+$\ms{Stack} \triangleq \{ V \mid V : \ms{Var} \to \ms{Val} \}$
+and $\ms{Heap} \triangleq \{ H \mid H: \ms{Loc} \to \ms{Val} \}$
+for the set of stacks and heaps respectively.  We refer to a tuple
+$\mathcal{S} = (V,H) \in \ms{Stack} \times \ms{Heap}$
+as a \emph{context}, a tuple
+$\mathcal{C} = (V,H,R,F) \in \ms{Stack} \times \ms{Heap} \times
+\mathcal{P}(\ms{Loc}) \times \mathcal{P}(\ms{Loc})$ as a
+\emph{configuration}, and finally a pair of configuration and
+expression $(\mathcal{C}, e)$
+a \emph{computation}.  \yue{do we really need to introduce all these terms?}
 
 \textbf{Reachability}
 \label{sect:reachability}
@@ -559,12 +571,6 @@ The garbage collection cost semantics \gcSem is defined by a collection of judge
 \]
 
 Where $\mathcal{C}$ is a configuration usually written as $V,H,R,F$. 
-A \emph{signature}  $\Sigma : \ms{Var} \to \ms{FTypes}$ is a map from variables to 
-first-order types. 
-A \emph{program} $P$ is a $\Sigma$ indexed map from $\ms{Var}$ to pairs 
-$(y_f,e_f)_{f \in \Sigma}$, where $\Sigma(y_f) = A \to B$, 
-and $\Sigma;y_f : A \vdash e_f : B$ (the type system is discussed in $\ref{sect:typing}$). 
-We write $P : \Sigma$ to mean $P$ is a program with signature $\Sigma$. 
 Because the signature $\Sigma$ for the mapping of function names to first order functions 
 does not change during evaluation, we drop the subscript $\Sigma$ from $\vdash_{\Sigma}$ 
 when the context of evaluation is clear. Thus the evaluation judgement $\vdash$ 
