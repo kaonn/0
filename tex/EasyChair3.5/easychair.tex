@@ -359,23 +359,10 @@ Being first order, our language does not allow arbitrary local functional defini
 all functions are defined at the top level and are mutually recursive by default.
 The types of these functions form a signature for the program, and the semantics and typing 
 judgments will be indexed by this signature.
-%
-\begin{wrapfigure}{r}{0.3\textwidth}
-\vspace{-4ex}
-	\[
-\begin{array}{r l l l}
-\end{array}
-\]
-\vspace{-3ex}
-			\caption{Simple Types}
-\vspace{-2ex}
-\label{fig:types}
-\end{wrapfigure}
-%
 Thus, the function types of the language can be expressed 
 as arrows between zero-order (base)  types. 
 %
-Types are formally defined in Figure~\ref{fig:types}. Like in all
+Types are formally defined in Figure~\ref{fig:exp}. Like in all
 grammars, we provide the abstract (left) and concrete (right) syntax
 for every type former.\jan{cite pfpl}
 A \emph{signature}  $\Sigma : \ms{Var} \to \ms{FTypes}$ is a map from variables to 
@@ -444,12 +431,12 @@ We write $P : \Sigma$ to mean $P$ is a program with signature $\Sigma$.
 \label{fig:exp}
 \end{figure}
 
-To simplify the presentation, the expressions of our language are in \emph{let normal form} (also called \emph{A normal form}).
+To simplify the presentation, the expressions of our language (see Figure~\ref{fig:exp}) are in \emph{let normal form} (also \emph{A normal form}).
 % We allow an extended syntax in the implementation. 
 The one nonstandard construct is $\sharecst{x}{x_1}{x_2}{e}$, which we will explain in more 
 detail in the following sections. We introduce two distinct notions of \emph{linearity}, one on 
 the syntactic level, and one on the semantic level. Syntactic linearity is linearity in 
-expression variables, while semantic linearity is linearity in locations, which we introduce next.
+expression variables, while semantic linearity is linearity in locations (defined below).
 We say that a semantics is linear if it respects semantic linearity.
 
 In line the previous works on space cost
