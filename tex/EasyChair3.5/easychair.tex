@@ -466,7 +466,7 @@ expressions and value with the 3-place reachability relation $reach(H,v,L)$ on $
 This is read as ``under heap $H$, the value $v$ reaches the multiset 
 of locations $L$''. Write $L = reach_H(v)$ to indicate this is a functional relation 
 justified by the (valid) mode $(+,+,-)$.
-
+%
 \begin{mathpar}
 \inferrule{
 	A = reach_H(v_1)\\
@@ -487,13 +487,13 @@ justified by the (valid) mode $(+,+,-)$.
 	\emptyset = reach_H(v)
 } 
 \end{mathpar}
-
-Where $\uplus$ is multiset union. For the rest of the paper, we will regularly mix 
+%
+I the rules, $\uplus$ is multiset union. For the rest of the paper, we will sometimes mix 
 multiset and set operations as the situation calls for. For example, we will write 
-$l \in S$ for a multiset $S$ if $S(l) \ge 1$. For complete definitions and notations used,
-see \ref{sect:appendix}.
+$l \in S$ for a multiset $S$ if $S(l) \ge 1$. Complete definitions and notations can
+be found in the appendix.
 Notice that primitives and types with statically-known sizes are stack-allocated 
-($\booltycst, \irl{nat}, \prodtycst{\tau_1}{\tau_2}$) and use no heap cells. 
+($\booltycst, \irl{nat}, \prodtycst{\tau_1}{\tau_2}$) and use no heap cells. \yue{$<$- a bit out of place?}
 The notion of reachability naturally lifts to expressions:
 \begin{align*}
   &locs_{V,H}(e) = \biguplus\limits_{x \in FV(e)} reach_H(V(x))
@@ -503,17 +503,16 @@ Where $FV : \ms{Exp} \to \mathcal{P}(\ms{Var})$ denotes the set of free-variable
 \textbf{Towards the Garbage Collection Cost Semantics}
 Now we are ready to give a first attempt to modeling the cost semantics for a
 tracing garbage collector. Before we present our new semantics, we explain an
-earlier version we tried (this particular one is adapted from  
-\cite{DBLP:journals/entcs/Minamide99}):
-
-\[V,H,R \vdash e \Downarrow^s v,H\]
-
-Which can be read as under stack $V \in \ms{Stack}$, heap $H \in \ms{Heap}$, 
+existing cost semantics we experimented with~\cite{DBLP:journals/entcs/Minamide99}. Judgements have the form
+%
+$V,H,R \vdash e \Downarrow^s v,H$,
+%
+which can be read as follows. Under stack $V \in \ms{Stack}$, heap $H \in \ms{Heap}$, 
 and continuation set $R \subseteq \ms{Loc}$, $e$ evaluates to $v$ 
 and $H'$ using $s$ heap locations. The idea is that $R$ keeps track of the set of locations 
 necessary to complete the evaluation \emph{after} $e$ is evaluated (hence the name continuation).
 For example, we have the let rule: 
-
+%
 \[
 	\inferrule{
 		V,H,R \cup locs_{V,H}(x.e_2) \vdash e_1 \Downarrow^{s_1} v_1,H_1\\
@@ -526,8 +525,8 @@ For example, we have the let rule:
 Notice that to evaluate $e_1$, we have to extend the continuation $R$ with locations in $e_2$, which
 will be used \emph{after} $e_1$ is evaluated. The total space used is the max of the 
 component, indicating that locations used for $e_1$ can be reused for $e_2$. 
-This is clear when we look at the variable rule: 
-
+This is clear when we look at the variable rule. \yue{add dom to multiset size}
+%
 \[
 	\inferrule{
 		V(x) = v
@@ -535,22 +534,24 @@ This is clear when we look at the variable rule:
 			V,H,R \vdash x \Downarrow^{|R \cup reach_H(v)|} v,H
 			}
 \]
-
-Which states that evaluating a variable $x$ requires the locations reachable from $x$ as well as 
+%
+It states that evaluating a variable $x$ requires the locations reachable from $x$ as well as 
 the continuation set $R$. While this way of counting heap locations does model a tracing garbage 
 collector, it is not compatible with the existing type systems for amortized analysis. In these
-systems, the type rules count the heap locations as data is created, i.e. at each data constructor.
+systems, the type rules count the heap locations as data is created, i.e.\ at each data constructor.
 Thus looking up a variable incurs no cost, since it was accounted for during creation. This mismatch
 between the dynamics and statics of language prevent us from proving the soundness of the analysis. 
-Now, we present our novel cost semantics which solves this issue by combining ``freelist'' 
-semantics from \cite{Hofmann:2003:SPH:604131.604148} with the above approach.
 
 %------------------------------------------------------------------------------
 
 \section{Garbage Collection Cost Semantics}
 \label{sect:semantics}
 
-\yue{add an short intro sentence; cite Morrisett95 Spoonhower:2008:SPP:1411204.1411240 and DBLP:journals/entcs/Minamide99}
+In this section, we present our novel cost semantics which solves this
+issue by combining \emph{freelist semantics}
+from~\cite{Hofmann:2003:SPH:604131.604148} with the cost semantics for
+modeling perfect GC~\cite{DBLP:journals/entcs/Minamide99} the we
+discussed in the previous section.
 
 The garbage collection cost semantics \gcSem is defined by a collection of judgement of the form:
 \[
