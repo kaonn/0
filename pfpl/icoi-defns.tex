@@ -57,8 +57,8 @@
 \newcommand{\nilexcst}{\nilexabt}
 \newcommand{\consexabt}[2]{\OpABT{\kw{cons}}{#1;#2}}
 \newcommand{\consexcst}[2]{\consexabt{#1}{#2}}
-\newcommand{\listcaseexabt}[5]{\OpABTp{\kw{case}}{#1}{#2;\AbsABT{#3,#4}{#5}}}
-\newcommand{\listcaseexcst}[5]{\kwop{case}{#1}\,\cdbraces{\nilexcst\casebrcst{#2}\casesepcst\consexcst{#3}{#4}\casebrcst{#5}}}
+\newcommand{\listcaseexabt}[5]{\OpABTp{\kw{match_L}}{#1}{#2;\AbsABT{#3,#4}{#5}}}
+\newcommand{\listcaseexcst}[5]{\kwop{match}{#1}\,\cdbraces{\nilexcst\casebrcst{#2}\casesepcst\consexcst{#3}{#4}\casebrcst{#5}}}
 \newcommand{\listrecexabt}[6]{\OpABTp{\kw{rec}}{#1}{#2;#3;\AbsABT{#4;#5}{#6}}}
 \newcommand{\listrecexcst}[6]{\kwop{rec}{#2}\,\cdbraces{\nilexcst\casebrcst{#3}\casesepcst\consexcst{#4}{#5}\casebrcst{#6}}}
 
