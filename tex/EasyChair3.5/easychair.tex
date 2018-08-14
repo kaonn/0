@@ -784,34 +784,38 @@ we have zero overhead. Thus, the function dfs has a constant space cost of 2.
 
 \yue{explain how this is a cost semantics; what's the relation to blelloch's semantic? size of the minimal initial freelist is blelloch's cost annotation!}
 
-\section{Automatic Amortized Resource Analysis}
+\yue{dfs example: replace this with append and appendTwice; in appendTwice, use explicit sharing}
+
+\section{Automatic Amortized Heap-Space Analysis with GC}
 \label{sect:aara}
 
-\jan{Better intro for AARA, polynomial potential somewhere}
-To introduce AARA, we informally explain the linear potential method for the dfs algorithm.
-We will use the allocation/heap metric which simply counts the number of allocations made 
-(in contrast to the garbage collection metric, the new analysis which records the highwater mark). 
-Given the target function, we associate with each constructor node in the input a
-constant potential $p$. 
-In the type system, this is computed via constraints generated from type checking, but we can 
-just guess and check our assignment. 
-Thus, we need to give the potential assignment to \texttt{t} and \texttt{queue}; let these
-constants be $p$ and $q$, respectively.
-In the body of \texttt{dfs\_aux}, we have
-3 places where heap allocations happen: when the queue is nil, the target was found, 
-or when target was not found and search happens recursively with the two subtrees in the queue.
-The cost of \texttt{None} and \texttt{Some} can be covered if $q = 1$, since constructor nodes
-cost unit potential. However, \texttt{t1::t2::ts} costs $2q+2$, since there are 2 cons cells and 
-each cell has $q$ units of potential. From the 2 pattern matches, we get $p+q$ units of potential,
-so we just have to satisfy the constraint $p+q \ge 2q+2$. One such assignment is $p = 2, q = 0$; 
-and indeed, this is the assignment that RaML derives for dfs. Lastly, to finish the analysis,
-we need to resolve any constant potential required. The case when \texttt{queue} is nil is 
-not covered since nil does not have potential; the initial call to \texttt{dfs\_aux} also 
-requires 2 cons constructors (but 0 potential per cons cell). So we need a total of 3 units 
-of constant potential. Thus the overall allocation cost of dfs is $2m+3$, where $m$ is the number 
-of \texttt{Node} constructors in the input.
+{\bf Automatic Amortized Resource Analysis (AARA)}
+%
+The idea of AARA~\cite{Jost03,Jost10,HoffmannAH10,HoffmannW15} is to automate the potential method of amortized
+analysis using a type system.  Types introduce potential function that
+map data structures of the given type to non-negative numbers. The
+type rules ensure that there is always sufficient potential to cover
+the evaluation cost of the next step and the potential of the
+next program state.
 
-\textbf{Denotational Semantics}
+To illustrate the idea, we informally explain the linear potential method for the dfs algorithm in Figure~\ref{fig:dfs}
+We will use the allocation/heap metric which simply counts the number of cons constructor calls during the evaluation.%
+\footnote{This is in contrast to the highwater mark for the GC semantics \gcSem{} that is targeted by our new analysis.}
+With this metric, the cost of evaluating $\text{dfs}(t,n)$ is $2m+3$, where $m$ is the number 
+of \texttt{Node} constructors in the input.
+%
+
+\yue{1) what's the cost of append and appendTwice with the metric ?}
+
+\yue{2) what are the types of the functions in aara? what do they intuitively mean?}
+
+\yue{3} how does sharing work in appendTwice? What are the types of the variables in the code? (need to add potential)
+
+\yue{4) how do we derive the types automatically? (I can write that later)}
+
+\jan{Better intro for AARA, polynomial potential somewhere}
+
+\textbf{Linear Potential Functions}
 Before giving the type rules, we need to formalize linear potential as explained above.
 Since potential is associated with the \emph{structure} of a value and not the particular heap 
 locations, we need a mapping from
@@ -881,7 +885,6 @@ Now we give the judgements relating heap values to semantic values, in the form 
 Given a stack $V$, we write $H \vDash V : \Gamma$ if $dom(V) = dom(\Gamma)$ and
 for every $x : A \in \Gamma$, $H \vDash V(x) \mapsto a : A$ for some $a \in \llbracket A \rrbracket$.
 
-\textbf{Linear Potential}
 We introduce linear potential for structures corresponding to the base types. The definition of
 linear potential is standard material, and can be found in \cite{Hoffmann11}, which is also
 a good source for an introduction to AARA. Below is the grammar for resource-annotated types:
@@ -1477,6 +1480,8 @@ and no space overhead is created by allocating closures for function declaration
 		\vspace{-10pt}
 \label{table:sig}
 \end{wraptable}
+
+\jan{discuss different cost metric used in eval}
 
 We evaluated our new analysis on a number of functions (see \ref{table:sig}). 
 The first table shows the type signature for each function. The second table presents the test 
