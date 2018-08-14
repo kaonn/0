@@ -924,7 +924,7 @@ context $\Gamma : \ms{Var} \to \ms{BTypes}$, $e$ has type $A$ starting with $q$ 
 constant potential and ending with $q'$ units.
 
 Our type system is based on the one of classic linear AARA~\cite{Jost03}. 
-We give a review of the rules in Figure~\ref{typeRules}.
+We give a review of the rules in Figure~\ref{fig:typeRules}.
 Since we are interested in the number of heap locations, 
 there is an implicit side condition in all rules
 which ensures all constants are assumed to be nonnegative.
@@ -1504,11 +1504,11 @@ and no space overhead is created by allocating closures for function declaration
 
 \textbf{Evaluation}
 We evaluated our new analysis on a number of functions. Table~\ref{table:sig} contains a representative compilation.
-It shows the type signature for each function. Table~\ref{ } presents the test 
+It shows the type signature for each function. Table~\ref{table:bounds} presents the test 
 data that
 showcase the difference between the heap metric, the old analysis which only counts 
 heap allocations, and the gc metric, which includes deallocations and copying cost for sharing.
-For each metric, we show the heap space bound computed by RaML, its asymptotic behavior, 
+For each metric, we show the heap space bound computed by RaML, 
 the number of constraints generated, and the time elapsed during analysis. The last column gives
 the expression for the exact heap high watermark derived by hand and verified by running the 
 cost semantics.
@@ -1518,18 +1518,18 @@ The variables in the table refer to this argument (for example, the type of the
 principal argument of 
 quicksort is 'a list). In general, M refers to the number of cons constructors of the principal 
 argument (or the number of \emph{outer} cons nodes in case of nested lists); L refers to the
-maximum number of cons nodes of the inner lists; N refers to the number of nil constructors.
+maximum number of cons nodes of the inner lists.
 
 For the sorting functions aside from mergesort, the new analysis using the gc metric
 derived asymptotically better bounds when compared to the heap metric. Furthermore,
 all bounds are \emph{exact} with respect to the cost semantics. In regards to mergesort, 
-the analysis was not able to derive a tight bound due to the limitations of AARA in dealing 
-with logarithmic bounds. A particularly nice result is that we can deduce for quicksort, 
+the analysis was not able to derive a tight bound due to the limitations of AARA in deriving 
+logarithmic bounds. A particularly nice result is that we can deduce for quicksort, 
 the space usage is exactly 0, which justifies its use as a zero space-overhead sorting algorithm.
 
 Next, we have have the graph search algorithms operating on a binary tree. Again, the gc metric
 was able to derive exact space overheads, while the heap metric derived linear bounds for both.
-
+%
 For transpose, the gc metric derived an asymptotically better bound, but was not able to derive 
 the exact overhead. We implement matrices as lists-of-lists in row-major order. 
 The transpose function is implemented tail-recursively, with the accumulator starting as the 
@@ -1542,7 +1542,7 @@ matrix).
 The last two functions demonstrate how the gc metric performs when there is variable sharing.
 map\_it maps the input function across each list in the principal argument twice, returning a
 tuple of nested lists. The gc metric dictates that every outer data constructor in the 
-principal argument needs to be copied, and thus gives the linear bound M + N. In this case,
+principal argument needs to be copied, and thus gives the linear bound M + 1. In this case,
 the bound is exact. The pairs functions takes a list and outputs a all pairs of the input list 
 which are ordered ascending in input position. For example, 
 pairs [1;2;3;4] = [(1,2);(1,3);(1,4);(2,3);(2.4);(3,4)]. For pairs, the gc metric derived a bound
@@ -1550,8 +1550,8 @@ that is asymptotically the same as the heap metric, but with better constants. A
 could not be derived because the deallocation potential from the pattern match in the 
 definition of pairs is wasted because the matched body could already be typed with zero cost. 
 However, this deallocation is used as usual in the cost semantics. Thus the slack in the bound 
-totals to the size of the input. This example shows a weakness in the new gc metric and analysis; 
-we discuss possible solutions and different approaches in the next sections. 
+totals to the size of the input. % This example shows a weakness in the new gc metric and analysis; 
+% we discuss possible solutions and different approaches in the next sections. 
 
 
 
@@ -1572,7 +1572,7 @@ we discuss possible solutions and different approaches in the next sections.
 		 dfs & 3.00 + 2.00*M & O(M) & 5481 & 0.90 & 2 & O(1) & 5483 & 0.36 & 2 \\
 		 bfs & 5.00 + 10.00*M & O(M) & 24737 & 4.15 & 4 & O(1) & 24742 & 1.62 & 4 \\
 		 transpose & 1.00 + 3.50*L*M + 0.50*L*M\textasciicircum{}2 & O(L*M\textasciicircum{}2) & 10680 & 0.50 & 1.00 + 2.00*L*M & O(L*M) & 10684 & 0.50 & max(0,2*L-1) \\
-		 map\_it & 2.00 + 2.00*L*M + 4.00*M & O(L*M) & 30699 & 1.58 & 1.00*M + 1.00*N & O(M+N) & 30703 & 1.57 & M + 1 \\
+		 map\_it & 2.00 + 2.00*L*M + 4.00*M & O(L*M) & 30699 & 1.58 & 1.00*M + 1.00 & O(M+N) & 30703 & 1.57 & M + 1 \\
 		 pairs & 1.00 + 1.00*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 10214 & 0.60 & 0.50*M + 0.50*M\textasciicircum{}2 & O(M\textasciicircum{}2+M*N) & 10217 & 0.64 & 0.5*M\textasciicircum{}2-1.5*M+2 \\ \midrule
 	\end{tabular}
 	\end{adjustbox}
