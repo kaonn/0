@@ -447,7 +447,7 @@ set of the value.\\
   H',v'' = copy(H,L,v')\\
 	V' = (V[x_1 \mapsto v',x_2 \mapsto v'']) \restriction_{FV(e)}\\
 	F' =	F \setminus L\\
-	g = \{l \in H \mid l \notin F' \cup R \cup locs_{V',H}(e)\}\\
+	g = \{l \in H \mid l \notin F' \cup R \cup locs_{V',H'}(e)\}\\
  	V',H',R,F' \sqcup g \; \vdash e \Downarrow v,H'',F'
 }{
   V,H,R,F \; \vdash \sharecpcst{x}{x_1}{x_2}{e} \Downarrow v,H'',F'
@@ -465,9 +465,9 @@ set of the value.\\
 \infern{
   V(x) =  l\\
   H(l) = \pairexcst{v_h}{v_t} \\
-	V'' = (V[x_h \mapsto v_h, x_t \mapsto v_t])\restriction_{FV(e_2)}\\
-  g = \{l \in H \mid l \notin F \cup R \cup locs_{V'',H}(e_2)\}\\
-  V'',H,R,F \cup g \; \vdash e_2 \Downarrow v, H',F' \\
+	V' = (V[x_h \mapsto v_h, x_t \mapsto v_t])\restriction_{FV(e_2)}\\
+  g = \{l \in H \mid l \notin F \cup R \cup locs_{V',H}(e_2)\}\\
+  V',H,R,F \cup g \; \vdash e_2 \Downarrow v, H',F' \\
 }{
   V,H,R,F \; \vdash \listcaseexcst{x}{e_1}{x_h}{x_t}{e_2} \Downarrow v,H',F'
 }
@@ -970,13 +970,24 @@ Induction on $H \vDash v \mapsto a : A$.
 
 % copy
 
-\begin{lemma}[stability of copying]
+\begin{lemma}[stability of copying]\label{itm:copyStable}
 	Let $H',v' = copy(H,L,v)$. For all $l \in H$, if $l \notin L$, then $H(l) = H'(l)$. 
 	Further, $reach_{H'}(v') \subseteq L$.
 \end{lemma}
 
-\begin{lemma}[copy is copy]
+\begin{lemma}[copy is copy]\label{itm:copyIsCopy}
 	Let $H',v' = copy(H,L,v)$. If $H \vDash v \mapsto a : A$, then $H' \vDash v' \mapsto a : A$.
+\end{lemma}
+
+\begin{lemma}\label{itm:shareSize}
+	Let $A \curlyvee^n A_1,A_2$, $H \vDash v_1 : A_1$, $H \vDash v_2 : A_2$, 
+	and $H \vDash v : A$. Then $\Phi_{H}(v : A) = 
+	\Phi_{H}(v_1 : A_1) + \Phi_{H}(v_2 : A_2) + n\cdot |dom(reach_H(v))|$
+\end{lemma}
+
+\begin{lemma}
+	Let $H \vDash V : \Gamma$, $\Sigma;\Gamma \vdash e : A$, and $V,H \vdash e \Downarrow v,H'$. Then 
+	$H' \vDash v : A$.
 \end{lemma}
 
 \iffalse
@@ -1086,7 +1097,6 @@ and $\Sigma; \Gamma \vdash e : B$. Then given that $\wfc{V}{H}{R}{F}{e}$, we hav
 \end{enumerate}
 \end{lemma}
 
-\iffalse
 \begin{proof}
 Nested induction on the evaluation judgement and the typing judgement.\\
 \begin{description}
@@ -1295,30 +1305,7 @@ Nested induction on the evaluation judgement and the typing judgement.\\
   &\emph{(2)} \quad\dist{\{R,F',reach_{H'}(v)\}}\\
   &\emph{(3)} \quad\stable{R,H,H'}\\
   \end{align*}
-  \item [Case 13: E:Drop]
-  \begin{align*}
-  &e = \irl{drop}(x;e') \tag{case}\\
-  &V',H,R,F \cup g \vdash e' \Downarrow v,H',F' (\mathcal{J}_1) \tag{ad.}\\
-  &\Gamma = \Gamma',x:A \tag{case}\\
-  &\Sigma;\Gamma' \sststile{q'}{q} e' : B\\
-  &\text{Suppose } dom(V) = FV(e), \na{V,H},\dist{\{R,F,locs_{V,H}(e)\}}\\
-  &\text{By IH, we have invariant on } \mathcal{J}_1\\
-  &\text{NTS (1) - (3) for } \mathcal{J}_1\\
-  &\emph{(1)} \quad dom(V') = FV(e') \tag{$dom(V) = FV(e)$ and def of $FV$}\\
-  &\emph{(2)} \quad \na{V',H} \tag{$\na{V,H}$ and $V' \subseteq V$}\\
-  &\emph{(3)} \quad \dist{\{R,F \cup g,locs_{V',H}(e')\}}\\
-  &g = reach_H(v') \tag{case}\\
-  &g \subseteq locs_{V,H}(e) \tag{def of $locs_{V,H}$}\\
-  &R \cap (F \cup g) = \emptyset \tag{$\dist{\{R,F\}}$ and $\dist{\{R,locs_{V,H}(e)\}}$}\\
-  &R \cap locs_{V',H}(e') = \emptyset \tag{\dist{\{R,locs_{V,H}(e)\}}$ and $locs_{V',H}(e) \subseteq locs_{V,H}(e)$}\\
-  &F \cap locs_{V',H}(e') = \emptyset \tag{\dist{\{F,locs_{V,H}(e)\}}$ and $locs_{V',H}(e) \subseteq locs_{V,H}(e)$}\\
-  &g \cap locs_{V',H}(e') = \emptyset \tag{$\na{V,H}$}\\
-  &\text{Instantiating invariant on }  \mathcal{J}_1,\\
-  &\emph{(1)} \quad \set{reach_{H'}(v)}\\
-  &\emph{(2)} \quad \disjoint{\{R,F',reach_{H'}(v)\}}\\
-  &\emph{(3)} \quad \stable{R,H,H'}\\
-  \end{align*}
-  \item [Case 13: E:Share]
+	\item [Case 13: E:Share]
   \begin{align*}
   &e = \sharecpcst{x}{x_1}{x_2}{e'} \tag{case}\\
   &\text{Suppose } H \vDash V : \Gamma, dom(V) = FV(e), \na{V,H}, \dist{\{R,F,locs_{V,H}(e)\}} 
@@ -1333,20 +1320,19 @@ Nested induction on the evaluation judgement and the typing judgement.\\
 	&\quad reach_{H'}(v'') \subseteq L \subseteq F \tag{lemma about copy}\\
 	&\quad reach_{H'}(v''') \subseteq locs_{V'[x_1\mapsto v'],H'}(e') \subseteq locs_{V,H}(e) 
 		\tag{stability lemma for copy}\\ 
-	&\quad \text{but since } $F \cap locs_{V,H}(e) = \emptyset$, \text{we have the result.}
+	&\quad \text{but since } F \cap locs_{V,H}(e) = \emptyset, \text{we have the result.}
 		 \tag{$\wfc{V}{H}{R}{F}{e}$}\\
   &\emph{(3)} \quad \dist{\{R,F \setminus L,locs_{V_2,H'}(e')\}}\\
 	&\quad \text{Disjointedness involving $F$ follows from assumption. Last one follows since }
-		$locs_{V_2,H'}(e') \subseteq \locs_{V,H}(e) \cup L$\\
-	&\text{By IH:}
+		locs_{V_2,H'}(e') \subseteq locs_{V,H}(e) \cup L\\
+	&\text{By IH:}\\
   &\emph{(1)} \quad \set{reach_{H''}(v)}\\
-  &\emph{(2)} \quad \disjoint{\{R,F',reach_{H''}(v)\}}\\
+  &\emph{(2)} \quad \dist{\{R,F',reach_{H''}(v)\}}\\
   &\emph{(3)} \quad \stable{R,H',H''}\\
 	&\text{STS } \stable{R,H,H'}, \text{ which follows from $L \cap R = \emptyset$ and stability for copy}\\
   \end{align*}
   \end{description}
 \end{proof}
-\fi
 
 To formally state the soundness theorem (and later the equivalence of free and copy semantics), we need the notion
 of context equivalence. Here we define it for contexts, which consisting of only the stack and heap. Later, 
@@ -1369,21 +1355,23 @@ Stated simply, two contexts are equivalent when they have the same domain and eq
 semantic values.
 
 \begin{theorem}[Soundness]
-\label{b} let $H \vDash V : \Gamma$, $\Sigma; \Gamma \sststile{q'}{q} e : B$,
-$V,H \; \vdash e \Downarrow v, H'$, and $H' \vDash v \mapsto a : A$.
-Then $\forall C \in \mathbb{Q}^{+}$ and $\forall F,R \subseteq \ms{Loc}$,
-given the following (existence lemma):
+\label{b} let $H_o \vDash V_o : \Gamma$, $\Sigma; \Gamma \sststile{q'}{q} e : B$,
+$V_o,H_o \; \vdash e \Downarrow v_o, H_o'$, and $H_o' \vDash v_o \mapsto a : A$.
+Then $\forall C \in \mathbb{Q}^{+}$ and configuration $V,H,R,F$ s.t.
 \begin{enumerate} 
-\item $\wfc{V}{H}{R}{F}{e}$
+\item $V_o,H_o \sim V,H$
+\item $dom(V) = FV(e)$
+\item $\na{V,H}$
+\item $\dist{\{R,F,locs_{V,H}(e)\}}$
 \item $|F| \ge \Phi_{V,H}(\Gamma) + q + C$ 
 \end{enumerate}
-then there exists a context $(W,Y)$, a value $w$, and a freelist $F'$ s.t.
+then there exists a triple $(v,H',F')$, and a freelist $F'$ s.t.
 \begin{enumerate}
-	\item $\ctxeq{W,Y}{V,H}$
-  \item $W,Y,R,F \vdash e \Downarrow w, Y', F'$
-	\item $\veq{H'}{Y'}{v}{w}$
+  \item $V,H,R,F \vdash e \Downarrow v, H', F'$
+	\item $\veq{H_o'}{H'}{v_o}{v}$
   \item $|F'| \ge \Phi_{H'}(v:B) + q' + C$
 \end{enumerate}
+Call this the existence clause.
 \end{theorem}
 
 \begin{proof}
@@ -1391,25 +1379,43 @@ Nested induction on the evaluation judgement and the typing judgement.\\
 \begin{description}
   \item[Case 1: E:Var]
   \begin{align*}
-  &V,H \; \vdash x \Downarrow V(x),H \tag{admissibility}\\
-  &\Sigma; x : B \sststile{q}{q} x : B \tag{admissibility}\\
-	&\text{Let } C \in \mathbb{Q}^+, F,R \subseteq \ms{Loc} \text{ be arb.}\\
-	&\text{Suppose this eval-config is well-formed, and further, } |F| \ge \Phi_{V,H}(x : B) + q + C\\
-	&\text{Let } F' = F. \text{ Then }\\
-	&V,H,R,F \vdash e \Downarrow V(x),H,F' \tag{E:Var}\\
-	&\text{And we have } F' = F \ge \Phi_{V,H}(x : B) + q + C\\
+  &V_o,H_o \; \vdash x \Downarrow V_o(x),H_o \tag{case}\\
+  &\Sigma; x : B \sststile{q}{q} x : B \tag{case}\\
+		&\text{Let } C \in \mathbb{Q}^+, \text{well-formed configuration } V,H,R,F \text{ s.t. }
+		V_o,H_o \sim V,H
+			\text{ and }|F| \ge \Phi_{V,H}(x : B) + q + C\\
+		&\text{NTS the conclusions for the existence clause: }\\
+		&\emph{(1) }V,H,R,F \vdash e \Downarrow V(x),H,F \tag{E:Var}\\
+		&\emph{(2) }\veq{H_o}{H}{V_o(x)}{V(x)} \tag{assumption}\\
+		&\emph{(3) }\text{And we have } F \ge \Phi_{V,H}(x : B) + q + C\\
 	&\quad = \Phi_{H}(V(x) : B) + q + C \tag{definition of $\Phi$}\\
   \end{align*}
-  \item[Case 2: E:Const*]
-  Due to similarity, we show only for E:ConstI
-  \begin{align*}
-  &|F| - |F'| = |F| - |F| \tag{ad.}\\
-  &\quad = 0\\
-  &\Phi_{V,H}(\Gamma) +q - (\Phi_{H'}(v:B) + q') = \Phi_{V,H}(\emptyset) +q - (\Phi_{H}(v:int) + q) \tag{ad.}\\
-  &\quad = 0 \tag{def of $\Phi_{V,H}$}\\
-  &|F| - |F'| \le \Phi_{V,H}(\Gamma) +q - (\Phi_{H'}(v:B) + q')
-  \end{align*}
+  \item[Case 2: E:Const*] Similar to E:Var
   \item[Case 4: E:App]
+		\begin{align*}
+			&V_o,H_o \vdash f(x) \Downarrow v_o,H_o' \tag{case}\\
+			&V_o(x) = v_o' \tag{admissibility}\\
+			&\text{Let } P(f) = (y_f,e_f)\\
+			&[y_f \mapsto v_o'],H_o \vdash e_f \Downarrow v_o,H_o' \tag{admissibility}\\
+			&\Sigma; x : A \sststile{q'}{q} f(x) : B \tag{case}\\
+			&\Sigma(f) = A \xrightarrow{q/q'} B \tag{admissibility}\\
+		&\text{Let } C \in \mathbb{Q}^+, \text{well-formed configuration } V,H,R,F \text{ s.t. }
+		V_o,H_o \sim V,H
+			\text{ and }|F| \ge \Phi_{V,H}(x : A) + q + C\\
+			&\Sigma; y_f : A \sststile{q'}{q} e_f : B \\
+			&\text{Let } V(x) = v', g = collect(R,locs_{V,H}(e_f),H,F)\\
+			&\text{By IH on } [y_f \mapsto v'],H,R,F\cup g, \text{ have the  existence clause. NTS the
+				following conditions: }\\
+			&\emph{(1) }[y_f \mapsto v_o'],H_o \sim [y_f \mapsto v'],H 
+				\tag{$\veq{H_o}{H}{v_o'}{v'}$ by assumption}\\
+			&\emph{(2) - (4) } \text{Have by assumption }\\
+			&\emph{(5) } \text{NTS } |F \cup g| \ge \Phi_{[y_f \mapsto v'],H}(x : A) + q + C\\
+			&\quad \text{STS } |F| \ge  \Phi_{[y_f \mapsto v'],H}(y_f : A) + q + C\\
+			&\quad |F| \ge \Phi_{V,H}(x : A) + q + C\\
+			&\quad = \Phi_H(v' : A) + q + C\\
+			&\quad = \Phi_{[y_f \mapsto v'],H}(y_f : A) + q + C\\
+			&\text{Applying the existence clause and E:App, we're done. }
+		\end{align*}
   \item[Case 5: E:CondT]
   \begin{align*}
   &\Gamma = \Gamma', x : \irl{bool} \tag{ad.}\\
@@ -1423,38 +1429,53 @@ Nested induction on the evaluation judgement and the typing judgement.\\
   Similar to E:CondT
   \item[Case 7: E:Let]
   \begin{align*}
-  &V,H \vdash e \Downarrow v_2,H_2 \tag{case}\\
-  &V,H \vdash e_1 \Downarrow v_1,H_1 \tag{ad.}\\
+  &V_o,H_o \vdash e \Downarrow v_o'',H_o'' \tag{case}\\
+		&V_o' = V_o\restriction_{dom(FV(e_1)} \tag{ad.}\\
+  &V_o',H_o \vdash e_1 \Downarrow v_o',H_o' \tag{ad.}\\
+		&\Sigma; \Gamma \sststile{q'}{q} \irl{let}(e_1; x : \tau.e_2) : B \tag{case}\\
+		&\Gamma = \Gamma_1,\Gamma_2 \tag{ad.}\\
   &\Sigma; \Gamma_1 \sststile{p}{q} e_1 : A \tag{ad.}\\
-  &H \vDash V_1 : \Gamma_1 \tag{def of W.D.E}\\
-  &\text{Let } C \in \mathbb{Q}^+, F,R \subseteq \ms{Loc} \text{ be arb.}\\
-  &\text{Suppose }  dom(V) = FV(e),\na{V,H}, \dist{\{R,F,locs_{V,H}(e)\}}, \text{ and } |F| \ge \Phi_{V,H}(\Gamma) + q + C\\
-  &\text{NTF } F' \text{ s.t. }\\
-  &\quad 1. V,H,R,F \vdash e \Downarrow v_2, H_2,F' \text{ and }\\ 
-  &\quad 2. |F'| \ge \Phi_{H_2}(v_2:B) + q' + C\\
-  &\text{Let } R' = R \cup locs_{V,H}(\irl{lam}(x : \tau.e_2))\\
+  &H \vDash V_o' : \Gamma_1 \tag{def of $\vDash$}\\
+		&\text{Let } C \in \mathbb{Q}^+, \text{well-formed configuration } V,H,R,F \text{ s.t. }
+		V_o,H_o \sim V,H
+			\text{ and }|F| \ge \Phi_{V,H}(\Gamma) + q + C\\
+  &\text{NTF } v_2,H_2,F_2 \text{ s.t. }\\
+  &\quad 1. V,H,R,F \vdash e \Downarrow v_2, H_2,F_2 \text{ and }\\ 
+	&\quad 2. \veq{H_o''}{H_2}{v_o''}{v_2}\\
+  &\quad 3. |F_2| \ge \Phi_{H_2}(v_2:B) + q' + C\\
+	&\text{Let } R' = R \cup locs_{V,H}(FV(e_2) \setminus \{x\})\\
   &\dist{\{R',F,locs_{V,H}(e_1)\}} \tag{Similar to case in Lemma $~\ref{itm:na}$}\\
-  &\text{Instantiate IH with } C = C + \Phi_{V_2,H}(\Gamma_2), F = F, R = R', \text{ we get existence lemma on } J_1:\\
-  &\text{NTS (1) - (4) to instantiate existence lemma on } J_1\\
-  &\emph{(1)} \quad dom(V_1) = FV(e_1)\\
-  &\emph{(2)} \quad \na{V_1,H}\\
-  &\emph{(3)} \quad \dist{\{R,F,locs_{V,H}(e)\}} \tag{(1) - (3) all verbatim as in Lemma $~\ref{itm:na}$}\\
-  &\emph{(4)} \quad |F| \ge \Phi_{V_1,H}(\Gamma_1) + q + C + \Phi_{V,H}(\Gamma_2) \tag{$|F| \ge \Phi_{V,H}(\Gamma) + q + C$ and $\Phi_{V,H}(\Gamma) \ge \Phi_{V_1,H}(\Gamma_1) + \Phi_{V,H}(\Gamma_2)$}\\
-  &\text{Instantiating existence lemma on } J_1, \text{ we get }  F'' \text{ s.t. }\\
-  &\quad 1. V,H,R',F \vdash e_1 \Downarrow v_1, H_1,F'' \text{ and }\\ 
-  &\quad 2. |F''| \ge \Phi_{H_1}(v_1:A) + p + C + \Phi_{V_2,H_1}(\Gamma_2)\\
+	&\text{Let } V_1 = V\restriction_{dom(FV(e_1)}\\
+  &\text{Instantiate IH with } C = C + \Phi_{V_2,H}(\Gamma_2), V = V_1, H = H, F = F, R = R'\\ 
+	&\quad\text{ we get existence clause on the first premise }\\
+  &\text{NTS (1) - (4) to instantiate existence clause on the first premise: } \\
+	&\emph{(1) } V_o',H_o \sim V_1, H \tag{assumption}\\
+		&\emph{(2) - (4)} \text{Same as in \ref{itm:na}}\\
+  &\emph{(4) } |F| \ge \Phi_{V_1,H}(\Gamma_1) + q + C + \Phi_{V,H}(\Gamma_2) \tag{$|F| \ge \Phi_{V,H}(\Gamma) + q + C$ and $\Phi_{V,H}(\Gamma) \ge \Phi_{V_1,H}(\Gamma_1) + \Phi_{V,H}(\Gamma_2)$}\\
+  &\text{Instantiating existence clause on the first premise } , \text{ we get } 
+		v_1,H_1,F_1 \text{ s.t. }\\
+		&\quad \text{Fact 1. } V_1,H,R',F \vdash e_1 \Downarrow v_1, H_1,F_1\\
+		&\quad \text{Fact 2. } \veq{H_o'}{H_1}{v_o'}{v_1}\\
+		&\quad \text{Fact 3. } |F_1| \ge \Phi_{H_1}(v_1:A) + p + C + \Phi_{V_2,H_1}(\Gamma_2)\\
   &\text{For the second premise: }\\
+	&V_o'' = (V_o[x \mapsto v_o'])\restriction_{FV(e_2)} \tag{ad.}\\
+  &V_o'',H_o' \vdash e_2 \Downarrow v_o'',H_o'' \tag{ad.}\\
   &\Sigma; \Gamma_2, x : A \sststile{q'}{p} e_2 : B \tag{ad.}\\
-  &H_1 \vDash v_1 : A \text{ and } \tag{Theorem 3.3.4}\\ 
-  &H_1 \vDash V : \Gamma_2 \tag{???}\\
-  &H_1 \vDash V' : \Gamma_2, x : A \tag{def of $\vDash$}\\
-  &V',H_1 \vdash e_2 \Downarrow v_2,H_2 \tag{ad.}\\
-  &\text{Let } g = \{l \in H_1 \mid l \notin F_1 \cup R \cup locs_{V',H_1}(e_2)\}\\ 
-  &\text{Instantiate IH with } C = C, F = F'' \cup g, R = R, \text{ we get existence lemma on  } J_2:\\
-  &\text{NTS (1) - (4) to instantiate existence lemma on } J_1\\
-  &\emph{(1)} \quad dom(V_2') = FV(e_2)\\
-  &\emph{(2)} \quad \na{V_2',H_1} \\
-  &\emph{(3)} \quad \dist{\{R,F'' \cup g,locs_{V_2',H_1}(e_2)\}} \tag{(1) - (3) all verbatim as in Lemma $\ref{itm:na}$}\\
+	&H_1 \vDash v_o' : A \tag{By Lemma~\ref{itm:stable} and~\ref{itm:wellFormed}}\\ 
+  &H_1 \vDash V_2 : \Gamma_2, x : A \tag{def of $\vDash$}\\
+	&\text{Let } V_2 =  (V[x \mapsto v_1])\restriction_{FV(e_2)}\\
+  &\text{Let } g = \{l \in H_1 \mid l \notin F_1 \cup R \cup locs_{V_2,H_1}(e_2)\}\\ 
+  &\text{Instantiate IH with } C = C, V = V_2, H = H_1, F = F_1 \cup g, R = R, 
+		\text{ we get existence clause on the second premise}\\
+  &\text{NTS (1) - (4) to instantiate existence clause on the second premise: }\\
+	&\emph{(1) } V_o'',H_o' \sim V_2,H_1 \tag{assumption and Fact 2.}\\
+	&\emph{(2) - (4)} \text{ Same as Lemma $\ref{itm:na}$}\\
+	&\emph{(5) }  |F_1 \cup g| \ge \Phi_{V_2,H_1}(\Gamma_2,x : A) + p + C\\
+	&\quad \text{STS } |F_1| \ge \Phi_{V_2,H_1}(\Gamma_2,x : A) + p + C\\
+		&\quad \text{Have } |F_1| \ge
+			\Phi{V_2,H_1}(\Gamma_2) + \Phi_{H_1}(v_1:A) + p + C \tag{By Fact 3.}\\
+		&\text{Instantiate the existence clause on the second premise and apply E:Let and we're done}\\
+		\iffalse
   &\emph{(4)} \quad |F'' \cup g| \ge \Phi_{V_2',H_1}(\Gamma_2,x: (\cf{A} - 1)) + p + C\\
   &\quad \text{STS } |F'' \cup g| \ge \Phi_{V_2,H_1}(\Gamma_2) + \Phi_{H_1}(v_1 : (\cf{A} - 1)) + p + C\\
   &\quad |F'' \cup g| \ge \ssize{H}{V_1} + |F| - \ssize{H_1}{v_1} \tag{conservation lemma}\\
@@ -1463,12 +1484,13 @@ Nested induction on the evaluation judgement and the typing judgement.\\
   &\quad \text{STS } \Phi_{V_1,H}(\Gamma_1) + q + C \ssize{H}{V_1} - \ssize{H_1}{v_1} \ge \Phi_{H_1}(v_1 : (\cf{A} - 1)) + p + C\\
   &\quad \Phi_{V_1,H}(\Gamma_1) \ge \Phi_{H_1}(v_1 : (\cf{A} - 1)) \tag{lemma about cf typing}\\
   &\quad \text{STS } \ssize{H}{V_1} - \ssize{H_1}{v_1} + q \ge p \tag{done by aux lemma}\\
-  &\text{Instantiating existence lemma on } J_2, \text{ we get } F^{(3)} \text{ s.t. }\\
+  &\text{Instantiating existence clause on } J_2, \text{ we get } F^{(3)} \text{ s.t. }\\
   &\quad 1. V_2',H_1,R, F'' \cup g \vdash e_2 \Downarrow v_2,H_2,F^{(3)} \\
   &\quad 2. |F^{(3)}| \ge \Phi_{H_2}(v_2:B) + q' + C\\
   &\text{Take } F' = F^{(3)}\\
   &V,H,R,F \vdash e \Downarrow v_2, H_2,F' \text{ and } \tag{E:Let}\\ 
   &|F'| \ge \Phi_{H_2}(v_2:B) + q' + C \tag{from IH}\\
+		\fi
   \end{align*}
 	\item[Case 8: E:Pair]
   Similar to E:Const*
@@ -1478,81 +1500,109 @@ Nested induction on the evaluation judgement and the typing judgement.\\
   Similar to E:Const*
   \item[Case 11: E:Cons]
   \begin{align*}
-  &V,H \vdash \consexabt{x_1}{x_2} \Downarrow l, H' \tag{case}\\
-  &\text{Let } C \in \mathbb{Q}^+, F,R \subseteq \ms{Loc} \text{ be arb.}\\
-  &\text{Suppose } dom(V) = FV(e), \na{V,H}, \dist{\{R,F,locs_{V,H}(e)\}}, |F| \ge \Phi_{V,H}(\Gamma) + q + C\\
-  &\text{NTF } F' \text{ s.t. }\\
-  &\quad 1. V,H,R,F \vdash e \Downarrow v, H',F' \text{ and }\\ 
-  &\quad 2. |F'| \ge \Phi_{H'}(v:B) + q' + C\\
-  &\text{Let } F' = F \ 
+		&V_o,H_o \vdash \consexabt{x_1}{x_2} \Downarrow l_o, H_o' \tag{case}\\
+		&H_o'(l_o) = \pairexcst{V_o(x_1)}{V_o(x_2)} \tag{admissibility}\\
+  	&\Sigma; x_1 : A, x_2 : L^p(A) \sststile{q}{q+p+1} \consexcst{x_1}{x_2} : L^p(A)\\
+		&\text{Let } C \in \mathbb{Q}^+, \text{well-formed configuration } V,H,R,F \text{ s.t. }
+		V_o,H_o \sim V,H
+			\text{ and }|F| \ge \Phi_{V,H}(x_1:A,x_2 : L^p(A)) + (q + p + 1) + C\\
+		&\text{Let } v = \pairexcst{V(x_1)}{V(x_2)}
+		,l \in F, H' = H\{l \mapsto v\}, F' = F\setminus\{l\}\\
+		&\emph{(1) } V,H,R,F \vdash \consexabt{x_1}{x_2} \Downarrow l, H',F' \tag{E:Cons}\\ 
+		&\emph{(2) } \veq{H_o'}{H'}{l_o}{l} \tag{assumption}\\
+		&\emph{(3 } |F'| \ge \Phi_{H'}(l : L^p(A)) + q + C \\
+		&\quad |F| \ge \Phi_{V,H}(x_1:A,x_2:L^p(A)) + (p + q + 1) + C\\
+		&\quad = \Phi_{H'}(l : L^p(A)) + q + 1 + C\\
+		&\quad |F'| = |F| - 1 \ge \Phi_{H'}(l : L^p(A)) + q + C\\
   \end{align*}
   \item[Case 12: E:MatNil]
   Similar to E:Cond*
   \item[Case 13: E:MatCons]
   \begin{align*}
-  &V(x) = (l,\irl{alive}) \tag{ad.}\\
-  &H(l) = \pairexcst{v_h}{v_t} \tag{ad.}\\
+  &V_o(x) = l_o \tag{ad.}\\
+  &H_o(l_o) = \pairexcst{v_o'}{v_o''} \tag{ad.}\\
   &\Gamma = \Gamma', x : L^p(A) \tag{ad.}\\
   &\Sigma; \Gamma', x_h : A, x_t : L^p(A) \sststile{q'}{q + p + 1} e_2 : B \tag{ad.}\\
-  &V'',H \; \vdash e_2 \Downarrow v, H' \tag{ad.}\\
-  &\text{Let } C \in \mathbb{Q}^+, F,R \subseteq \ms{Loc} \text{ be arb.}\\
-  &H \vDash V(x) : L^p(A) \tag{def of W.D.E}\\
-  &H''\vDash v_h : A,\; H'' \vDash v_t : L^p(A) \tag{ad.}\\
-  &H\vDash v_h : A,\; H \vDash v_t : L^p(A) \tag{???}\\
-  &H \vDash V'' : \Gamma', x_h : A, x_t : L^p(A) \tag{def of W.D.E}\\
-  &\text{Suppose }  \na{V,H}, \dist{\{R,F,locs_{V,H}(e)\}}, \text{ and } |F| \ge \Phi_{V,H}(\Gamma) + q + C\\
-  &\text{NTF } F' \text{ s.t. }\\
+	&V_o' = (V_o[x_h \mapsto v_o', x_t \mapsto v_o''])\restriction_{FV(e_2)}\tag{ad.}\\
+  &V_o',H_o \; \vdash e_2 \Downarrow v_o, H' \tag{ad.}\\
+  &H \vDash V(x) : L^p(A) \tag{def of $\vDash$ }\\
+  &H\vDash v_h : A,\; H \vDash v_t : L^p(A) \tag{Inversion on $\vDash$}\\
+  &H \vDash V_o' : \Gamma', x_h : A, x_t : L^p(A) \tag{def of W.D.E}\\
+&\text{Let } C \in \mathbb{Q}^+, \text{well-formed configuration } V,H,R,F \text{ s.t. }
+		V_o,H_o \sim V,H
+			\text{ and }|F| \ge \Phi_{V,H}(\Gamma) + q + C\\
+  &\text{NTF } v,H',F' \text{ s.t. }\\
   &\quad 1. V,H,R,F \vdash e \Downarrow v, H',F' \text{ and }\\ 
+	&\quad 2. \veq{H_o'}{H'}{v_o}{v}\\
   &\quad 2. |F'| \ge \Phi_{H'}(v:B) + q' + C\\
-  &\text{Let } g = \{l \in H \mid l \notin F \cup R \cup locs_{V'',H}(e_2)\}\\
-  &\text{We want to $g$ nonempty, in particular, that } l \in g\\
-  &\quad l \notin F \cup R \tag{$\dist{\{R,F,locs_{V,H}(e)\}}$}\\
-  &\quad \text{AFSOC } l \in locs_{V'',H}(e_2)\\
-  &\quad \text{Then } l \in reach_H(\overline V'' (x')) \text{ for some } x' \ne x\\
-  &\quad x' \in \{x_h,x_t\} \tag{since $reach_H(\overline V (x')) \cap reach_H(\overline (Vx)) = \emptyset$ from $\na{V,H}$}\\
+	&\text{Let } V(x) =  l\\
+		&H(l) = \pairexcst{v_h}{v_t} \tag{$\veq{H_o}{H}{l_o}{l}$ by assumption}\\
+	&\text{Let } V' = (V[x_h \mapsto v_h, x_t \mapsto v_t])\restriction_{FV(e_2)}\\
+	&\text{Let } g = \{l \in H \mid l \notin F \cup R \cup locs_{V',H}(e_2)\}\\
+  &\text{NTS $g$ nonempty, in particular, that } l \in g\\
+	&\quad l \notin F \cup R \tag{$l \in locs_{V,H}(e)$ and $\dist{\{R,F,locs_{V,H}(e)\}}$}\\
+  &\quad \text{AFSOC } l \in locs_{V',H}(e_2)\\
+		&\quad \text{Then } l \in reach_H(V'(x')) \text{ for some } x' \in dom(V')\\
+		&\textbf{case }x' \in \{x_h,x_t\}:\\
   &\quad \text{WLOG let } x' = x_h\\
-  &\quad \text{But then } \mu_{reach_H(\overline V(x))}(l) \ge 2 \text{ and } \ms{set}(reach_(\overline V(x))) \text{ doesn't hold}\\
+		&\quad \text{But then } reach_H(V(x))(l) \ge 2 \text{ and } \ms{set}(reach_(\overline V(x))) \text{ doesn't hold}\\
+		&\textbf{case } x' \notin \{x_h,x_t\}:\\
+		&\quad x' \in dom(V)\\
+		&\quad x = x' \tag{$l \in reach_H(V(x))$ and $\na{V,H}$}\\
+		&\text{Contradiction, } x \notin domv(V')\\
   &\quad l \notin locs_{V'',H}(e_2)\\
   &\text{Hence } l \in g\\
-	&\text{Next, we have } \na{V'',H} \text{ and } \dist{\{R,F \cup g,locs_{V'',H}(e_2)\}} \tag{similar to case in Lemma 1.2}\\
-	&\text{By IH with } C' = C, F'' = F \cup g \text{ and the above conditions, we have: } F^{(3)} \text{ s.t.}\\
-	&\quad 1. V'',H,R,F\cup g \vdash e_2 \Downarrow v,H',F^{(3)}\\
-	&\quad 2. |F^{(3)}| \ge \Phi_{H'}(v:B) + q' + C\\
-	&\text{Where we also verify the precondition that } |F''| \ge \Phi_{V'',H}(\Gamma',x_h:A,x_t:L^p(A)) + q + p + 1 + C':\\
-	&\quad |F''| = |F \cup g|\\
-	&\quad \quad = |F| + |g| \tag{$F$ and $g$ disjoint}\\
-	&\quad \quad \ge \Phi_{V,H}(\Gamma) + q + C + |g| \tag{Sp.}\\
-	&\quad \quad = \Phi_{V,H}(\Gamma',x_h:A,x_t:L^p(A)) + p + q + C + |g| \tag{Lemma 4.1.1}\\
-	&\quad \quad = \Phi_{V,H}(\Gamma',x_h:A,x_t:L^p(A)) + p + q + C + 1 \tag{$g$ nonempty}\\
-	&\text{Now take } F' = F^{(3)}\\
-	&V,H,R,F \; \vdash e \Downarrow v,H',F' \tag{E:MatCons}\\
-  &|F'| \ge \Phi_{H'}(v:B) + q' + C \tag{From the IH}\\
+	&\text{By IH with } C' = C, V = V', H = H, R = R, F_1 = F \cup g 
+		\text{ we have the existence clause. NTS the following: } \\
+	&\emph{(1) } V_o',H_o \sim V',H \tag{assumption} \\
+	&\emph{(2) - (4) } \text{Same as Lemma~\ref{itm:na}}\\
+		&\emph{(5) } |F_1| \ge \Phi_{V',H}(\Gamma',x_h:A,x_t:L^p(A)) + q + p + 1 + C:\\
+	&\quad |F_1| = |F \cup g|\\
+	&\quad = |F| + |g| \tag{$F$ and $g$ disjoint}\\
+	&\quad \ge \Phi_{V,H}(\Gamma) + q + C + |g| \tag{assumption}\\
+		&\quad = \Phi_{V,H}(\Gamma',x_h:A,x_t:L^p(A)) + q+ p + C + |g| \tag{definition of $\Phi$}\\
+	&\quad = \Phi_{V,H}(\Gamma',x_h:A,x_t:L^p(A)) + q + p + 1 + C \tag{$g$ nonempty}\\
+		&\quad\text{By existence clause have } v,H',F' \text{ s.t. }\\
+		&\quad \text{Fact 1 }. V',H,R,F\cup g \vdash e_2 \Downarrow v,H',F'\\
+		&\quad \text{Fact 2 }. |F'| \ge \Phi_{H'}(v:B) + q' + C\\
+	&\text{Apply E:MatCons and we're done}
   \end{align*}
   \item[Case 14: E:Share]
 	\begin{align*}
-	&V,H \vdash e \Downarrow v,H'' \tag{case}\\
-	&V'[x_1 \mapsto v',x_2 \mapsto v''], H' \vdash e' \Downarrow v,H'' \tag{ad}\\
-	&\Sigma;\Gamma,x:A \sststile{q'}{q} e : B \tag{case}\\
+	&V_o,H_o \vdash \sharecpcst{x}{x_1}{x_2}{e'}  \Downarrow v_o,H_o' \tag{case}\\
+	&V_o(x) = v_o' \tag{ad.}\\
+	&V_o' = (V_o[x_1 \mapsto v_o',x_2 \mapsto v_o']) \restriction_{FV(e')}\\
+	&V_o', H_o \vdash e' \Downarrow v_o,H_o' \tag{ad}\\
+	&\Sigma;\Gamma,x:A \sststile{q'}{q} \sharecpcst{x}{x_1}{x_2}{e'}: B \tag{case}\\
 	&A \curlyvee A_1,A_2,1 \tag{ad.}\\
-	&\Sigma; \Gamma,x_1:A_1,x_2:A_2 \sststile{q'}{q} e : B \tag{ad.}\\
-  &\text{Let } C \in \mathbb{Q}^+, F,R \subseteq \ms{Loc} \text{ be arb.}\\
-  &\text{Suppose }  \na{V,H}, \dist{\{R,F,locs_{V,H}(e)\}}, \text{ and } |F| 
-		\ge \Phi_{V,H}(\Gamma,x:A) + q + C\\
-  &\text{NTF } F'' \text{ s.t. }\\
-  &\quad 1. V,H,R,F \vdash e \Downarrow v, H'',F'' \text{ and }\\ 
-  &\quad 2. |F''| \ge \Phi_{H''}(v:B) + q' + C\\
-	&\text{We need to show the freelist is sufficient for the subsequent computation to invoke the IH:}\\
-	&\text{Instantiate with } C, F \setminus L, \text{and} R\\
-	&\text{STS } |F\setminus L| \ge \Phi_{V_2, H'}(\Gamma,x_1 : A_1,x_2 : A_2) + q + C\\
-	&\quad \iff |F| - |L| \ge \Phi_{V_2,H'}(\Gamma) + 
-			\Phi_{V_2,H'}(x_1 : A_1) + \Phi_{V_2,H'}(x_2 : A_2) + q + C\\
-	&\quad \iff |F| \ge \Phi_{V_2,H'}(\Gamma) + 
-			\Phi_{V_2,H'}(x_1 : A_1) + \Phi_{V_2,H'}(x_2 : A_2) + \ssize{H}{v'} + q + C\\
-	&\quad \iff |F| \ge \Phi_{V_2,H'}(\Gamma) + 
-			\Phi_{V,H}(x : A) + q + C \tag{definition of sharing relation}\\
-	&\quad \iff |F| \ge \Phi_{V,H}(\Gamma,x:A) + q + C \tag{stability of copying}\\
-	&\quad \text{done from assumption}\\
-	&\text{By IH, we get } F'' \text{ fulfilling the previous two points for the case. }\\
+	&\Sigma; \Gamma,x_1:A_1,x_2:A_2 \sststile{q'}{q} e' : B \tag{ad.}\\
+&\text{Let } C \in \mathbb{Q}^+, \text{well-formed configuration } V,H,R,F \text{ s.t. }
+		V_o,H_o \sim V,H
+			\text{ and }|F| \ge \Phi_{V,H}(\Gamma,x:A) + q + C\\
+  &\text{NTF } v,H'',F'' \text{ s.t. }\\
+	&\quad 1. V,H,R,F \vdash e \Downarrow v, H'',F'' \text{ and }\\ 
+		&\quad 2. \veq{H_o'}{H''}{v_o}{v}\\
+  &\quad 3. |F''| \ge \Phi_{H''}(v:B) + q' + C\\
+		&\text{Let } V(x) = v',
+  L \subseteq F,
+  |L| = |dom(reach_H(v'))|,
+  H',v'' = copy(H,L,v'),
+	V' = (V[x_1 \mapsto v',x_2 \mapsto v'']) \restriction_{FV(e)}\\
+		&\quad F' =	F \setminus L,
+		g = \{l \in H \mid l \notin F' \cup R \cup locs_{V',H'}(e)\}\\
+		&\text{By IH with } C, V',H',R,F'\cup g \text{, have the existence clause. NTS the following: }\\
+		&\emph{(1) } V_o',H_o \sim V',H' \tag{By Lemma~\ref{itm:copy} and assumption}\\
+		&\emph{(2) - (4) } \text{ same as lemma~\ref{itm:na}}\\ 
+		&\emph{(5) } |F' \cup g| \ge \Phi_{V',H'}(\Gamma,x_1 : A_1,x_2 : A_2) + q + C\\
+		&\text{STS } |(F\setminus L) \cup g| \ge \Phi_{V', H'}(\Gamma,x_1 : A_1,x_2 : A_2) + q + C\\
+		&\quad \iff (|F| - |L|) + |g| \ge \Phi_{V',H'}(\Gamma) + 
+			\Phi_{V',H'}(x_1 : A_1) + \Phi_{V',H'}(x_2 : A_2) + q + C\\
+		&\quad \text{STS } |F| \ge \Phi_{V',H'}(\Gamma) + 
+			\Phi_{V',H'}(x_1 : A_1) + \Phi_{V',H'}(x_2 : A_2) + |L| + q + C\\
+	&\quad \iff |F| \ge \Phi_{V',H'}(\Gamma) + 
+			\Phi_{V,H}(x : A) + q + C \tag{By Lemma~\ref{itm:shareSize}}\\
+		&\quad \iff |F| \ge \Phi_{V,H}(\Gamma,x:A) + q + C \tag{By Lemma~\ref{itm:copyStable}}\\
+		&\text{Instantiate the existence clause and apply E:Share, and we're done}
 	\end{align*}
   \end{description}
 \end{proof}
@@ -1826,7 +1876,7 @@ $(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ and
 			\item $\mathcal{C}_1 \vdash^{\mathsf{free}} e \Downarrow w,Y',M'$
 			\item $\veq{H'}{Y'}{v}{w}$
 			\item $\gamma'$ is a proper partition, such that for all $l \in dom(\gamma')$, 
-				$|\gamma'(l)| = reach_{Y_1}(w_1)(l) + S(l) + collect(R,v,H',F')$
+				$|\gamma'(l)| = reach_{Y_1}(w_1)(l) + S(l)$
 			\item For all $P$ valid w.r.t $v$, $|reach_{H'}(find_{H'}(v;P)) \cap \gamma'(l)| = 
 				reach_{Y'}(find_{Y'}(w;P))(l)$
 			\item $l \in dom(\gamma')$, 
@@ -1903,7 +1953,7 @@ for all $l \in dom(H_1) \setminus F_1$,
 	\end{enumerate}
 	there is a proper partition $\gamma' : dom(Y) \setminus M \to \mathcal{P}(dom(H) \setminus F')$ 
 	s.t.
-	$|\gamma'(l)| = |\gamma(l)| + \mathbbm{1}_{l \in reach_Y(w)}$, 
+	$|\gamma'(l)| = |\gamma(l)| + reach_Y(w)(l)$, 
 	$|reach_H(v) \cap \gamma'(l)| = |reach_H(v') \cap \gamma'(l)| = |reach_H(v) \cap \gamma(l)|$.
 \end{lemma}
 
@@ -1917,20 +1967,8 @@ if the computation suceeded with the copy semantics.
 \begin{proof}
 Induction on the evaluation judgement.\\
 \begin{description}
-  \item[Case 1: E:Var]
-  \begin{align*}
-		&V,H,R,F \vdash^{\mathsf{copy}} e \Downarrow V(x),H,F \tag{case}\\
-		&\text{Let } W,Y,S,M \preceq V,H,R,F\\
-		&\text{We need to show a triple that satisfies the 3 post-conditions.}\\
-		&\text{Take } (w,Y', M') = (W(x),Y,M)\\
-		&\emph{(1)}\quad W,Y,S,M \vdash^{\mathsf{free}} e \Downarrow w,Y,M \tag{F:Var}\\
-		&\emph{(2)}\quad  \veq{H}{Y'}{V(x)}{w} \tag{Definition of $\sim$}\\
-		&\emph{(3)}\quad \kappa(Y,M) = \kappa(H,F) \tag{Definition of cp. ext.}\\
-  \end{align*}
-  \item[Case 2: E:Const*]
-  Due to similarity, we show only for E:ConstI
-  \begin{align*}
-  \end{align*}
+  \item[Case 1: E:Var] Trivial
+  \item[Case 2: E:Const*] Trivival
   \item[Case 4: E:App] Similar to E:CondT
   \item[Case 5: E:CondT]
   \begin{align*}
@@ -2027,27 +2065,27 @@ Induction on the evaluation judgement.\\
 			\text{ iff }
 		|\bigsqcup_{C  \in \mathcal{C}_2} C| = |L \sqcup \bigsqcup_{C \in ec(\gamma')} C|\\ 
 		&\quad \text{In fact, the latter two sets are equal: }\\
-		&\quad \text{let } l \in \bigsqcup_{C  \in \mathcal{C}_2} C\\
-		&\quad l \in H \setminus F \tag{Def. of partition}\\
+		&\quad \text{let } l' \in \bigsqcup_{C  \in \mathcal{C}_2} C\\
+		&\quad l' \in H \setminus F \tag{Def. of partition}\\
 		&\quad \textbf{case } l \in g\\
-		&\quad\quad l \notin \bigsqcup_{l \in j} \gamma(l) \tag{Def. of $\mathcal{C_2}$}\\
-		&\quad\quad l \in L \tag{Def. of $g$}\\
-		&\quad\quad l \in L \sqcup \bigsqcup_{C \in ec(\gamma')} C\\
-		&\quad \textbf{case } l \notin g\\
-		&\quad\quad l \in H \setminus (F \sqcup g)\\
-		&\quad\quad \text{Exists } C \in ec(\gamma') \text{ s.t. } l \in C \tag{Def. of partition}\\
-		&\quad\quad l \in \bigsqcup_{C \in ec(\gamma')} C\\
-		&\quad\quad l \in L \sqcup \bigsqcup_{C \in ec(\gamma')} C\\
-		&\quad\text{For the other direction, let } l \in L \sqcup \bigsqcup_{C \in ec(\gamma')} C\\
-		&\quad\textbf{case } l \in L\\
-		&\quad\quad l \in H \setminus F \tag{Def. of $L$}\\
-		&\quad\quad \text{Exists } C \in ec(\gamma) \text{ s.t. } l \in C \tag{Def. of partition}\\
-		&\quad\quad l \in \bigsqcup_{C \in ec(\gamma)} C\\
-		&\quad\textbf{case } \bigsqcup_{C \in ec(\gamma')} C\\
-		&\quad\quad l \in H \setminus (F \sqcup g) \tag{Def. of partition}\\
-		&\quad\quad l \in H \setminus F \\
-		&\quad\quad \text{Exists } C \in ec(\gamma) \text{ s.t. } l \in C \tag{Def. of partition}\\
-		&\quad\quad l \in \bigsqcup_{C \in ec(\gamma)} C\\
+		&\quad\quad l' \notin \bigsqcup_{l \in j} \gamma(l) \tag{Def. of $\mathcal{C}_2$}\\
+		&\quad\quad l' \in L \tag{Def. of $g$}\\
+		&\quad\quad l' \in L \sqcup \bigsqcup_{C \in ec(\gamma')} C\\
+		&\quad \textbf{case } l' \notin g\\
+		&\quad\quad l' \in H \setminus (F \sqcup g)\\
+		&\quad\quad \text{Exists } C \in ec(\gamma') \text{ s.t. } l' \in C \tag{Def. of partition}\\
+		&\quad\quad l' \in \bigsqcup_{C \in ec(\gamma')} C\\
+		&\quad\quad l' \in L \sqcup \bigsqcup_{C \in ec(\gamma')} C\\
+		&\quad\text{For the other direction, let } l' \in L \sqcup \bigsqcup_{C \in ec(\gamma')} C\\
+		&\quad\textbf{case } l' \in L\\
+		&\quad\quad l' \in H \setminus F \tag{Def. of $L$}\\
+		&\quad\quad \text{Exists } C \in ec(\gamma) \text{ s.t. } l' \in C \tag{Def. of partition}\\
+		&\quad\quad l' \in \bigsqcup_{C \in ec(\gamma)} C\\
+		&\quad\textbf{case } l' \in \bigsqcup_{C \in ec(\gamma')} C\\
+		&\quad\quad l' \in H \setminus (F \sqcup g) \tag{Def. of partition}\\
+		&\quad\quad l' \in H \setminus F \\
+		&\quad\quad \text{Exists } C \in ec(\gamma) \text{ s.t. } l' \in C \tag{Def. of partition}\\
+		&\quad\quad l' \in \bigsqcup_{C \in ec(\gamma)} C\\
 		&\quad\text{Hence we show that } |D_2| = |L \sqcup \oh{\gamma'}|, \text{ and together with the previous 
 		equality, } |j| + |\oh{\gamma}| = |g| + |\oh{\gamma'}|\\
 		&\text{Thus we have } W',Y,S,F \cup j \preceq V',H,R,F \cup g\\
@@ -2332,8 +2370,10 @@ Induction on the evaluation judgement.\\
 		&\quad = reach_Y(W(x;P))(l') \\
 		&\textbf{case } x' = x_h:\\
 		&\quad |reach_{H}(V'(x';P)) \cap \gamma'(l')| = |reach_{H}(find_H(v_h,P)) \cap \gamma'(l')|\\
-		&\quad = |reach_{H}(find_H(l,\ms{N}::\ms{L}::P)) \cap \gamma'(l')|\\
-		&\quad = |reach_{H}(V(x,\ms{N}::\ms{L}::P)) \cap \gamma'(l')|\\
+		&\quad |reach_{H}(find_H(v_h,P)) \cap (\gamma(l')\setminus g)|\\
+		&\quad |reach_{H}(find_H(v_h,P)) \cap \gamma(l')| \tag{$g \cap reach_H(V') = \emptyset$}\\
+		&\quad = |reach_{H}(find_H(l,\ms{N}::\ms{L}::P)) \cap \gamma(l')|\\
+		&\quad = |reach_{H}(V(x,\ms{N}::\ms{L}::P)) \cap \gamma(l')|\\
 		&\quad = reach_{Y}(W(x,\ms{N}::\ms{L}::P))(l') \tag{condition 3. of $\preceq$}\\
 		&\quad = reach_{Y}(find_H(m,\ms{N}::\ms{L}::P))(l') \\
 		&\quad = reach_{Y}(find_H(v_h,P))(l') \\
@@ -2356,12 +2396,37 @@ Induction on the evaluation judgement.\\
 		\to \mathcal{P}(dom(H) \setminus (F \sqcup g)) \text{ be defined by } 
 		\gamma'(l) = \gamma(l) \setminus g\\
 		&\emph{(1) } W',Y \sim V',H \tag{Similar to E:CondT}\\
-		&\emph{(2) } \gamma' \text{ proper partition } \tag{Similar to E:CondT}\\
-		&\quad \text{Let } l \in dom(\gamma')\\
-		&\quad \text{Now, NTS } |\gamma'(l)| = reach_{Y}(W')(l) + S(l')\\
-		&\quad \gamma'(l) = \gamma(l) \setminus g \tag{definition}\\ 
-		&\quad |\gamma'(l)| = |\gamma(l)| - |\gamma(l) \cap g|\\
-		&\quad = reach_Y(W)(l) + S(l) - |\gamma(l) \cap g|\\
+		&\emph{(2) } \text{Have proper partition } \gamma' : 
+			dom(Y) \setminus M \to dom(H') \setminus F' \tag{By $\ref{itm:copyRel}$}\\
+		&\quad \text{Let } j = \{l \in H \mid l \notin M \cup S \cup locs_{W',Y}(e)\}\\
+		&\quad \text{Let } \gamma''(l) : dom(Y) \setminus (M \cup j) \to dom(H') \setminus (F' \cup g)
+			\text{ by defined by } \gamma''(l) =  \gamma'(l) \setminus g\\
+		&\quad \gamma'' \text{ is a proper partition } \tag{Similar to E:CondT}\\
+		&\quad \text{Let } l \in dom(\gamma'')\\
+		&\quad \text{Now, NTS } |\gamma''(l)| = reach_{Y}(W')(l) + S(l')\\
+		&\quad \gamma''(l) = \gamma'(l) \setminus g \tag{definition}\\ 
+		&\quad |\gamma''(l)| = |\gamma'(l)| - |\gamma'(l) \cap g|\\
+		&\quad = |\gamma(l)| + \mathbbm{1}_{l \in reach_Y(w')} - |\gamma'(l) \cap g|\\
+		&\quad = reach_Y(W)(l) + S(l) + reach_Y(w')(l) - |\gamma'(l) \cap g|\\
+		&\textbf{case } \{x_1,x_2\} \subseteq FV(e):\\
+		&\quad g = collect(R,reach_H(V),H,F) = \emptyset \tag{well-formed configuration}\\
+		&\quad |\gamma''(l)| = reach_Y(W)(l) + S(l) + reach_Y(w')(l) \tag{By \ref{itm:copyRel}}\\
+		&\quad = reach_Y(W')(l) + S(l) \\
+		&\textbf{case } x_1 \in FV(e), x_2 \notin FV(e):\\
+		&\quad g = collect(R,reach_H(V),H,F) \cup reach_H'(v') = reach_{H'}(v') 
+			\tag{well-formed configuration}\\
+		&\quad |\gamma''(l)| = reach_Y(W)(l) + S(l) + reach_Y(w')(l)
+			- |\gamma'(l) \cap reach_{H'}(v')|\\
+		&\quad = reach_Y(W)(l) + S(l) + reach_Y(w')(l) - |\gamma(l) \cap reach_H(v')|
+			\tag{By \ref{itm:copyRel}}\\
+		&\quad = reach_Y(W)(l) + S(l) + reach_Y(w')(l) - reach_Y(w')(l) 
+			\tag{condition 3. of $\preceq$}\\
+		&\quad = reach_Y(W)(l) + S(l)\\
+		&\quad = reach_Y(W')(l) + S(l)\\
+		&\textbf{case } x_2 \in FV(e), x_1 \notin FV(e) 
+			\text{ and } \{x_1,x_2\} \cap FV(e) = \emptyset: \text{ symmetric to above}\\
+		&\emph{(3) - (5)} \text{ Similar to E:MatCons}\\ 
+		&\text{Applying the IH then F:Share, and we're done. }
 	\end{align*}
   \end{description}
 \end{proof}

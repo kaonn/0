@@ -267,29 +267,32 @@ collector whenever the bound $b_f(a)$ is reached. It is then
 guaranteed that the evaluation will succeed using $b_f(a)$ heap-memory
 cells.\footnote{We are not considering memory fragmentation, which
   can be avoided using a copying collector.} To improve performance,
-it we could still trigger GC more often or allow memory use of more
-than $b_f(a)$ cells.
+we could trigger GC more often (to compactify the heap) 
+or allow memory use of more than $b_f(a)$ cells 
+(to amortize the cost of garbage collection).
 
 \emph{The first technical contribution} of the work is a new
 operational cost semantics that models a perfect garbage collector.
 %
 The cost semantics is a big-step (or natural) semantics that keeps
-track of the reachable memory cells in the style Spoonhower et
+track of the reachable memory cells in the style of Spoonhower et
 al.~\cite{Spoonhower:2008:SPP:1411204.1411240} and
 Minamide~\cite{DBLP:journals/entcs/Minamide99}. Operationally, this
 cost is the highwater mark on the heap usage, or the maximum number of
-cells used in the mutable store during evaluation, if we assume that
-cells are only used if they are reachable from the reminder of the
+cells used in the mutable store during evaluation. If we traverse the 
+evaluation tree in preorder and view each node as a ``step'' 
+of the computation, then a cell used in the current node
+if they are reachable from the reminder of the
 computation. Our formalization of reachability is identical with the
 concept that garbage collectors implement to decide if a cell can be
 freed during evaluation. For simplicity, we assume that evaluation of
-constructors allocates one fresh heap cell and that all other
+cons node allocates one fresh heap cell and that all other
 operations do not allocate heap cells. However, the semantics can be
 instantiated with more realistic cost metrics. A difference to
 existing formulations of cost semantics with
 GC~\cite{Spoonhower:2008:SPP:1411204.1411240,DBLP:journals/entcs/Minamide99}
 is that we update the highwater mark when reachability changes at
-inner notes of the derivation of the evaluation judgement instead of
+inner nodes of the derivation of the evaluation judgement instead of at
 leaves. Moreover, we use a \emph{freelist}, which represents the
 cells available for evaluation. This alternative formulation is
 equivalent to the existing semantics and mainly motivated by the
@@ -303,13 +306,13 @@ deriving bounds on the heap-space for programs with perfect GC. The
 type system is an extension of type-based automatic amortized resource
 analysis
 (AARA)~\cite{Jost03,Jost10,VasconcelosJFH15,HoffmannAH10,HoffmannW15,NgoDFH16}. AARA
-is template-based technique that introduces potential functions to
+is a template-based technique that introduces potential functions to
 efficiently automatically reduce bound inference to linear
 programming. Existing type systems based on AARA can derive bounds on
 the highwater mark of the heap usage for programs with manual
 deallocation~\cite{Jost10}, but can only derive a bound on the number
 number of total heap allocations for programs with
-GC~\cite{HoffmannW15}. This is usually a crass over-approximation of
+GC~\cite{HoffmannW15}. This is usually a gross over-approximation of
 the actual memory requirement. Our extension is based on the
 observation that deallocation of a perfect collector can be modeled
 with destructive pattern matching (deallocate the matched cell) if
@@ -322,12 +325,16 @@ shared.
 the extended AARA with respect to the GC-based cost semantics. The
 proof is non-trivial and proceeds in two parts: First, we prove the
 soundness of the type system with respect to a semantics that copies
-datastructures if they are shared. Second, we prove for all programs
-that our GC semantics is using less memory than this copying
+data structures if they are shared. Second, we prove for all programs
+that our GC semantics uses less memory than this copying
 semantics. While the proofs are relatively standard, many
 details---like relating program states of the two semantics in the
-simulation proof---are quite involved. \yue{maybe you want to
-  elaborate a bit!?}
+simulation proof---are quite involved. Briefly, we have to provide and maintain 
+a mapping $\gamma$ from the heap used in the GC semantics $H_{gc}$ to \emph{subsets} of
+the heap used in the copying semantics $H_{copy}$ such that the image of 
+$H_{gc}$ under $\gamma$ forms a partition on the second heap. The intuition is that 
+given a cell $l \in H_{gc}$, there must be multiple cells $\gamma(l) \in H_{copy}$  
+that are were allocated during sharing, and thus are ``morally the same'' as $l$.
 
 The analysis and the cost semantics have been implemented as an
 extension to Resource Aware ML (RaML)~\cite{HoffmannAH10,HoffmannW15}. RaML is an
@@ -427,7 +434,7 @@ We write $P : \Sigma$ to mean $P$ is a program with signature $\Sigma$.
 \]
 \end{minipage}
 
-\caption{Simple Types, Values, and Expressions \yue{change abstract syntax of vars; change nats to ints}}
+	\caption{Simple Types, Values, and Expressions }
 \label{fig:exp}
 \end{figure}
 
@@ -439,33 +446,27 @@ the syntactic level, and one on the semantic level. Syntactic linearity is linea
 expression variables, while semantic linearity is linearity in locations (defined below).
 We say that a semantics is linear if it respects semantic linearity.
 
-In line the previous works on space cost
+In line with previous works on space cost
 semantics~\cite{Spoonhower:2008:SPP:1411204.1411240,DBLP:journals/entcs/Minamide99},
 we employ a heap, which persistently binds
 locations to values (normalized terms).  As usual, we derive the cost
-of a program from the number of heap locations number of heap
-locations used during execution. Locations is an infinite set of names
+of a program from the number of heap locations 
+used during execution. Locations is an infinite set of names
 for addressing the heap.
 %
 For the rest of the paper, we use the following:
 $\ms{Stack} \triangleq \{ V \mid V : \ms{Var} \to \ms{Val} \}$
 and $\ms{Heap} \triangleq \{ H \mid H: \ms{Loc} \to \ms{Val} \}$
-for the set of stacks and heaps respectively.  We refer to a tuple
-$\mathcal{S} = (V,H) \in \ms{Stack} \times \ms{Heap}$
-as a \emph{context}, a tuple
-$\mathcal{C} = (V,H,R,F) \in \ms{Stack} \times \ms{Heap} \times
-\mathcal{P}(\ms{Loc}) \times \mathcal{P}(\ms{Loc})$ as a
-\emph{configuration}, and finally a pair of configuration and
-expression $(\mathcal{C}, e)$
-a \emph{computation}.  \yue{do we really need to introduce all these terms?}
+for the set of stacks and heaps respectively. 
 
 \textbf{Reachability}
 \label{sect:reachability}
 Before we define the rules for the cost semantics, we relate the heap locations to 
-expressions and value with the 3-place reachability relation $reach(H,v,L)$ on $\ms{Heap} \times \ms{Val} \times \wp(\ms{Loc})$, where $\wp$ is the powermultiset. 
+values with the 3-place reachability relation $reach(H,v,L)$ on $\ms{Heap} \times \ms{Val} \times \wp(\ms{Loc})$, where $\wp$ is the powermultiset. 
 This is read as ``under heap $H$, the value $v$ reaches the multiset 
-of locations $L$''. Write $L = reach_H(v)$ to indicate this is a functional relation 
-justified by the (valid) mode $(+,+,-)$.
+of locations $L$''. 
+Write $L = reach_H(v)$ to indicate this is a functional relation 
+justified by the (valid) mode $(+,+,-)$. We also say that the reachable set of $v$ is $L$. 
 %
 \begin{mathpar}
 \inferrule{
@@ -488,12 +489,11 @@ justified by the (valid) mode $(+,+,-)$.
 } 
 \end{mathpar}
 %
-I the rules, $\uplus$ is multiset union. For the rest of the paper, we will sometimes mix 
+In the rules, $\uplus$ is multiset union. For the rest of the paper, we will sometimes mix 
 multiset and set operations as the situation calls for. For example, we will write 
 $l \in S$ for a multiset $S$ if $S(l) \ge 1$. Complete definitions and notations can
 be found in the appendix.
-Notice that primitives and types with statically-known sizes are stack-allocated 
-($\booltycst, \irl{nat}, \prodtycst{\tau_1}{\tau_2}$) and use no heap cells. \yue{$<$- a bit out of place?}
+
 The notion of reachability naturally lifts to expressions:
 \begin{align*}
   &locs_{V,H}(e) = \biguplus\limits_{x \in FV(e)} reach_H(V(x))
@@ -515,7 +515,7 @@ For example, we have the let rule:
 %
 \[
 	\inferrule{
-		V,H,R \cup locs_{V,H}(x.e_2) \vdash e_1 \Downarrow^{s_1} v_1,H_1\\
+		V,H,R \uplus locs_{V,H}(x.e_2) \vdash e_1 \Downarrow^{s_1} v_1,H_1\\
 		V[x \mapsto v_1],H,R \vdash e_2 \Downarrow^{s_2} v_2,H_2\\
 	}{
 		V,H,R \vdash \irl{let}(e_1; x : \tau.e_2) \Downarrow^{\max{s_1,s_2}} v_2,H_2
@@ -525,13 +525,13 @@ For example, we have the let rule:
 Notice that to evaluate $e_1$, we have to extend the continuation $R$ with locations in $e_2$, which
 will be used \emph{after} $e_1$ is evaluated. The total space used is the max of the 
 component, indicating that locations used for $e_1$ can be reused for $e_2$. 
-This is clear when we look at the variable rule. \yue{add dom to multiset size}
+This is clear when we look at the variable rule. 
 %
 \[
 	\inferrule{
 		V(x) = v
 		}{
-			V,H,R \vdash x \Downarrow^{|R \cup reach_H(v)|} v,H
+			V,H,R \vdash x \Downarrow^{|dom(R \uplus reach_H(v))|} v,H
 			}
 \]
 %
@@ -540,7 +540,7 @@ the continuation set $R$. While this way of counting heap locations does model a
 collector, it is not compatible with the existing type systems for amortized analysis. In these
 systems, the type rules count the heap locations as data is created, i.e.\ at each data constructor.
 Thus looking up a variable incurs no cost, since it was accounted for during creation. This mismatch
-between the dynamics and statics of language prevent us from proving the soundness of the analysis. 
+between the dynamics and statics of language prevents us from proving the soundness of the analysis. 
 
 %------------------------------------------------------------------------------
 
@@ -550,7 +550,7 @@ between the dynamics and statics of language prevent us from proving the soundne
 In this section, we present our novel cost semantics by combining
 \emph{freelist semantics} from~\cite{Hofmann:2003:SPH:604131.604148}
 with the cost semantics for modeling perfect
-GC~\cite{DBLP:journals/entcs/Minamide99} the we discussed in the
+GC~\cite{DBLP:journals/entcs/Minamide99} that we discussed in the
 previous section. The resulting semantics, called \gcSem, is well suited for
 proving the soundness of the novel type-based bound analysis.
 
@@ -558,15 +558,18 @@ The garbage collection cost semantics \gcSem{} is defined by a collection of jud
 \[
 \mathcal{C} \; \vdash_{P : \Sigma} e \Downarrow v, H', F'
 \]
-where $\mathcal{C}$ is a configuration usually written as $V,H,R,F$. \yue{define configurations here!}
+
+Where $\mathcal{C} \in \ms{Stack} \times \ms{Heap} \times
+\mathcal{P}(\ms{Loc}) \times \mathcal{P}(\ms{Loc})$ is a \emph{configuration}
+usually written with variables $V,H,R,F$. 
 Because the signature $\Sigma$ for the mapping of function names to first-order functions 
 does not change during evaluation, we drop the subscript $P:\Sigma$ from $\vdash_{P:\Sigma}$ 
-when the context of evaluation is clear.
-The evaluation judgment states that under stack $V$, heap $H$, continuation set $R$,
+when the context of evaluation is clear. Given a configuration $\mathcal{C} = (V,H,R,F)$,
+the evaluation judgment states that under stack $V$, heap $H$, continuation set $R$,
 freelist $F$, and program $P$ with signature $\Sigma$, the expression $e$ evaluates to value $v$, 
-and engenders a new heap $H'$ and freelist $F'$. Compared to the previous section, the key
-ingredient we added is the freelist, which will serve as the set of available 
-locations.
+and engenders a new heap $H'$ and freelist $F'$. In comparison with the attempt from 
+the previous section, the key ingredient we added is the freelist, which serves 
+as the set of available locations.
 
 The semantics \gcSem{} is to designed to model the heap usage of a program running with a 
 tracing counting garbage collector: whenever a heap cell becomes unreachable from the 
