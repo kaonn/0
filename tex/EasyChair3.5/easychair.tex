@@ -906,7 +906,7 @@ context $\Gamma : \ms{Var} \to \ms{BTypes}$, $e$ has type $A$ starting with $q$ 
 constant potential and ending with $q'$ units.
 
 Our type system is based on the one of classic linear AARA~\cite{Jost03}. 
-We give a review of the rules in Figure~\ref{typeRules}.
+We give a review of the rules in Figure~\ref{fig:typeRules}.
 Since we are interested in the number of heap locations, 
 there is an implicit side condition in all rules
 which ensures all constants are assumed to be nonnegative.
@@ -1488,7 +1488,7 @@ and no space overhead is created by allocating closures for function declaration
 
 \textbf{Evaluation}
 We evaluated our new analysis on a number of functions. Table~\ref{table:sig} contains a representative compilation.
-It shows the type signature for each function. Table~\ref{ } presents the test 
+It shows the type signature for each function. Table~\ref{table:bounds} presents the test 
 data that
 showcase the difference between the heap metric, the old analysis which only counts 
 heap allocations, and the gc metric, which includes deallocations and copying cost for sharing.
