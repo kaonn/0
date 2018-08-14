@@ -372,7 +372,7 @@ as arrows between zero-order (base)  types.
 %
 Types are formally defined in Figure~\ref{fig:exp}. Like in all
 grammars, we provide the abstract (left) and concrete (right) syntax
-for every type former.\jan{cite pfpl}
+for every type former~\cite{PFPL16}.
 A \emph{signature}  $\Sigma : \ms{Var} \to \ms{FTypes}$ is a map from variables to 
 first-order types. 
 A \emph{program} $P$ is a $\Sigma$ indexed map from $\ms{Var}$ to pairs 
@@ -705,29 +705,7 @@ to facilitate the proof of the linearity of the copying semantics introduced lat
 necessary for the implementation. These issues are discussed in
 \ref{sect:implementation}.
 
-\begin{wrapfigure}{r}{0.5\textwidth}
-	\vspace{-20pt}
-		\begin{center}
-\begin{verbatim}
-let rec append (l1, l2) =
-  match l1 with
-    | [] -> l2
-		| x::xs -> x::(append (xs, l2))
-
-let rec appendTwice l = 
-	share l as l1,l2 in
-	let l1' = append (l1, []) in 
-	let l2' = append (l2, []) in 
-	(l1',l2')
-\end{verbatim}
-			\end{center}
-				\vspace{-20pt}
-			\caption{dfs algorithm}
-		\vspace{-10pt}
-\label{fig:dfs}
-\end{wrapfigure}
-
-For example, we can implement the \texttt{append} and \texttt{appendTwice} function, 
+For example, we can implement the \texttt{append} and \texttt{appTwice} function, 
 which has variable sharing. First, we analyze the heap usage of \texttt{append} under 
 \gcSem{}. We case on the first component of the input. In case it's nil, 
 we just return \texttt{l2}, and there are no allocations or deallocations. In case it's
@@ -735,7 +713,29 @@ cons of \texttt{x} and \texttt{xs}, we need to allocate one heap location for th
 cons cell binding \texttt{x} 
 and the recursive result, for which we can use the just matched-on cell. Again, 
 the net overhead is zero. Thus, the total space overhead of \texttt{append} is zero.
-For \texttt{appendTwice}, we first share the list \texttt{l} as \texttt{l1} and 
+\begin{wrapfigure}{r}{0.4\textwidth}
+	\vspace{-15pt}
+		\begin{center}
+\begin{verbatim}
+let rec append (l1, l2) =
+  match l1 with
+  | [] -> l2
+  | x::xs -> x::(append (xs, l2))
+
+let appTwice l = 
+    share l as l1,l2 in
+    let l1' = append (l1, []) in 
+    let l2' = append (l2, []) in 
+    (l1',l2')
+\end{verbatim}
+			\end{center}
+				\vspace{-15pt}
+			\caption{Functions \texttt{append} and \texttt{appTwice}}
+		\vspace{-10pt}
+\label{fig:dfs}
+\end{wrapfigure}
+%
+For \texttt{appTwice}, we first share the list \texttt{l} as \texttt{l1} and 
 \texttt{l2}. In the first \texttt{let}, the locations in \texttt{l2} are added to the
 continuation set, which prevents the 
 first call to \texttt{append} from destructing \texttt{l1}. Thus size of \texttt{l1} 
@@ -743,11 +743,11 @@ new locations are allocated from the freelist to construct \texttt{l1'}.
 The second call has no net increase in heap allocations since \texttt{l2} can be 
 destructed along the way. 
 The return value is a pair which is stack-allocated and doesn't require a heap 
-allocation. Thus, the total space overhead for \texttt{appendTwice} 
+allocation. Thus, the total space overhead for \texttt{appTwice} 
 is size of input list \texttt{l}.
 
 From this, we see that the minimum size for the initial freelist to successively evaluate 
-a call to \texttt{appendTwice} is exactly the length of the input. In general, we 
+a call to \texttt{appTwice} is exactly the length of the input. In general, we 
 define the cost of a closed program to be the minimum size of the initial freelist that
 guarantees successful evaluation. Although we don't prove it in this paper, this can be seen
 to be equivalent to the cost annotation in previous cost semantics introduced in 
@@ -779,10 +779,10 @@ leaves 0 constant potential after evaluating. This translates to a bound which s
 the number of allocations \texttt{append} makes is bounded by 1 times size of the first list.
 More generally, we can give the type 
 $\prodtycst{L^p(\irl{int})}{L^q(\irl{int})} \xrightarrow{r/r} L^s(\irl{int})$ such that
-$p + q \ge s + 1$, which still gives a bound with the same number of allocations made. 
+$p \ge s + 1$ and $q \ge s$, which still gives a bound with the same number of allocations made. 
 
-For \texttt{appendTwice(l)}, the cost is $2m$, where $m$ is the number of cons 
-constructors in\texttt{l}. Similarly, the resource annotated type of \texttt{appendTwice} is
+For \texttt{appTwice(l)}, the cost is $2m$, where $m$ is the number of cons 
+constructors in\texttt{l}. Similarly, the resource annotated type of \texttt{appTwice} is
 $L^p(\irl{int}) \xrightarrow{q/q} \prodtycst{L^r(\irl{int})}{L^s(\irl{int})}$ 
 such that $p \ge r + s + 2$. For example, let
 $p = 2, q = 0, r= 0, s =0$. When $\texttt{l} : L^2(\irl{int})$ is shared, \texttt{l1} and 
@@ -793,10 +793,10 @@ and the resulting pair of lists both have 0 potential per element.
 With AARA, the type system keeps track of this collection of constraints on
 resource annotations and passes them to an off-the-shelf LP-solver 
 which finds the minimum solution. This is then translated to concrete resource bounds
-like the ones we derived by hand.
+like the ones we derived by hand. It has been shown that this technique can be extended
+to polynomial potential functions, user-defined data types, and higher-order functions while
+still relying on linear constraint solving~\cite{HoffmannAH10,HoffmannW15}.
 %
-
-\jan{Better intro for AARA, polynomial potential somewhere}
 
 \textbf{Linear Potential Functions}
 Before giving the type rules, we need to formalize linear potential as explained above.
@@ -1049,11 +1049,11 @@ actually copied. This is sound w.r.t the copying semantics because the size of t
 reachable set of a value $v$ is exactly the linear potential of $v : A$ with all resource 
 annotations set to 1.
 
-Now, we can give now the improved space overhead bound to \texttt{append} and \texttt{appendTwice}:
+Now, we can give now the improved space overhead bound to \texttt{append} and \texttt{appTwice}:
 \begin{align*}
 	&\texttt{append} : \prodtycst{L^p(\irl{int})}{L^q(\irl{int})} \xrightarrow{r/r} L^s\irl{int}),
-	\text{ where } p + q \ge s\\
-	&\texttt{appendTwice} : L^p(\irl{int}) \xrightarrow{q/q} \prodtycst{L^r(\irl{int})}{L^s(\irl{int})}
+	\text{ where } p \ge s \text{ and } q \ge s\\
+	&\texttt{appTwice} : L^p(\irl{int}) \xrightarrow{q/q} \prodtycst{L^r(\irl{int})}{L^s(\irl{int})}
 	\text{ where } p + q \ge r + s + 1
 \end{align*}
 
@@ -1593,8 +1593,6 @@ totals to the size of the input. % This example shows a weakness in the new gc m
 \section{Conclusion and Future Work}
 \label{sect:conclusion}
 
-\jan{discuss function closures}
-
 In this article, we introduced a novel operational cost semantics that models a perfect tracing 
 garbage collector and an extension to AARA that is sound with respect to the new semantics.
 We implemented the new semantics and analysis as modules in RaML and found through 
@@ -1606,34 +1604,53 @@ One direction for future work is using the \emph{cost free} metric $\ms{cf}$ to 
 collection. In $\ms{cf}$, all resource constants, including constructor nodes, are set to 0.
 A cost-free typing judgment then captures how an expression 
 manipulates the structures in the context into the
-the structure induced by its type. Using this fact, we are inspired to write the following rule:
-
-\[
-\inferr{
-  \Sigma; \Gamma_1, \Gamma_2 \sststile{q'}{q} \irl{let}(e_1; x : \tau.e_2) : B
-}{
-  \Sigma; \Gamma_1 \sststile{p}{q} e_1 : A \\
-  \Sigma; \Gamma_1 \sststile{}{\ms{cf}} e_1 : A' \\
-  \Sigma; \Gamma_2, x : (A' - 1) \sststile{q'}{p} e_2 : B
-}(\text{L:Let})
-\]
-
-Which states that to type a composition, we need to be able to type the first expression. 
-Next, we note that instead of paying for every allocation in $e_1$, 
-we only need to pay for the unit potenital for each constructor in the result $A$.
-Thus we also type $e_1$ with the cost-free metric, so the result type $A'$
-contains the same amount of potential as the context $\Gamma_1$, and pay for the 
-constructors by removing unit potential from every node in $A$, and type $e_2$ with 
-the resulting type $A'-1$. This cost-free composition rule would bring the type system closer 
-to modeling the composition in the garbage collection cost semantics.
-
+the structure induced by its type. Using this fact, we could express \emph{maximum} in the sequential
+composition $\irl{let}(e_1; x : \tau.e_2)$ by analyzing $e_1$ twice---once with the cost-free metric 
+and once with the regular metric---and assign potential to $x$ using the result type in the cost-free typing.
 In \cite{Hoffmann:2015:ASC:2769448.2769449}, the authors have successfully employed this 
 cost-free metric to analyze parallel programs. Here, the difficulty is showing
 the simultaneous soundness of both destructive pattern matching and the cost-free composition. 
 Another complication is the choice between local variable sharing and global context sharing.
 We leave the exploration of this area to future work.
 
-\jan{Use analysis for ocaml garbage collector}
+Another direction for future work are function closures. The current
+treatment in our implementation is unsatisfactory since there is no
+equivalent to the destructive pattern match for closures.  As a
+result, the GC metric in RaML only accounts for allocation of
+closures, which is not an improvement over the existing
+implementation.  Ideally, we would like to account for deallocation at
+function applications and treat closures similar to other data
+structures in sharing. However, the size of closures cannot be
+determined easily statically and closures can currently not capture
+potential and are shared freely in RaML.  As a result, the techniques
+we developed here do not directly carry over to closures.
+
+Finally, we are interesting in exploring if our work can be used to
+improve the efficiency of garbage collection in languages like
+OCaml. A guaranteed upper bound on the heap space can be used in
+different ways to control the frequency of the collections and the
+total memory that is requested from the operating system.
+
+% we are inspired to write the following rule,
+% which states that to type a composition, we need to be able to type the first expression. 
+% { \small \[
+% \inferr{
+%   \Sigma; \Gamma_1, \Gamma_2 \sststile{q'}{q} \irl{let}(e_1; x : \tau.e_2) : B
+% }{
+%   \Sigma; \Gamma_1 \sststile{p}{q} e_1 : A \\
+%   \Sigma; \Gamma_1 \sststile{}{\ms{cf}} e_1 : A' \\
+%   \Sigma; \Gamma_2, x : (A' - 1) \sststile{q'}{p} e_2 : B
+% }(\text{L:Let'})
+% \]}
+% Note that instead of paying for every allocation in $e_1$, 
+% we only need to pay for the unit potenital for each constructor in the result $A$.
+% Thus we also type $e_1$ with the cost-free metric, so the result type $A'$
+% contains the same amount of potential as the context $\Gamma_1$, and pay for the 
+% constructors by removing unit potential from every node in $A$, and type $e_2$ with 
+% the resulting type $A'-1$. This cost-free composition rule would bring the type system closer 
+% to modeling the composition in the garbage collection cost semantics.
+
+
 \newpage
 \label{sect:bib}
 \bibliographystyle{plain}
