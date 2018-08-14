@@ -1582,8 +1582,6 @@ totals to the size of the input. % This example shows a weakness in the new gc m
 \section{Conclusion and Future Work}
 \label{sect:conclusion}
 
-\jan{discuss function closures}
-
 In this article, we introduced a novel operational cost semantics that models a perfect tracing 
 garbage collector and an extension to AARA that is sound with respect to the new semantics.
 We implemented the new semantics and analysis as modules in RaML and found through 
@@ -1595,34 +1593,53 @@ One direction for future work is using the \emph{cost free} metric $\ms{cf}$ to 
 collection. In $\ms{cf}$, all resource constants, including constructor nodes, are set to 0.
 A cost-free typing judgment then captures how an expression 
 manipulates the structures in the context into the
-the structure induced by its type. Using this fact, we are inspired to write the following rule:
-
-\[
-\inferr{
-  \Sigma; \Gamma_1, \Gamma_2 \sststile{q'}{q} \irl{let}(e_1; x : \tau.e_2) : B
-}{
-  \Sigma; \Gamma_1 \sststile{p}{q} e_1 : A \\
-  \Sigma; \Gamma_1 \sststile{}{\ms{cf}} e_1 : A' \\
-  \Sigma; \Gamma_2, x : (A' - 1) \sststile{q'}{p} e_2 : B
-}(\text{L:Let})
-\]
-
-Which states that to type a composition, we need to be able to type the first expression. 
-Next, we note that instead of paying for every allocation in $e_1$, 
-we only need to pay for the unit potenital for each constructor in the result $A$.
-Thus we also type $e_1$ with the cost-free metric, so the result type $A'$
-contains the same amount of potential as the context $\Gamma_1$, and pay for the 
-constructors by removing unit potential from every node in $A$, and type $e_2$ with 
-the resulting type $A'-1$. This cost-free composition rule would bring the type system closer 
-to modeling the composition in the garbage collection cost semantics.
-
+the structure induced by its type. Using this fact, we could express \emph{maximum} in the sequential
+composition $\irl{let}(e_1; x : \tau.e_2)$ by analyzing $e_1$ twice---once with the cost-free metric 
+and once with the regular metric---and assign potential to $x$ using the result type in the cost-free typing.
 In \cite{Hoffmann:2015:ASC:2769448.2769449}, the authors have successfully employed this 
 cost-free metric to analyze parallel programs. Here, the difficulty is showing
 the simultaneous soundness of both destructive pattern matching and the cost-free composition. 
 Another complication is the choice between local variable sharing and global context sharing.
 We leave the exploration of this area to future work.
 
-\jan{Use analysis for ocaml garbage collector}
+Another direction for future work are function closures. The current
+treatment in our implementation is unsatisfactory since there is no
+equivalent to the destructive pattern match for closures.  As a
+result, the GC metric in RaML only accounts for allocation of
+closures, which is not an improvement over the existing
+implementation.  Ideally, we would like to account for deallocation at
+function applications and treat closures similar to other data
+structures in sharing. However, the size of closures cannot be
+determined easily statically and closures can currently not capture
+potential and are shared freely in RaML.  As a result, the techniques
+we developed here do not directly carry over to closures.
+
+Finally, we are interesting in exploring if our work can be used to
+improve the efficiency of garbage collection in languages like
+OCaml. A guaranteed upper bound on the heap space can be used in
+different ways to control the frequency of the collections and the
+total memory that is requested from the operating system.
+
+% we are inspired to write the following rule,
+% which states that to type a composition, we need to be able to type the first expression. 
+% { \small \[
+% \inferr{
+%   \Sigma; \Gamma_1, \Gamma_2 \sststile{q'}{q} \irl{let}(e_1; x : \tau.e_2) : B
+% }{
+%   \Sigma; \Gamma_1 \sststile{p}{q} e_1 : A \\
+%   \Sigma; \Gamma_1 \sststile{}{\ms{cf}} e_1 : A' \\
+%   \Sigma; \Gamma_2, x : (A' - 1) \sststile{q'}{p} e_2 : B
+% }(\text{L:Let'})
+% \]}
+% Note that instead of paying for every allocation in $e_1$, 
+% we only need to pay for the unit potenital for each constructor in the result $A$.
+% Thus we also type $e_1$ with the cost-free metric, so the result type $A'$
+% contains the same amount of potential as the context $\Gamma_1$, and pay for the 
+% constructors by removing unit potential from every node in $A$, and type $e_2$ with 
+% the resulting type $A'-1$. This cost-free composition rule would bring the type system closer 
+% to modeling the composition in the garbage collection cost semantics.
+
+
 \newpage
 \label{sect:bib}
 \bibliographystyle{plain}
