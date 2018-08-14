@@ -704,7 +704,7 @@ to facilitate the proof of the linearity of the copying semantics introduced lat
 necessary for the implementation. These issues are discussed in
 \ref{sect:implementation}.
 
-For example, we can implement the \texttt{append} and \texttt{appendTwice} function, 
+For example, we can implement the \texttt{append} and \texttt{appTwice} function, 
 which has variable sharing. First, we analyze the heap usage of \texttt{append} under 
 \gcSem{}. We case on the first component of the input. In case it's nil, 
 we just return \texttt{l2}, and there are no allocations or deallocations. In case it's
@@ -718,23 +718,23 @@ the net overhead is zero. Thus, the total space overhead of \texttt{append} is z
 \begin{verbatim}
 let rec append (l1, l2) =
   match l1 with
-    | [] -> l2
-		| x::xs -> x::(append (xs, l2))
+  | [] -> l2
+  | x::xs -> x::(append (xs, l2))
 
-let rec appendTwice l = 
-	share l as l1,l2 in
-	let l1' = append (l1, []) in 
-	let l2' = append (l2, []) in 
-	(l1',l2')
+let appTwice l = 
+    share l as l1,l2 in
+    let l1' = append (l1, []) in 
+    let l2' = append (l2, []) in 
+    (l1',l2')
 \end{verbatim}
 			\end{center}
 				\vspace{-15pt}
-			\caption{dfs algorithm}
+			\caption{Functions \texttt{append} and \texttt{appTwice}}
 		\vspace{-10pt}
 \label{fig:dfs}
 \end{wrapfigure}
 %
-For \texttt{appendTwice}, we first share the list \texttt{l} as \texttt{l1} and 
+For \texttt{appTwice}, we first share the list \texttt{l} as \texttt{l1} and 
 \texttt{l2}. In the first \texttt{let}, the locations in \texttt{l2} are added to the
 continuation set, which prevents the 
 first call to \texttt{append} from destructing \texttt{l1}. Thus size of \texttt{l1} 
@@ -742,11 +742,11 @@ new locations are allocated from the freelist to construct \texttt{l1'}.
 The second call has no net increase in heap allocations since \texttt{l2} can be 
 destructed along the way. 
 The return value is a pair which is stack-allocated and doesn't require a heap 
-allocation. Thus, the total space overhead for \texttt{appendTwice} 
+allocation. Thus, the total space overhead for \texttt{appTwice} 
 is size of input list \texttt{l}.
 
 From this, we see that the minimum size for the initial freelist to successively evaluate 
-a call to \texttt{appendTwice} is exactly the length of the input. In general, we 
+a call to \texttt{appTwice} is exactly the length of the input. In general, we 
 define the cost of a closed program to be the minimum size of the initial freelist that
 guarantees successful evaluation. Although we don't prove it in this paper, this can be seen
 to be equivalent to the cost annotation in previous cost semantics introduced in 
@@ -780,8 +780,8 @@ More generally, we can give the type
 $\prodtycst{L^p(\irl{int})}{L^q(\irl{int})} \xrightarrow{r/r} L^s(\irl{int})$ such that
 $p + q \ge s + 1$, which still gives a bound with the same number of allocations made. 
 
-For \texttt{appendTwice(l)}, the cost is $2m$, where $m$ is the number of cons 
-constructors in\texttt{l}. Similarly, the resource annotated type of \texttt{appendTwice} is
+For \texttt{appTwice(l)}, the cost is $2m$, where $m$ is the number of cons 
+constructors in\texttt{l}. Similarly, the resource annotated type of \texttt{appTwice} is
 $L^p(\irl{int}) \xrightarrow{q/q} \prodtycst{L^r(\irl{int})}{L^s(\irl{int})}$ 
 such that $p \ge r + s + 2$. For example, let
 $p = 2, q = 0, r= 0, s =0$. When $\texttt{l} : L^2(\irl{int})$ is shared, \texttt{l1} and 
@@ -1048,11 +1048,11 @@ actually copied. This is sound w.r.t the copying semantics because the size of t
 reachable set of a value $v$ is exactly the linear potential of $v : A$ with all resource 
 annotations set to 1.
 
-Now, we can give now the improved space overhead bound to \texttt{append} and \texttt{appendTwice}:
+Now, we can give now the improved space overhead bound to \texttt{append} and \texttt{appTwice}:
 \begin{align*}
 	&\texttt{append} : \prodtycst{L^p(\irl{int})}{L^q(\irl{int})} \xrightarrow{r/r} L^s\irl{int}),
 	\text{ where } p + q \ge s\\
-	&\texttt{appendTwice} : L^p(\irl{int}) \xrightarrow{q/q} \prodtycst{L^r(\irl{int})}{L^s(\irl{int})}
+	&\texttt{appTwice} : L^p(\irl{int}) \xrightarrow{q/q} \prodtycst{L^r(\irl{int})}{L^s(\irl{int})}
 	\text{ where } p + q \ge r + s + 1
 \end{align*}
 
