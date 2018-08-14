@@ -290,7 +290,7 @@ existing formulations of cost semantics with
 GC~\cite{Spoonhower:2008:SPP:1411204.1411240,DBLP:journals/entcs/Minamide99}
 is that we update the highwater mark when reachability changes at
 inner notes of the derivation of the evaluation judgement instead of
-leaves. Moreover, we use a \emph{free-list}, which represents the
+leaves. Moreover, we use a \emph{freelist}, which represents the
 cells available for evaluation. This alternative formulation is
 equivalent to the existing semantics and mainly motivated by the
 soundness proof of our type system for bound analysis.  However, the
@@ -547,32 +547,30 @@ between the dynamics and statics of language prevent us from proving the soundne
 \section{Garbage Collection Cost Semantics}
 \label{sect:semantics}
 
-In this section, we present our novel cost semantics which solves this
-issue by combining \emph{freelist semantics}
-from~\cite{Hofmann:2003:SPH:604131.604148} with the cost semantics for
-modeling perfect GC~\cite{DBLP:journals/entcs/Minamide99} the we
-discussed in the previous section.
+In this section, we present our novel cost semantics by combining
+\emph{freelist semantics} from~\cite{Hofmann:2003:SPH:604131.604148}
+with the cost semantics for modeling perfect
+GC~\cite{DBLP:journals/entcs/Minamide99} the we discussed in the
+previous section. The resulting semantics, called \gcSem, is well suited for
+proving the soundness of the novel type-based bound analysis.
 
-The garbage collection cost semantics \gcSem is defined by a collection of judgement of the form:
+The garbage collection cost semantics \gcSem{} is defined by a collection of judgement of the form
 \[
-\fbox{$\mathcal{C} \; \vdash_{P : \Sigma} e \Downarrow v, H', F'$}
+\mathcal{C} \; \vdash_{P : \Sigma} e \Downarrow v, H', F'
 \]
-
-Where $\mathcal{C}$ is a configuration usually written as $V,H,R,F$. 
-Because the signature $\Sigma$ for the mapping of function names to first order functions 
-does not change during evaluation, we drop the subscript $\Sigma$ from $\vdash_{\Sigma}$ 
-when the context of evaluation is clear. Thus the evaluation judgement $\vdash$ 
-is indexed by a signatures $\Sigma$, which is a mutually
-recursive block of global first-order declarations to be used during evaluation.
-This can be read as: under stack $V$, heap $H$, continuation set $R$,
-free-list $F$, and program $P$ with signature $\Sigma$, the expression $e$ evaluates to $v$, 
+where $\mathcal{C}$ is a configuration usually written as $V,H,R,F$. \yue{define configurations here!}
+Because the signature $\Sigma$ for the mapping of function names to first-order functions 
+does not change during evaluation, we drop the subscript $P:\Sigma$ from $\vdash_{P:\Sigma}$ 
+when the context of evaluation is clear.
+The evaluation judgment states that under stack $V$, heap $H$, continuation set $R$,
+freelist $F$, and program $P$ with signature $\Sigma$, the expression $e$ evaluates to value $v$, 
 and engenders a new heap $H'$ and freelist $F'$. Compared to the previous section, the key
 ingredient we added is the freelist, which will serve as the set of available 
-locations (for allocation of data constructors). 
+locations.
 
-The semantics \gcSem is to designed to model the heap usage of a program running with a 
+The semantics \gcSem{} is to designed to model the heap usage of a program running with a 
 tracing counting garbage collector: whenever a heap cell becomes unreachable from the 
-root set, it becomes collected and added to the free-list as available for reallocation.
+root set, it becomes collected and added to the freelist as available for reallocation.
 As before, the continuation set $R$ represents the set of locations 
 required to compute the continuation \emph{excluding} the current expression.
 Define the  \emph{root set} as the union of the locations in the continuation set $R$ 
@@ -1071,7 +1069,7 @@ then there exists a value $w$, and a freelist $F'$ s.t.
 Where $V,H \; \vdash e \Downarrow v, H'$ is a judgment from the operational semantics
 derived from \gcSem and $\veq{H'}{Y'}{v}{w}$ is value equivalence. The theorem states that,
 given a terminating expression,
-and given a free-list that is sufficiently large (as predicated by the type derivation), 
+and given a freelist that is sufficiently large (as predicated by the type derivation), 
 a run with \gcSem will normalize to an equivalent value.
 
 To facilitate the proof, we define an intermediate semantics \copySem 
@@ -1181,7 +1179,7 @@ the \gcSem judgment. We cannot show this precisely because $g$ might contain mor
 then $j$ due to the linearity of \copySem, thus preventing a piecewise comparison. 
 But of course $|j|$ is always less than $|g|$, since \gcSem doesn't copy to share 
 values! This shows that there is a mismatch between the induction hypothesis and the relationship
-between the sizes of the respective free-lists and the garbage sets. We present the following 
+between the sizes of the respective freelists and the garbage sets. We present the following 
 criteria which characterizes the required equivalence between two configuration,
 called \emph{copy extension}.
 
@@ -1389,8 +1387,8 @@ then there exists a context $(W,Y)$, a value $w$, and a freelist $F'$ s.t.
 \end{theorem}
 
 In other words, given a terminating expression (verified by succeeding with the run using \ms{oper})
-and given a free-list that is sufficiently large (as predicated by the type derivation), 
-a run with \copySem will normalize to an equivalent value, and the resulting free-list 
+and given a freelist that is sufficiently large (as predicated by the type derivation), 
+a run with \copySem will normalize to an equivalent value, and the resulting freelist 
 will be sufficiently large (as predicated by the type derivation).
 
 
@@ -1413,8 +1411,8 @@ In the gc evaluation module, \texttt{evaluate} has the following signature:
  evaluate : ('a, unit) Expressions.expression -> int -> (('a value * 'a heap * Int.Set.t) option) 
 \end{verbatim}
 
-Where the second argument \texttt{int} specifies the size of the initial free-list.
-The result is a triple of the return value, heap, and free-list, or \texttt{None} 
+Where the second argument \texttt{int} specifies the size of the initial freelist.
+The result is a triple of the return value, heap, and freelist, or \texttt{None} 
 in case the freelist was not sufficient for the evaluation.
 Whereas the normal evaluation boxes every value (everything evaluates to a location), 
 the gc module follows the cost semantics and only boxes data constructors. The rationale is
