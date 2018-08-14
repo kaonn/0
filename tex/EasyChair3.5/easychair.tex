@@ -734,50 +734,23 @@ cons of \texttt{x} and \texttt{xs}, we need to allocate one heap location for th
 cons cell binding \texttt{x} 
 and the recursive result, for which we can use the just matched-on cell. Again, 
 the net overhead is zero. Thus, the total space overhead of \texttt{append} is zero.
-For \texttt{appendTwice}, we first share the list \texttt{l}, which prevents the 
-first call to \texttt{append} from destructing \texttt{l1}. Thus the overhead is 
-the size of the input. The second call has no overhead since \texttt{l2} can be 
-destructed. The return value is a pair which is stack-allocated and doesn't require a heap 
+For \texttt{appendTwice}, we first share the list \texttt{l} as \texttt{l1} and 
+\texttt{l2}. In the first \texttt{let}, the locations in \texttt{l2} are added to the
+continuation set, which prevents the 
+first call to \texttt{append} from destructing \texttt{l1}. Thus size of \texttt{l1} 
+new locations are allocated from the freelist to construct \texttt{l1'}. 
+The second call has no net increase in heap allocations since \texttt{l2} can be 
+destructed along the way. 
+The return value is a pair which is stack-allocated and doesn't require a heap 
 allocation. Thus, the total space overhead for \texttt{appendTwice} 
 is size of input list \texttt{l}.
 
-% Now, we can run dfs on an example tree 
-% \texttt{t = Node(1,Node(2,Node(4,Leaf,Leaf),Leaf),Node(3,Leaf,Leaf))}:
-% \[
-% \emptyset,\emptyset,\emptyset,\{l_1,...,l_{11}\} 
-% 	\vdash \texttt{dfs t 3}, l_1, H', 
-% 	\{l_2, l_4, l_6, l_7, l_9, l_{10}, l_{11}\}
-% \] for some heap $H'$.
-
-% \begin{wrapfigure}{l}{0.5\textwidth}
-% 	\vspace{-20pt}
-% 		\begin{center}
-% \begin{verbatim}
-% 	l1 |--> Node@[l8] 
-% 	l2 |--> <freed>
-% 	l3 |--> Null 
-% 	l4 |--> <freed>
-% 	l5 |--> Null
-% 	l6 |--> <freed>
-% 	l7 |--> <freed>
-% 	l8 |--> <(Cint 3), Leaf@[l3], Leaf@[l5]>, 
-% 	l9 |--> <freed>
-% 	l10 |--> <freed>
-% 	l11 |--> <freed>
-% \end{verbatim}
-% 		\end{center}
-% 				\vspace{-20pt}
-% 			\caption{$H'$}
-% 		\vspace{-10pt}
-% \label{fig:heap}
-% \end{wrapfigure}
-
-% From this run, we see that the space overhead of dfs is 2 heap locations, which agrees with 
-% our manual derivation. In the next section, we see that the type system will also be 
-% able to derive this optimal bound. 
-
-
-\yue{explain how this is a cost semantics; what's the relation to blelloch's semantic? size of the minimal initial freelist is blelloch's cost annotation!}
+From this, we see that the minimum size for the initial freelist to successively evaluate 
+a call to \texttt{appendTwice} is exactly the length of the input. In general, we 
+define the cost of a closed program to be the minimum size of the initial freelist that
+guarantees successful evaluation. Although we don't prove it in this paper, this can be seen
+to be equivalent to the cost annotation in previous cost semantics introduced in 
+section~\ref{sect:fop}, which justifies \gcSem{} as a cost semantics.
 
 \section{Automatic Amortized Heap-Space Analysis with GC}
 \label{sect:aara}
