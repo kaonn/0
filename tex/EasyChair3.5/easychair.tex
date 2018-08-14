@@ -1228,8 +1228,7 @@ $\mathcal{C}_1 = (V_1,H_1,R_1,F_1)$ iff
 such that for all $l \in dom(\gamma)$, $|\gamma(l)| = reach_{H_1}(V_1)(l) + R_1(l)$
 \item For all $l \in dom(\gamma)$, $x \in dom(V_1)$, valid sequence of directions $P$ w.r.t $V_1(x)$,
 	$|reach_{H_2}(V_2(x;P)) \cap \gamma(l)| = reach_{H_1}(V_1(x;P))(l)$.
-\item $R_1 \subseteq dom(H_1) \setminus F_1$ and 
-	for all $l \in R_1$, $|\gamma(l) \cap R_2| = R_1(l)$
+\item	For all $l \in dom(\gamma)$, $|\gamma(l) \cap R_2| = R_1(l)$
 \item $|F_1| = |F_2| + |\oh{\gamma}|$, where 
 	$\oh{\gamma} = \bigcup_{P \in ec(\gamma)} P \setminus (rep(P))$
 \end{enumerate}
@@ -1318,7 +1317,7 @@ $(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ and
 				$|\gamma'(l)| = |reach_{Y_1}(w_1)(l)| + S(l)$
 			\item For all $P$, $|reach_{H'}(find_{H'}(v;P)) \cap \gamma'(l)| = 
 				reach_{Y'}(find_{Y'}(w;P))(l)$
-			\item $\gamma'(l) \cap R = \gamma(l) \cap R$
+			\item For all $l \in dom(\gamma')$, $\gamma'(l) \cap R = \gamma(l) \cap R$
 			\item $|M'| = |F'| + |\oh{\gamma'}|$
 	\end{enumerate}
 \end{lemma}
@@ -1328,20 +1327,7 @@ of ways $l$ could be reached from the root set in the \gcSem evaluation. This in
 $reach_{Y_1}(w_1)(l)$ and $S(l)$, but also any paths to $l$ had been collected during the run 
 (this accounts for unused variables that referenced $l$).
 
-\yue{move the following to the appendix}
-For a configuration $\mathcal{C} = (V,H,R,F)$, denote the current garbage w.r.t a set of root variables 
-$X \subseteq dom(V)$ 
-as $clean(\mathcal{C},X) = \{l \in H \mid l \notin F \cup R \cup reach_H(X)\}$. Some auxiliary lemmas: 
 
-\begin{lemma}\label{itm:aux}
-Let $V_2,H_2,R_2,F_2 \vdash^{\mathsf{copy}} e \Downarrow v,H',F'$, and 
-$V_1,H_1,R_1,F_1 \preceq V_2,H_2,R_2,F_2$ because $(-,\gamma,\eta,-,-)$. Then the following hold:
-\begin{enumerate}
-\item for all $l \in dom(H_1) \setminus F_1$, 
-$X \subseteq dom(V)$, $\gamma(l) \subseteq clean(\mathcal{C}_2,X)$ implies that 
-$l \in clean(\mathcal{C}_1,X)$.
-\end{enumerate}
-\end{lemma}
 
 Thus, we have shown that we can execute a computation using the 
 \gcSem if the computation suceeded in a run with \copySem, and that indeed 
@@ -1559,26 +1545,50 @@ totals to the size of the input. % This example shows a weakness in the new gc m
 % Please add the following required packages to your document preamble:
 % \usepackage{booktabs}
 \begin{table}[]
-	\begin{adjustbox}{width=1.1\textwidth,center=\textwidth}
+	\begin{adjustbox}{width=1\textwidth, center=\textwidth}
+  \begin{tabular}{@{}llllllllll@{}}
+		\toprule
+		 & \multicolumn{3}{l}{heap metric} & \multicolumn{3}{l}{gc metric} &  \\ \midrule
+		 \textit{\textbf{function}} & computed bound & constraints & time & computed bound &  constraints & time & optimal \\
+		 quicksort & $1.00 + 3.50M + 1.50M^2$ & 8515 & 0.52 & 0 & 8519 & 0.48 & 0 \\
+		 mergesort & $1.00 - 4.67M + 6.33M^2$ & 9572 & 0.64 & $-0.50M + 0.50M^2$ & 9578 & 0.58 & $\lfloor \log(M) \rfloor$ \\
+		 ocamlsort & $7.50 + 5.50M + 1.00M^2$ & 8565 & 0.51 & $1.00 + 1.00M$ & 8573 & 0.50 & $M+1$ \\
+		 selection sort & $2.00 + 3.00M + 1.00M^2$ & 639 & 0.06 & 0 & 642 & 0.05 & 0 \\
+		 eratosthenes & $1.00 + 1.50M + 0.50M^2$ & 515 & 0.06 & 0 & 517 & 0.04 & 0 \\
+		 dfs & $3.00 + 2.00M$ & 5481 & 0.90 & 2 & 5483 & 0.36 & 2 \\
+		 bfs & $5.00 + 10.00M$ & 24737 & 4.15 & 4 & 24742 & 1.62 & 4 \\
+		 transpose & $1.00 + 3.50LM + 0.50LM^2$ & 10680 & 0.50 & $1.00 + 2.00LM$ & 10684 & 0.50 & $\max{(0,2L-1)}$ \\
+		 map\_it & $2.00 + 2.00LM + 4.00M$ & 30699 & 1.58 & $1.00M + 1.00$ & 30703 & 1.57 & M + 1 \\
+		 pairs & $1.00 + 1.00M^2$ & 10214 & 0.60 & $0.50M + 0.50M^2$ & 10217 & 0.64 & $0.5M^2-1.5M+2$ \\ \midrule
+	\end{tabular}
+	\end{adjustbox}
+	\caption{Automatic Bound Analysis with RaML}
+\label{table:bounds}
+\end{table}
+
+\iffalse
+\begin{table}[]
+	\begin{adjustbox}{center=\textwidth}
   \begin{tabular}{@{}llllllllll@{}}
 		\toprule
 		 & \multicolumn{4}{l}{heap metric} & \multicolumn{4}{l}{gc metric} &  \\ \midrule
 		 \textit{\textbf{function}} & computed bound & asymptotic & constraints & time & computed bound & asymptotic & constraints & time & optimal \\
-		 quicksort & 1.00 + 3.50*M + 1.50*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 8515 & 0.52 & 0 & O(1) & 8519 & 0.48 & 0 \\
-		 mergesort & 1.00 - 4.67*M + 6.33*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 9572 & 0.64 & -0.50*M + 0.50*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 9578 & 0.58 & $\lfloor \log(M) \rfloor$ \\
-		 ocamlsort & 7.50 + 5.50*M + 1.00*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 8565 & 0.51 & 1.00 + 1.00*M & O(M) & 8573 & 0.50 & M+1 \\
-		 selection sort & 2.00 + 3.00*M + 1.00*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 639 & 0.06 & 0 & O(1) & 642 & 0.05 & 0 \\
-		 eratosthenes & 1.00 + 1.50*M + 0.50*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 515 & 0.06 & 0 & O(1) & 517 & 0.04 & 0 \\
-		 dfs & 3.00 + 2.00*M & O(M) & 5481 & 0.90 & 2 & O(1) & 5483 & 0.36 & 2 \\
-		 bfs & 5.00 + 10.00*M & O(M) & 24737 & 4.15 & 4 & O(1) & 24742 & 1.62 & 4 \\
-		 transpose & 1.00 + 3.50*L*M + 0.50*L*M\textasciicircum{}2 & O(L*M\textasciicircum{}2) & 10680 & 0.50 & 1.00 + 2.00*L*M & O(L*M) & 10684 & 0.50 & max(0,2*L-1) \\
-		 map\_it & 2.00 + 2.00*L*M + 4.00*M & O(L*M) & 30699 & 1.58 & 1.00*M + 1.00 & O(M+N) & 30703 & 1.57 & M + 1 \\
-		 pairs & 1.00 + 1.00*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 10214 & 0.60 & 0.50*M + 0.50*M\textasciicircum{}2 & O(M\textasciicircum{}2+M*N) & 10217 & 0.64 & 0.5*M\textasciicircum{}2-1.5*M+2 \\ \midrule
+		 quicksort & $1.00 + 3.50M + 1.50M^2$ & $O(M^2)$ & 8515 & 0.52 & 0 & $O(1)$ & 8519 & 0.48 & 0 \\
+		 mergesort & $1.00 - 4.67M + 6.33M^2$ & $O(M^2)$ & 9572 & 0.64 & $-0.50M + 0.50M^2$ & $O(M^2)$ & 9578 & 0.58 & $\lfloor \log(M) \rfloor$ \\
+		 ocamlsort & $7.50 + 5.50M + 1.00M^2$ & $O(M^2)$ & 8565 & 0.51 & $1.00 + 1.00M$ & $O(M)$ & 8573 & 0.50 & $M+1$ \\
+		 selection sort & $2.00 + 3.00M + 1.00M^2$ & $O(M^2)$ & 639 & 0.06 & 0 & $O(1)$ & 642 & 0.05 & 0 \\
+		 eratosthenes & $1.00 + 1.50M + 0.50M^2$ & $O(M^2)$ & 515 & 0.06 & 0 & $O(1)$ & 517 & 0.04 & 0 \\
+		 dfs & $3.00 + 2.00M$ & $O(M)$ & 5481 & 0.90 & 2 & $O(1)$ & 5483 & 0.36 & 2 \\
+		 bfs & $5.00 + 10.00M$ & $O(M)$ & 24737 & 4.15 & 4 & $O(1)$ & 24742 & 1.62 & 4 \\
+		 transpose & $1.00 + 3.50LM + 0.50LM^2$ & $O(LM^2)$ & 10680 & 0.50 & $1.00 + 2.00LM$ & $O(LM)$ & 10684 & 0.50 & $\max{(0,2L-1)}$ \\
+		 map\_it & $2.00 + 2.00LM + 4.00M$ & $O(LM)$ & 30699 & 1.58 & $1.00M + 1.00$ & $O(M+N)$ & 30703 & 1.57 & M + 1 \\
+		 pairs & $1.00 + 1.00M^2$ & $O(M^2)$ & 10214 & 0.60 & $0.50M + 0.50M^2$ & $O(M^2+MN)$ & 10217 & 0.64 & $0.5M^2-1.5M+2$ \\ \midrule
 	\end{tabular}
 	\end{adjustbox}
-\caption{Automatic Bound Analysis with RaML \yue{remove asymptotic columns; the bounds could be typeset nicer in math mode and without *'s and 0's}}
+	\caption{Automatic Bound Analysis with RaML}
 \label{table:bounds}
 \end{table}
+\fi
 
 \section{Conclusion and Future Work}
 \label{sect:conclusion}
