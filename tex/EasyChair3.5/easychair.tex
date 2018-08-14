@@ -767,17 +767,33 @@ next program state.
 To illustrate the idea, we informally explain the linear potential method for the dfs algorithm in Figure~\ref{fig:dfs}
 We will use the allocation/heap metric which simply counts the number of cons constructor calls during the evaluation.%
 \footnote{This is in contrast to the highwater mark for the GC semantics \gcSem{} that is targeted by our new analysis.}
-With this metric, the cost of evaluating $\text{dfs}(t,n)$ is $2m+3$, where $m$ is the number 
-of \texttt{Node} constructors in the input.
+With this metric, the cost of evaluating \texttt{append(l1,l2)} is $m$, where $m$ is the number 
+of cons constructors in \texttt{l1}, and the resource annotated type of append is 
+$\prodtycst{L^1(\irl{int})}{L^0(\irl{int})} \xrightarrow{0/0} L^1(\irl{int})$.
+This type says that to type \texttt{append(l1,l2)}, we need \texttt{l1} 
+to have 1 potential per element, \texttt{l2} to have 0 per element, and the result 
+will be a list with 0 potential per element.
+Additionally, the function uses 0 constant potential, and 
+leaves 0 constant potential after evaluating. This translates to a bound which states that 
+the number of allocations \texttt{append} makes is bounded by 1 times size of the first list.
+More generally, we can give the type 
+$\prodtycst{L^p(\irl{int})}{L^q(\irl{int})} \xrightarrow{r/r} L^s(\irl{int})$ such that
+$p + q \ge s + 1$, which still gives a bound with the same number of allocations made. 
+
+For \texttt{appendTwice(l)}, the cost is $2m$, where $m$ is the number of cons 
+constructors in\texttt{l}. Similarly, the resource annotated type of \texttt{appendTwice} is
+$L^p(\irl{int}) \xrightarrow{q/q} \prodtycst{L^r(\irl{int})}{L^s(\irl{int})}$ 
+such that $p \ge r + s + 2$. For example, let
+$p = 2, q = 0, r= 0, s =0$. When $\texttt{l} : L^2(\irl{int})$ is shared, \texttt{l1} and 
+\texttt{l2} both get 1 potential per element so that $\texttt{l1} : L^1(\irl{int})$,
+$\texttt{l2} : L^1(\irl{int})$, which covers the cost of the next 2 calls to \texttt{append}, 
+and the resulting pair of lists both have 0 potential per element.
+
+With AARA, the type system keeps track of this collection of constraints on
+resource annotations and passes them to an off-the-shelf LP-solver 
+which finds the minimum solution. This is then translated to concrete resource bounds
+like the ones we derived by hand.
 %
-
-\yue{1) what's the cost of append and appendTwice with the metric ?}
-
-\yue{2) what are the types of the functions in aara? what do they intuitively mean?}
-
-\yue{3} how does sharing work in appendTwice? What are the types of the variables in the code? (need to add potential)
-
-\yue{4) how do we derive the types automatically? (I can write that later)}
 
 \jan{Better intro for AARA, polynomial potential somewhere}
 
@@ -802,7 +818,7 @@ First give a denotational semantics for (define the structures of) the first-ord
 \consexcst{a}{l} &\in \denote{L(A)} \text{ if } a \in \denote{A} \text{ and } l \in \denote{L(A)}\\
 \end{align*}
   \end{minipage}\\
-The set for each type is the least set such that the above holds. As usual, we write $[a_1,...,a_n]$ for $\consexcst(a_1,...,\consexcst(a_n,\nilexcst))$. \yue{something wrong with these cons's.}
+The set for each type is the least set such that the above holds. As usual, we write $[a_1,...,a_n]$ for $\consexcst{a_1}{,...,\consexcst{a_n}{\nilexcst}}$.
 
 \begin{figure}[t!]
   \centering
@@ -859,8 +875,9 @@ The set for each type is the least set such that the above holds. As usual, we w
 
 In Figure~\ref{fig:semVal} we give the judgements relating heap values to semantic values, in the form \fbox{$H \vDash v \mapsto a : A$}, which can be read as follows: Under heap $H$, heap value $v$ defines the semantic value $a \in \denote{A}$.  
 %
-Given a stack $V$, we write $H \vDash V : \Gamma$ if $dom(V) = dom(\Gamma)$ and
-for every $x : A \in \Gamma$, $H \vDash V(x) \mapsto a : A$ for some $a \in \llbracket A \rrbracket$.
+Given a stack $V$, we write $H \vDash V : \Gamma$ if $dom(V) \subseteq dom(\Gamma)$ and
+for every $x \mapsto v \in V$, 
+$H \vDash V(x) \mapsto a : \Gamma(x)$ for some $a \in \llbracket A \rrbracket$.
 
 We introduce linear potential for structures corresponding to the base types. The definition of
 linear potential is standard~\cite{Hoffmann11}. Below is the grammar for resource-annotated types:
@@ -873,8 +890,8 @@ linear potential is standard~\cite{Hoffmann11}. Below is the grammar for resourc
 \end{array}
 \]
 %
-The intended meaning is that a list of $L^p(\tau)$ has $p$ units of potential per 
-cons cell, and a functions of type $\tau_1 \xrightarrow{p/q} \tau_2$ takes constant potential 
+The intended meaning is that a list of $L^p(A)$ has $p$ units of potential per 
+cons cell, and a functions of type $A \xrightarrow{p/q} B$ takes constant potential 
 $p$ to run and $q$ is the constant potential left afterwards.
 
 With linear potential, each component of a structure is associated with a constant amount of 
@@ -910,7 +927,16 @@ We give a review of the rules in Figure~\ref{typeRules}.
 Since we are interested in the number of heap locations, 
 there is an implicit side condition in all rules
 which ensures all constants are assumed to be nonnegative.
-\yue{explain the cons, match, and share rules briefly}
+	
+For example, L:Cons states that to add an element to a list with $p$ potential per element, 
+we need $p+1$ units of constant potential: $p$ to maintain the potential of the list,
+and 1 for allocating the cons cell. L:MatL states that matching on a list with type $L^p(A)$,
+we need to type the nil case with the same constant potentials, and we need to type
+the cons case with an additional $p$ units of constant potential, since we get 
+the spill of $p$ from the definition of linear potential. 
+As the last example, we look at L:Share, which states that to share 
+a variable $x$ of type $A$, we need to split the potential between $A_1$ and $A_2$, and type the 
+rest of the expression with the two new variables $x_1: A_1$, $x_2 : A_2$.
 
 \begin{figure}[t!]
   \centering
@@ -960,7 +986,7 @@ which ensures all constants are assumed to be nonnegative.
   \Sigma; \Gamma, x : L^p(A) \sststile{q'}{q} \listcaseexcst{x}{e_1}{x_h}{x_t}{e_2} : B
 }{
   \Sigma; \Gamma \sststile{q'}{q} e_1 : B \\
-  \Sigma; \Gamma, x_h : A, x_t : L^p(A) \sststile{q'}{q + p + 1} e_2 : B
+  \Sigma; \Gamma, x_h : A, x_t : L^p(A) \sststile{q'}{q + p} e_2 : B
 }(\text{L:MatL})
 
 \inferr{
@@ -982,17 +1008,6 @@ which ensures all constants are assumed to be nonnegative.
   \label{fig:typeRules}
 \end{figure}
 
-\yue{remove the example}
-Recall that we gave the bound $2m+3$ to dfs in the introduction.
-Formally, this means we can give the following type derivation to dfs:
-\[
-	\Sigma; \texttt{t} : \texttt{btree}^2(\irl{nat}), \texttt{x} : \irl{nat} 
-		\sststile{0}{3} \texttt{dfs t x} : \irl{nat\_ option}
-\]
-
-Where $\Sigma = [\texttt{dfs} : 
-	\prodtycst{\texttt{btree}^2(\irl{nat})}{\irl{nat}} \xrightarrow{3/0} \irl{nat\_ option}]$.\\
-
 {\bf New Rules}
 %
 The new type system for programs with garbage collection replaces the rules L:MatL and L:Share. The observation is that if we ensure 
@@ -1009,10 +1024,10 @@ local garbage collection by returning the potential associated with the construc
 }(\text{L:MatLD})
 \]}
 
-This is validated by the fact (Lemma \ref{itm:na}) that in the auxiliary linear cost semantics 
-\copySem{} once a cons-cell is matched on, 
+This is validated by the fact (Lemma \ref{itm:na}) that in the auxiliary copying semantics
+(introduced in Section~\ref{sect:soundness}), once a cons-cell is matched on, 
 there can be no live references from the root set to it, and thus 
-we are justified in restituting the potential to type the subexpression $e_2$. \yue{forward ref to copy sem}
+we are justified in restituting the potential to type the subexpression $e_2$.
 
 However, the rule L:MatLD is not sound for programs with aliasing of data. We address this issue by 
 replacing the rule L:Share with the rule L:ShareCopy:
@@ -1029,17 +1044,17 @@ replacing the rule L:Share with the rule L:ShareCopy:
 To share a variabe of type $A$, we need to split the potential between two new annotated types 
 $A_1$ and $A_2$ as usual. In addition, we have to pay an ``overhead'' of 1 for every cons node 
 in any structure in $\llbracket A \rrbracket$. The idea is that we treat data as if it is
-actually copied. \yue{say something about soundness}
+actually copied. This is sound w.r.t the copying semantics because the size of the domain of the
+reachable set of a value $v$ is exactly the linear potential of $v : A$ with all resource 
+annotations set to 1.
 
-\yue{replace with append}
-Now, we can give the now \emph{constant} space overhead bound to dfs:
-\[
-	\Sigma; \texttt{t} : \texttt{btree}^0(\irl{nat}), \texttt{x} : \irl{nat} 
-		\sststile{0}{2} \texttt{dfs t x} : \irl{nat\_ option}
-\]
-
-Where $\Sigma = [\texttt{dfs} : 
-	\prodtycst{\texttt{btree}^0(\irl{nat})}{\irl{nat}} \xrightarrow{2/0} \irl{nat\_ option}]$.\\
+Now, we can give now the improved space overhead bound to \texttt{append} and \texttt{appendTwice}:
+\begin{align*}
+	&\texttt{append} : \prodtycst{L^p(\irl{int})}{L^q(\irl{int})} \xrightarrow{r/r} L^s\irl{int}),
+	\text{ where } p + q \ge s\\
+	&\texttt{appendTwice} : L^p(\irl{int}) \xrightarrow{q/q} \prodtycst{L^r(\irl{int})}{L^s(\irl{int})}
+	\text{ where } p + q \ge r + s + 1
+\end{align*}
 
 {\bf Cost Metrics}
 In previous versions of AARA~\cite{Jost10,HoffmannAH10}, the typing judgment and cost semantics
@@ -1048,7 +1063,7 @@ $m : \ms{res\_const \to \mathbb{Q}}$, which assigns a constant cost to
 each step in the semantics.
 Since the cost for all program construct is zero save for the cons
 data constructor, we elide the cost metric altogether. Although we defined the constructor to cost
-1 heap location (as shown in L:Cons and L:MatL), it can be any constant as long as the introduction
+1 heap location (as shown in L:Cons and L:MatLD), it can be any constant as long as the introduction
 and elimination rules agree on that constant. Thus we can extend the type system to accurately track
 closure sizes and constructor which vary in size depending on the argument (more in 
 \ref{sect:future-work}).
