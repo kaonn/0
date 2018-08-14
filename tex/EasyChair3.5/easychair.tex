@@ -31,6 +31,7 @@
 \usepackage{adjustbox}
 \usepackage{color}
 \usepackage{wrapfig}
+\usepackage{bbm}
 \usetikzlibrary{positioning} 
 
 \allowdisplaybreaks
@@ -1670,7 +1671,7 @@ $b \in f(a)$ to be the representative for that part; call this $rep(a)$.
 
 In the soundness proof of $\fogc$, we used an important lemma: that \copySem is 
 semantically linear, i.e. locations are used linearly. 
-To see why, consider the second premise in the rule L:MatL. In addition to the 
+To see why, consider the second premise in the rule L:MatLD. In addition to the 
 $p$ units of potential justified by the definition of linear potential, we get 1 unit 
 from deallocating the cons cell itself. This is only sound if in the corresponding rule in 
 \copySem a location was actually collected. Consider the evaluation in question:
@@ -1745,7 +1746,7 @@ below. The premises of this lemma is a subset of the premises of the soundness t
 Thus, we could have
 merged the proof of this lemma directly into the soundness proof. However, we think makes the 
 presentation clearer; furthermore, the linearity of \copySem is an interesting in itself, 
-regardless of the accompanying type system. 
+regardless of the accompanying type system. Some auxiliary lemmas:
 
 \begin{definition}[Stability]
 Given heaps $H,H'$, a set of locations is \emph{stable} if $\forall l \in R$. $H(l) = H'(l)$. Denote this by
@@ -1802,6 +1803,1166 @@ Follows from Lemma $\ref{itm:stable}$.
 \begin{lemma}[copy is copy]
 	Let $H',v' = copy(H,L,v)$. If $H \vDash v \mapsto a : A$, then $H' \vDash v' \mapsto a : A$.
 \end{lemma}
+
+\begin{lemma}\label{itm:shareSize}
+	Let $A \curlyvee^n A_1,A_2$, $H \vDash v_1 : A_1$, $H \vDash v_2 : A_2$, 
+	and $H \vDash v : A$. Then $\Phi_{H}(v : A) = 
+	\Phi_{H}(v_1 : A_1) + \Phi_{H}(v_2 : A_2) + n\cdot |dom(reach_H(v))|$
+\end{lemma}
+
+\begin{lemma}
+	Let $H \vDash V : \Gamma$, $\Sigma;\Gamma \vdash e : A$, and $V,H \vdash e \Downarrow v,H'$. Then 
+	$H' \vDash v : A$.
+\end{lemma}
+
+Now the proof for linearity of \copySem{}:
+\begin{proof}
+Nested induction on the evaluation judgement and the typing judgement.\\
+\begin{description}
+  \item[Case 1: E:Var]
+  \begin{align*}
+  &\text{Suppose } H \vDash V : \Gamma, dom(V) = FV(e), \na{V,H}, \dist{\{R,F,locs_{V,H}(e)\}}\\
+  &\ms{set}(reach_{H}(v)) \tag{$\na{V,H}$}\\
+  &\dist{\{R,F,reach_{H}(v)\}} \tag{$\dist{\{R,F,locs_{V,H}(e)\}}$}\\
+  &\na{V,H} \tag{Sp.}\\
+  &\stable{R,H,H'} \tag{$H = H'$}
+  \end{align*}
+  \item[Case 2: E:Const*]
+  Due to similarity, we show only for E:ConstI
+  \begin{align*}
+  &\text{Suppose } H \vDash V : \Gamma, dom(V) = FV(e), \na{V,H},\dist{\{R,F,locs_{V,H}(e)\}}\\
+  &\ms{set}(reaach_{H}(v)) \tag{$reach_H(v) = \emptyset$}\\
+  &\dist{\{R,F,\emptyset\}} \tag{$\dist{R,F}$}\\
+  &\na{V,H} \tag{Sp.}\\
+  &\stable{R,H,H'} \tag{$H = H'$}
+  \end{align*}
+  \item[Case 4: E:App]
+  \item[Case 5: E:CondT] Similar to E:MatNil
+  \item[Case 6: E:CondF] Similar to E:CondT
+  \item [Case 7: E:Let]
+  \begin{align*}
+  &V,H,R,F \; \vdash \irl{let}(e_1; x : \tau.e_2) \Downarrow v_2,H_2,F_2 \tag{case}\\
+  &V,H,R',F \vdash e_1 \Downarrow v_1,H_1,F_1 \tag{ad.}\\
+  &\Sigma; \Gamma_1,\Gamma_2 \vdash \irl{let}(e_1; x : \tau.e_2) : B \tag{case}\\
+  &\Sigma; \Gamma_1 \vdash e_1 : A \tag{ad.}\\
+  &\text{Suppose } H \vDash V : \Gamma, dom(V) = FV(e), \na{V,H}, \dist{\{R,F,locs_{V,H}(e)\}}\\ 
+  &H \vDash V_1 : \Gamma_1 \tag{def of W.D.E and Lemma $~\ref{itm:linear}$}\\
+  &\text{By IH, we have invariant on } J_1\\
+  &\text{NTS (1) - (3) to instantiate invariant on } J_1\\
+  &\emph{(1)}\quad dom(V_1) = FV(e_1) \tag{def of $V_1$}\\
+  &\emph{(2)}\quad \na{V_1,H} \tag{$\na{V,H}$ and $V_1 \subseteq V$}\\
+  &\emph{(3)}\quad \dist{R',F,locs_{V,H}(e_1)}\\
+  &F \cap R' = \emptyset \tag{$F \cap locs_{V,H}(e) = \emptyset$ and $locs_{V_2,H}(\irl{lam}(x : \tau. e_2)) \subseteq locs_{V,H}(e)$}\\
+  &FV(e_1) \cap FV(\irl{lam}(x : \tau. e_2)) = \emptyset \tag{Lemma ~\ref{itm:linear}}\\
+  &locs_{V,H}(e_1) \cap locs_{V_2,H}(\irl{lam}(x : \tau. e_2)) = \emptyset \tag{$\na{V,H}$}\\
+  &R' \cap locs_{V,H}(e_1) = \emptyset \tag{$\dist{\{R,locs_{V,H}(e)\}}$}\\
+  &F \cap locs_{V,H}(e_1) = \emptyset \tag{Sp.}\\
+  &\text{Thus we have } \dist{R',F,locs_{V,H}(e_1)}\\
+  &\text{By IH, }\\
+  &\emph{(1)}\quad \ms{set}(reach_{H_1}(v_1))\\
+  &\emph{(2)}\quad \dist{\{R',F_1,reach_{H_1}(v_1)\}}\\
+  &\emph{(3)}\quad \stable{R',H,H_1}\\
+  &V_2',H_1,R, F_1 \cup g \vdash e_2 \Downarrow v_2,H_2,F_2 \tag{ad.} \\
+  &\Sigma; \Gamma_2, x : A \vdash e_2 : B \tag{ad.}\\
+  &H_1 \vDash V_2' : (\Gamma_2, x : A) \tag{???}\\
+  &\text{By IH, we have invariant on } J_2\\
+  &\text{NTS (1) - (3) to instantiate invariant on } J_2\\
+  &\emph{(1)}\quad dom(V_2') = FV(e_2) \tag{def of $V_2'$}\\
+  &\emph{(2)}\quad \na{V_2',H_1}\\
+  &\text{Let } x_1, x_2 \in V2', x_1 \ne x_2 \text{ be arb.}\\
+  &\textbf{case: } x_1 \ne x, x_2 \ne x\\
+  &\quad reach_H(V_2'(x_1)) \subseteq R' \tag{$reach_H(V_2'(x_1)) \subseteq locs_{V_2',H}(\irl{lam}(x : \tau. e_2))$}\\
+  &\quad reach_H(V_2'(x_2)) \subseteq R' \tag{$reach_H(V_2'(x_2)) \subseteq locs_{V_2',H}(\irl{lam}(x : \tau. e_2))$}\\
+  &\quad reach_H(V_2'(x_1)) = reach_{H_1}(V_2'(x_1)),reach_H(V_2'(x_2)) = reach_{H_1}(V_2'(x_2)) \tag{$\stable{R',H,H_1}$ and Lemma $~\ref{itm:stable}$}\\
+  &\quad reach_{H_1}(V_2'(x_1)) = reach_{H}(V(x_1)),reach_{H_1}(V_2'(x_2)) = reach_{H}(V(x_2)) \tag{$\stable{R',H,H_1}$ and Lemma $~\ref{itm:stable}$}\\
+  &\quad \na{V_2',H_1} \tag{$\na{V,H}$}\\
+  &\textbf{case: } x_1 = x, x_2 \ne x\\
+  &\quad reach_{H_1}(V_2'(x_1)) = reach_{H_1}(v_1) \tag{def of $V_2'$}\\
+  &\quad reach_{H_1}(V_2'(x_2)) \subseteq R' \tag{same as above}\\
+  &\quad \ms{set}(reach_{H_1}(v_1)) \tag{IH 1.1}\\
+  &\quad reach_{H_1}(V_2'(x_2)) = reach_{H}(V(x_2)) \tag{same as above}\\
+  &\quad \ms{set}(reach_{H_1}(V_2'(x_2))) \tag{$\na{V,H}$}\\
+  &\quad reach_{H_1}(V_2'(x_1)) \cap reach_{H_1}(V_2'(x_2)) = \emptyset \tag{$\dist{\{R',reach_{H_1}(v_1)\}}$}\\
+  &\text{Thus we have } \na{V_2',H_1}\\
+  &\emph{(3)}\quad \dist{\{R,F_1 \cup g,locs_{V_2',H_1}(e_2)\}}\\
+  &R \cap F_1 = \emptyset \tag{$\dist{\{R', F_1\}}$ from 1.2 and $R \subseteq R'$}\\
+  &R \cap (F_1 \cup g) = \emptyset \tag{def of $g$}\\
+  &\text{NTS } (F_1 \cup g) \cap locs_{V_2',H_1}(e_2) = \emptyset\\
+  &\text{Let } l \in locs_{V_2',H_1}(e_2) \text{ be arb.}\\
+  &l \in reach_{H_1}(V_2'(x')) \text{ for some } x' \in V_2'\\
+  &\textbf{case: } x' \ne x\\
+  &\quad reach_H(V_2(x')) = reach_{H_1}(V_2'(x')) \tag{same as above}\\
+  &\quad reach_{H_1}(V_2'(x')) \subseteq R' \tag{def of $R'$}\\
+  &\quad reach_{H_1}(V_2'(x')) \cap F_1 = \emptyset \tag{$\dist{\{R', F_1\}}$ from 1.2}\\
+  &\text{case: } x' = x\\
+  &\quad reach_{H_1}(V_2'(x')) = reach_{H_1}(v_1) \tag{def of $V_2'$}\\
+  &\quad reach_{H_1}(V_2'(x')) \cap F_1 = \emptyset \tag{$\dist{\{F_1,reach_{H_1}(v_1)\}}$ from 1.2}\\
+  &reach_{H_1}(V_2'(x')) \subseteq locs_{V_2',H_1}(e_2) \tag{def of $locs_{V,H}$}\\
+  &reach_{H_1}(V_2'(x')) \cap g = \emptyset \tag{def of $g$}\\
+  &\text{Thus } reach_{H_1}(V_2'(x')) \cap (F_1 \cup g) = \emptyset\\
+  &\text{NTS } R \cap locs_{V_2',H_1}(e_2) = \emptyset\\
+  &\text{Let } l \in locs_{V_2',H_1}(e_2) \text{ be arb.}\\
+  &l \in reach_{H_1}(V_2'(x')) \text{ for some } x' \in V_2'\\
+  &\textbf{case: } x' \ne x\\
+  &\quad reach_H(V_2(x')) = reach_{H_1}(V_2'(x')) \tag{same as above}\\
+  &\quad l \in locs_{V,H}(e) \tag{def of $locs_{V,H}$}\\
+  &\quad l \notin R \tag{$\dist{\{R,locs_{V,H}(e)\}}$ from 0.3}\\
+  &\textbf{case: } x' = x\\
+  &\quad reach_{H_1}(V_2'(x')) = reach_{H_1}(v_1) \tag{def of $V_2'$}\\
+  &\quad reach_{H_1}(V_2'(x')) \cap R = \emptyset \tag{$\dist{\{R', reach_{H_1}(v_1)\}}$ from 1.2 and $R \subseteq R'$}\\
+  &\text{Thus } reach_{H_1}(V_2'(x')) \cap R = \emptyset\\
+  &\text{Hence we have }\emph{(3)}\quad \dist{R,F_1 \cup g,locs_{V_2',H_1}(e_2)}\\
+  &\text{By instantiating the invariant on } J_2, \text{ we have }\\
+  &\emph{(1)}\quad \ms{set}(reach_{H_2}(v_2))\\
+  &\emph{(2)}\quad \dist{\{R,F_2,reach_{H_2}(v_2)\}}\\
+  &\emph{(3)}\quad \stable{R,H_1,H_2}\\
+  &\text{Lastly, showing (1) - (3) holds for the original case } J_0:\\
+  &\emph{(1)}\quad \ms{set}(reach_{H_2}(v_2)) \tag{By 2.1}\\
+  &\emph{(2)}\quad \dist{\{R,F_2,reach_{H_2}(v_2)\}} \tag{By 2.2}\\
+  &\emph{(3)}\quad \stable{R,H_1,H_2}\\
+  &\text{Let } l \in R \text{ be arb. }\\
+  &H(l) = H_1(l) \tag{$\stable{R',H,H_1}$ from 1.3}\\
+  &H_1(l) = H_2(l) \tag{$\stable{R,H_1,H_2}$ from 2.3}\\
+  &H(l) = H_2(l)\\
+  &\text{Hence } \stable{R,H,H_2}\\
+  \end{align*}
+  \item[Case 8: E:Pair]
+  Similar to E:Var
+  \item[Case 9: E:MatP]
+  Similar to E:MatCons
+  \item[Case 10: E:Nil]
+  Similar to E:Const*
+  \item[Case 11: E:Cons]
+  \begin{align*}
+  &V,H,R,F \; \vdash e \Downarrow l,H'',F' \tag{case}\\
+  &\text{Suppose } H \vDash V : \Gamma, dom(V) = FV(e), \na{V,H}, \dist{\{R,F,locs_{V,H}(e)\}}\\
+  &\text{NTS (1) - (3) holds after evaluation }\\
+  &\emph{(1)} \quad \ms{set}(reach_{H''}(l))\\
+  &\stable{\{locs_{V,H}(e)\},H,H''} \tag{$\dist{\{F,locs_{V,H}(e)\}}$ and $copy$ only updates $l \in L \subseteq F$}\\
+  &reach_H(V(x_i)) = reach_{H''}(V(x_i)) \tag{$reach_H(V(x_i)) \subseteq locs_{V,H}(e)$ and $~\ref{itm:stable}$ for $i = 1,2$}\\
+  &reach_{H''}(l) = \{l\} \cup reach_{H''}(V(x_1))\cup reach_{H''}(V(x_2)) \tag{def of $reach_H$}\\
+  &\set{reach_{H''}(l)} \tag{$l \notin locs_{V,H}(e)$ and $\na{V,H}$}\\ 
+  &\emph{(2)} \quad \dist{\{R,F',reach_{H''}(l)\}}\\
+  &R \cap F' = \emptyset \tag{$F' \subseteq F$ and $\dist{\{R,F\}}$}\\
+  &R \cap reach_{H''}(l) = \emptyset \tag{$l \in F$ and $\dist{\{R,locs_{V,H}(e)\}}$}\\
+  &F' \cap reach_{H''}(l) = \emptyset\tag{$F' \subseteq F$ and $\dist{\{F,locs_{V,H}(e)\}}$}\\
+  &\text{Thus we have }\emph{(2)} \quad \dist{\{R,F',reach_{H''}(l)\}}\\
+  &\emph{(3)} \quad \stable{R,H,H''} \tag{since copy only updates $l \in L \subseteq F$ and $F \cap R = \emptyset$}\\
+  \end{align*}
+  \item[Case 12: E:MatNil]
+  \begin{align*}
+  &\text{Suppose } H \vDash V : \Gamma, dom(V) = FV(e), \na{V,H}, \dist{\{R,F,locs_{V,H}(e)\}}\\
+  &\Sigma; \Gamma' \vdash e_1 : B \tag{ad.}\\
+  &V,H,R,F \cup g \; \vdash e_1 \Downarrow v, H',F' \tag{ad.}\\
+  &H \vDash V' : \Gamma' \tag{def of W.D.E}\\
+  &\text{By IH, we have invariant on } J_1\\
+  &\text{NTS (1) - (3) to instantiate invariant on } J_1\\
+  &\emph{(1)}\quad dom(V') = FV(e_1) \tag{def of $V'$}\\
+  &\emph{(2)}\quad \na{V',H} \tag{$\na{V,H}$ and $V' \subseteq V$}\\
+  &\emph{(3)}\quad \dist{\{R,F,locs_{V',H}(e_1)\}} \tag{$\dist{\{R,F,locs_{V,H}(e)\}}$ and $locs_{V',H}(e_1) \subseteq locs_{V,H}(e)$}\\
+  &\text{Instantiating invariant on } J_1,\\
+  &\emph{(1)}\quad \ms{set}(reach_{H'}(v))\\
+  &\emph{(2)}\quad \dist{\{R,F_1,reach_{H'}(v)\}}\\
+  &\emph{(3)}\quad \stable{R,H,H'}
+  \end{align*}
+  \item [Case 13: E:MatCons]
+  \begin{align*}
+  &V(x) = l \tag{ad.}\\
+  &H(l) = \pairexcst{v_h}{v_t} \tag{ad.}\\
+  &\Gamma = \Gamma', x : L(A) \tag{ad.}\\
+  &\Sigma; \Gamma', x_h : A, x_t : L(A) \vdash e_2 : B \tag{ad.}\\
+  &V'',H,R,F \cup g \; \vdash e_2 \Downarrow v_2, H_2, F' \tag{ad.} \\
+  &\text{Suppose } H \vDash V : \Gamma, dom(V) = FV(e), \na{V,H},\dist{\{F,R,locs_{V,H}(e)\}}\\
+  &H \vDash V(x) : L(A) \tag{def of W.D.E}\\
+  &H''\vDash v_h : A,\; H'' \vDash v_t : L(A) \tag{ad.}\\
+  &H\vDash v_h : A,\; H \vDash v_t : L(A) \tag{???}\\
+  &H \vDash V'' : \Gamma', x_h : A, x_t : L(A) \tag{def of W.D.E}\\
+  &\text{By IH, we have invariant on } J_1\\
+  &\text{NTS (1) - (3) to instantiate invariant on } J_1\\
+  &\emph{(1)}\quad dom(V'') = FV(e_2) \tag{def of $V''$}\\
+  &\emph{(2)}\quad \na{V'',H} \\
+  &\text{Let } x_1, x_2 \in V'', x_1 \ne x_2, r_{x_1} = reach_H(V''(x_1)), r_{x_2} = reach_H(V''(x_2))\\
+  & \textbf{case: } x_1 \notin \{x_h,x_t\}, x_2 \notin \{x_h,x_t\}\\
+  &\quad (1), (2) \text{ from } \na{V,H}\\
+  & \textbf{case: } x_1 = x_h, x_2 \notin \{x_h,x_t\}\\
+  &\quad \ms{set}(r_{x_1}) \tag{ since $\ms{set}(reach_H(V(x)))$ from  $\na{V,H}$}\\
+  &\quad \ms{set}(r_{x_2}) \tag{since  $\na{V,H}$}\\
+  &\quad x_2 \in FV(e) \tag{def of $FV$}\\
+  &\quad reach_H(V(x)) \cap r_{x_2} = \emptyset \tag{def of $reach$ and $\na{V,H}$}\\
+  &\quad \text{hence } r_{x_1} \cap r_{x_2} = \emptyset\\
+  &\textbf{case: } x_1 = x_h, x_2 = x_t\\
+  &\quad \ms{set}(r_{x_1}) \text{ since } \ms{set}(reach_{H}(V(x))) \text{ from } \na{V,H}\\
+  &\quad \ms{set}(r_{x_2}) \text{ since } \ms{set}(reach_H(V(x))) \text{ from } \na{V,H}\\
+  &\quad r_{x_1} \cap r_{x_2} = \emptyset \tag{$\ms{set}(reach_H(V(x))$}\\
+  & \textbf{case: otherwise} \\
+  &\quad \text{similar to the above}\\
+  &\text{Thus we have } \na{V'',H}\\
+  &\emph{(3)}\quad \dist{\{R,F \cup g,locs_{V'',H}(e_2)\}}\\
+  &(F \cup g) \cap R = \emptyset \tag{ since $F \cap R = \emptyset$ and by def of $g$}\\
+  &\text{NTS } R \cap locs_{V'',H}(e_2) = \emptyset\\
+  &\text{Let } l' \in locs_{V'',H}(e_2) \text{ be arb.}\\
+  &\textbf{case: }  l' \in reach_{H}(V''(x')) \text{ for some $x' \in FV(e_2)$ where } x' \notin \{x_h,x_t\}\\
+  &\quad x' \in V \tag{def of $V''$}\\
+  &\quad l' \in reach_{H}(V(x'))\\
+  &\quad x' \in FV(e) \tag{def of $FV$}\\
+  &\quad l' \in locs_{V,H}(e) \tag{def of $locs_{V,H}$}\\
+  &\quad l' \notin R \tag{$\dist{\{R,F,locs_{V,H}(e)\}}$}\\
+  &\textbf{case: }  l' \in reach_{H}(V''(x_h)) \\tom
+  &\quad l' \in reach_{H}(v_h)\\
+  &\quad l' \in reach_{H}(V(x)) \tag{def of $reach$}\\
+  &\quad l' \in locs_{V,H}(e) \tag{def of $locs_{V,H}$}\\
+  &\quad l' \notin R \tag{since $\dist{\{F,R,locs_{V,H}(e)\}}$}\\
+  &\textbf{case: }  l' \in reach_{H}(V''(x_t)) \\
+  &\quad \text{similar to above}\\
+  &\text{Hence } R \cap locs_{V'',H}(e_2) = \emptyset\\
+  &F \cap locs_{V'',H}(e_2) = \emptyset \tag{Similar to above}\\
+  &g \cap locs_{V'',H}(e_2) = \emptyset \tag{def. of $g$}\\
+  &(F \cup g) \cap locs_{V'',H}(e_2) = \emptyset\\
+  &\text{Thus } \dist{\{R,F \cup g,locs_{V'',H}(e_2)\}}\\
+  &\text{Instantiating invariant on } J_1,\\
+  &\emph{(1)} \quad \ms{set}(reach_{H'}(v))\\
+  &\emph{(2)} \quad\dist{\{R,F',reach_{H'}(v)\}}\\
+  &\emph{(3)} \quad\stable{R,H,H'}\\
+  \end{align*}
+	\item [Case 13: E:Share]
+  \begin{align*}
+  &e = \sharecpcst{x}{x_1}{x_2}{e'} \tag{case}\\
+  &\text{Suppose } H \vDash V : \Gamma, dom(V) = FV(e), \na{V,H}, \dist{\{R,F,locs_{V,H}(e)\}} 
+		\tag{def. of wfc} \\
+	&\text{Let } V_2 = V'[x_1 \mapsto v', x_2 \mapsto v'']\\
+	&\text{We show the subsequent computation is also well-formed to invocate the IH:}\\
+  &\emph{(1)} \quad dom(V_2) = FV(e') \tag{$dom(V) = FV(e)$ and def of $FV$}\\
+  &\emph{(2)} \quad \na{V'[x_1 \mapsto v', x_2 \mapsto v''],H}\\
+	&\quad \na{V'[x_1 \mapsto v']} \tag{$\na{V,H}$}\\
+  &\quad \text{Let } x' \mapsto v''' \in V'[x_1 \mapsto v']. 
+		\text{STS } reach_{H'}(v''') \cap reach_{H'}(v'') = \emptyset\\
+	&\quad reach_{H'}(v'') \subseteq L \subseteq F \tag{lemma about copy}\\
+	&\quad reach_{H'}(v''') \subseteq locs_{V'[x_1\mapsto v'],H'}(e') \subseteq locs_{V,H}(e) 
+		\tag{stability lemma for copy}\\ 
+	&\quad \text{but since } F \cap locs_{V,H}(e) = \emptyset, \text{we have the result.}
+		 \tag{$\wfc{V}{H}{R}{F}{e}$}\\
+  &\emph{(3)} \quad \dist{\{R,F \setminus L,locs_{V_2,H'}(e')\}}\\
+	&\quad \text{Disjointedness involving $F$ follows from assumption. Last one follows since }
+		locs_{V_2,H'}(e') \subseteq locs_{V,H}(e) \cup L\\
+	&\text{By IH:}\\
+  &\emph{(1)} \quad \set{reach_{H''}(v)}\\
+  &\emph{(2)} \quad \dist{\{R,F',reach_{H''}(v)\}}\\
+  &\emph{(3)} \quad \stable{R,H',H''}\\
+	&\text{STS } \stable{R,H,H'}, \text{ which follows from $L \cap R = \emptyset$ and stability for copy}\\
+  \end{align*}
+  \end{description}
+\end{proof}
+
+\section{Soundness}
+\begin{theorem}[Soundness]
+\label{b} let $H_o \vDash V_o : \Gamma$, $\Sigma; \Gamma \sststile{q'}{q} e : B$,
+$V_o,H_o \; \vdash e \Downarrow v_o, H_o'$, and $H_o' \vDash v_o \mapsto a : A$.
+Then $\forall C \in \mathbb{Q}^{+}$ and configuration $V,H,R,F$ s.t.
+\begin{enumerate} 
+\item $V_o,H_o \sim V,H$
+\item $dom(V) = FV(e)$
+\item $\na{V,H}$
+\item $\dist{\{R,F,locs_{V,H}(e)\}}$
+\item $|F| \ge \Phi_{V,H}(\Gamma) + q + C$ 
+\end{enumerate}
+then there exists a triple $(v,H',F')$, and a freelist $F'$ s.t.
+\begin{enumerate}
+  \item $V,H,R,F \vdash e \Downarrow v, H', F'$
+	\item $\veq{H_o'}{H'}{v_o}{v}$
+  \item $|F'| \ge \Phi_{H'}(v:B) + q' + C$
+\end{enumerate}
+Call this the existence clause.
+\end{theorem}
+
+\begin{proof}
+Nested induction on the evaluation judgement and the typing judgement.\\
+\begin{description}
+  \item[Case 1: E:Var]
+  \begin{align*}
+  &V_o,H_o \; \vdash x \Downarrow V_o(x),H_o \tag{case}\\
+  &\Sigma; x : B \sststile{q}{q} x : B \tag{case}\\
+		&\text{Let } C \in \mathbb{Q}^+, \text{well-formed configuration } V,H,R,F \text{ s.t. }
+		V_o,H_o \sim V,H
+			\text{ and }|F| \ge \Phi_{V,H}(x : B) + q + C\\
+		&\text{NTS the conclusions for the existence clause: }\\
+		&\emph{(1) }V,H,R,F \vdash e \Downarrow V(x),H,F \tag{E:Var}\\
+		&\emph{(2) }\veq{H_o}{H}{V_o(x)}{V(x)} \tag{assumption}\\
+		&\emph{(3) }\text{And we have } F \ge \Phi_{V,H}(x : B) + q + C\\
+	&\quad = \Phi_{H}(V(x) : B) + q + C \tag{definition of $\Phi$}\\
+  \end{align*}
+  \item[Case 2: E:Const*] Similar to E:Var
+  \item[Case 4: E:App]
+		\begin{align*}
+			&V_o,H_o \vdash f(x) \Downarrow v_o,H_o' \tag{case}\\
+			&V_o(x) = v_o' \tag{admissibility}\\
+			&\text{Let } P(f) = (y_f,e_f)\\
+			&[y_f \mapsto v_o'],H_o \vdash e_f \Downarrow v_o,H_o' \tag{admissibility}\\
+			&\Sigma; x : A \sststile{q'}{q} f(x) : B \tag{case}\\
+			&\Sigma(f) = A \xrightarrow{q/q'} B \tag{admissibility}\\
+		&\text{Let } C \in \mathbb{Q}^+, \text{well-formed configuration } V,H,R,F \text{ s.t. }
+		V_o,H_o \sim V,H
+			\text{ and }|F| \ge \Phi_{V,H}(x : A) + q + C\\
+			&\Sigma; y_f : A \sststile{q'}{q} e_f : B \\
+			&\text{Let } V(x) = v', g = collect(R,locs_{V,H}(e_f),H,F)\\
+			&\text{By IH on } [y_f \mapsto v'],H,R,F\cup g, \text{ have the  existence clause. NTS the
+				following conditions: }\\
+			&\emph{(1) }[y_f \mapsto v_o'],H_o \sim [y_f \mapsto v'],H 
+				\tag{$\veq{H_o}{H}{v_o'}{v'}$ by assumption}\\
+			&\emph{(2) - (4) } \text{Have by assumption }\\
+			&\emph{(5) } \text{NTS } |F \cup g| \ge \Phi_{[y_f \mapsto v'],H}(x : A) + q + C\\
+			&\quad \text{STS } |F| \ge  \Phi_{[y_f \mapsto v'],H}(y_f : A) + q + C\\
+			&\quad |F| \ge \Phi_{V,H}(x : A) + q + C\\
+			&\quad = \Phi_H(v' : A) + q + C\\
+			&\quad = \Phi_{[y_f \mapsto v'],H}(y_f : A) + q + C\\
+			&\text{Applying the existence clause and E:App, we're done. }
+		\end{align*}
+  \item[Case 5: E:CondT]
+  \begin{align*}
+  &\Gamma = \Gamma', x : \irl{bool} \tag{ad.}\\
+  &H \vDash V : \Gamma' \tag{def of W.F.E}\\
+  &\Sigma; \Gamma' \sststile{q'}{q} e_t : B \tag{ad.}\\
+  &V,H,R,F \cup g\; \vdash e_t \Downarrow v, H',F' \tag{ad.}\\
+  &|F \cup g| - |F'| \le \Phi_{V,H}(\Gamma) +q - (\Phi_{H'}(v:B) + q') \tag{IH}\\
+  &|F| - |F'| \le \Phi_{V,H}(\Gamma) +q - (\Phi_{H'}(v:B) + q') \\
+  \end{align*}
+  \item[Case 6: E:CondF] 
+  Similar to E:CondT
+  \item[Case 7: E:Let]
+  \begin{align*}
+  &V_o,H_o \vdash e \Downarrow v_o'',H_o'' \tag{case}\\
+		&V_o' = V_o\restriction_{dom(FV(e_1)} \tag{ad.}\\
+  &V_o',H_o \vdash e_1 \Downarrow v_o',H_o' \tag{ad.}\\
+		&\Sigma; \Gamma \sststile{q'}{q} \irl{let}(e_1; x : \tau.e_2) : B \tag{case}\\
+		&\Gamma = \Gamma_1,\Gamma_2 \tag{ad.}\\
+  &\Sigma; \Gamma_1 \sststile{p}{q} e_1 : A \tag{ad.}\\
+  &H \vDash V_o' : \Gamma_1 \tag{def of $\vDash$}\\
+		&\text{Let } C \in \mathbb{Q}^+, \text{well-formed configuration } V,H,R,F \text{ s.t. }
+		V_o,H_o \sim V,H
+			\text{ and }|F| \ge \Phi_{V,H}(\Gamma) + q + C\\
+  &\text{NTF } v_2,H_2,F_2 \text{ s.t. }\\
+  &\quad 1. V,H,R,F \vdash e \Downarrow v_2, H_2,F_2 \text{ and }\\ 
+	&\quad 2. \veq{H_o''}{H_2}{v_o''}{v_2}\\
+  &\quad 3. |F_2| \ge \Phi_{H_2}(v_2:B) + q' + C\\
+	&\text{Let } R' = R \cup locs_{V,H}(FV(e_2) \setminus \{x\})\\
+  &\dist{\{R',F,locs_{V,H}(e_1)\}} \tag{Similar to case in Lemma $~\ref{itm:na}$}\\
+	&\text{Let } V_1 = V\restriction_{dom(FV(e_1)}\\
+  &\text{Instantiate IH with } C = C + \Phi_{V_2,H}(\Gamma_2), V = V_1, H = H, F = F, R = R'\\ 
+	&\quad\text{ we get existence clause on the first premise }\\
+  &\text{NTS (1) - (4) to instantiate existence clause on the first premise: } \\
+	&\emph{(1) } V_o',H_o \sim V_1, H \tag{assumption}\\
+		&\emph{(2) - (4)} \text{Same as in \ref{itm:na}}\\
+  &\emph{(4) } |F| \ge \Phi_{V_1,H}(\Gamma_1) + q + C + \Phi_{V,H}(\Gamma_2) \tag{$|F| \ge \Phi_{V,H}(\Gamma) + q + C$ and $\Phi_{V,H}(\Gamma) \ge \Phi_{V_1,H}(\Gamma_1) + \Phi_{V,H}(\Gamma_2)$}\\
+  &\text{Instantiating existence clause on the first premise } , \text{ we get } 
+		v_1,H_1,F_1 \text{ s.t. }\\
+		&\quad \text{Fact 1. } V_1,H,R',F \vdash e_1 \Downarrow v_1, H_1,F_1\\
+		&\quad \text{Fact 2. } \veq{H_o'}{H_1}{v_o'}{v_1}\\
+		&\quad \text{Fact 3. } |F_1| \ge \Phi_{H_1}(v_1:A) + p + C + \Phi_{V_2,H_1}(\Gamma_2)\\
+  &\text{For the second premise: }\\
+	&V_o'' = (V_o[x \mapsto v_o'])\restriction_{FV(e_2)} \tag{ad.}\\
+  &V_o'',H_o' \vdash e_2 \Downarrow v_o'',H_o'' \tag{ad.}\\
+  &\Sigma; \Gamma_2, x : A \sststile{q'}{p} e_2 : B \tag{ad.}\\
+	&H_1 \vDash v_o' : A \tag{By Lemma~\ref{itm:stable} and~\ref{itm:wellFormed}}\\ 
+  &H_1 \vDash V_2 : \Gamma_2, x : A \tag{def of $\vDash$}\\
+	&\text{Let } V_2 =  (V[x \mapsto v_1])\restriction_{FV(e_2)}\\
+  &\text{Let } g = \{l \in H_1 \mid l \notin F_1 \cup R \cup locs_{V_2,H_1}(e_2)\}\\ 
+  &\text{Instantiate IH with } C = C, V = V_2, H = H_1, F = F_1 \cup g, R = R, 
+		\text{ we get existence clause on the second premise}\\
+  &\text{NTS (1) - (4) to instantiate existence clause on the second premise: }\\
+	&\emph{(1) } V_o'',H_o' \sim V_2,H_1 \tag{assumption and Fact 2.}\\
+	&\emph{(2) - (4)} \text{ Same as Lemma $\ref{itm:na}$}\\
+	&\emph{(5) }  |F_1 \cup g| \ge \Phi_{V_2,H_1}(\Gamma_2,x : A) + p + C\\
+	&\quad \text{STS } |F_1| \ge \Phi_{V_2,H_1}(\Gamma_2,x : A) + p + C\\
+		&\quad \text{Have } |F_1| \ge
+			\Phi{V_2,H_1}(\Gamma_2) + \Phi_{H_1}(v_1:A) + p + C \tag{By Fact 3.}\\
+		&\text{Instantiate the existence clause on the second premise and apply E:Let and we're done}\\
+		\iffalse
+  &\emph{(4)} \quad |F'' \cup g| \ge \Phi_{V_2',H_1}(\Gamma_2,x: (\cf{A} - 1)) + p + C\\
+  &\quad \text{STS } |F'' \cup g| \ge \Phi_{V_2,H_1}(\Gamma_2) + \Phi_{H_1}(v_1 : (\cf{A} - 1)) + p + C\\
+  &\quad |F'' \cup g| \ge \ssize{H}{V_1} + |F| - \ssize{H_1}{v_1} \tag{conservation lemma}\\
+  &\quad \ge \Phi_{V,H}(\Gamma) + q + C + \ssize{H}{V_1} - \ssize{H_1}{v_1} 
+    \tag{$|F| \ge \Phi_{H}(V) + q + C$ }\\
+  &\quad \text{STS } \Phi_{V_1,H}(\Gamma_1) + q + C \ssize{H}{V_1} - \ssize{H_1}{v_1} \ge \Phi_{H_1}(v_1 : (\cf{A} - 1)) + p + C\\
+  &\quad \Phi_{V_1,H}(\Gamma_1) \ge \Phi_{H_1}(v_1 : (\cf{A} - 1)) \tag{lemma about cf typing}\\
+  &\quad \text{STS } \ssize{H}{V_1} - \ssize{H_1}{v_1} + q \ge p \tag{done by aux lemma}\\
+  &\text{Instantiating existence clause on } J_2, \text{ we get } F^{(3)} \text{ s.t. }\\
+  &\quad 1. V_2',H_1,R, F'' \cup g \vdash e_2 \Downarrow v_2,H_2,F^{(3)} \\
+  &\quad 2. |F^{(3)}| \ge \Phi_{H_2}(v_2:B) + q' + C\\
+  &\text{Take } F' = F^{(3)}\\
+  &V,H,R,F \vdash e \Downarrow v_2, H_2,F' \text{ and } \tag{E:Let}\\ 
+  &|F'| \ge \Phi_{H_2}(v_2:B) + q' + C \tag{from IH}\\
+		\fi
+  \end{align*}
+	\item[Case 8: E:Pair]
+  Similar to E:Const*
+  \item[Case 9: E:MatP]
+  Similar to E:MatCons
+  \item[Case 10: E:Nil]
+  Similar to E:Const*
+  \item[Case 11: E:Cons]
+  \begin{align*}
+		&V_o,H_o \vdash \consexabt{x_1}{x_2} \Downarrow l_o, H_o' \tag{case}\\
+		&H_o'(l_o) = \pairexcst{V_o(x_1)}{V_o(x_2)} \tag{admissibility}\\
+  	&\Sigma; x_1 : A, x_2 : L^p(A) \sststile{q}{q+p+1} \consexcst{x_1}{x_2} : L^p(A)\\
+		&\text{Let } C \in \mathbb{Q}^+, \text{well-formed configuration } V,H,R,F \text{ s.t. }
+		V_o,H_o \sim V,H
+			\text{ and }|F| \ge \Phi_{V,H}(x_1:A,x_2 : L^p(A)) + (q + p + 1) + C\\
+		&\text{Let } v = \pairexcst{V(x_1)}{V(x_2)}
+		,l \in F, H' = H\{l \mapsto v\}, F' = F\setminus\{l\}\\
+		&\emph{(1) } V,H,R,F \vdash \consexabt{x_1}{x_2} \Downarrow l, H',F' \tag{E:Cons}\\ 
+		&\emph{(2) } \veq{H_o'}{H'}{l_o}{l} \tag{assumption}\\
+		&\emph{(3 } |F'| \ge \Phi_{H'}(l : L^p(A)) + q + C \\
+		&\quad |F| \ge \Phi_{V,H}(x_1:A,x_2:L^p(A)) + (p + q + 1) + C\\
+		&\quad = \Phi_{H'}(l : L^p(A)) + q + 1 + C\\
+		&\quad |F'| = |F| - 1 \ge \Phi_{H'}(l : L^p(A)) + q + C\\
+  \end{align*}
+  \item[Case 12: E:MatNil]
+  Similar to E:Cond*
+  \item[Case 13: E:MatCons]
+  \begin{align*}
+  &V_o(x) = l_o \tag{ad.}\\
+  &H_o(l_o) = \pairexcst{v_o'}{v_o''} \tag{ad.}\\
+  &\Gamma = \Gamma', x : L^p(A) \tag{ad.}\\
+  &\Sigma; \Gamma', x_h : A, x_t : L^p(A) \sststile{q'}{q + p + 1} e_2 : B \tag{ad.}\\
+	&V_o' = (V_o[x_h \mapsto v_o', x_t \mapsto v_o''])\restriction_{FV(e_2)}\tag{ad.}\\
+  &V_o',H_o \; \vdash e_2 \Downarrow v_o, H' \tag{ad.}\\
+  &H \vDash V(x) : L^p(A) \tag{def of $\vDash$ }\\
+  &H\vDash v_h : A,\; H \vDash v_t : L^p(A) \tag{Inversion on $\vDash$}\\
+  &H \vDash V_o' : \Gamma', x_h : A, x_t : L^p(A) \tag{def of W.D.E}\\
+&\text{Let } C \in \mathbb{Q}^+, \text{well-formed configuration } V,H,R,F \text{ s.t. }
+		V_o,H_o \sim V,H
+			\text{ and }|F| \ge \Phi_{V,H}(\Gamma) + q + C\\
+  &\text{NTF } v,H',F' \text{ s.t. }\\
+  &\quad 1. V,H,R,F \vdash e \Downarrow v, H',F' \text{ and }\\ 
+	&\quad 2. \veq{H_o'}{H'}{v_o}{v}\\
+  &\quad 2. |F'| \ge \Phi_{H'}(v:B) + q' + C\\
+	&\text{Let } V(x) =  l\\
+		&H(l) = \pairexcst{v_h}{v_t} \tag{$\veq{H_o}{H}{l_o}{l}$ by assumption}\\
+	&\text{Let } V' = (V[x_h \mapsto v_h, x_t \mapsto v_t])\restriction_{FV(e_2)}\\
+	&\text{Let } g = \{l \in H \mid l \notin F \cup R \cup locs_{V',H}(e_2)\}\\
+  &\text{NTS $g$ nonempty, in particular, that } l \in g\\
+	&\quad l \notin F \cup R \tag{$l \in locs_{V,H}(e)$ and $\dist{\{R,F,locs_{V,H}(e)\}}$}\\
+  &\quad \text{AFSOC } l \in locs_{V',H}(e_2)\\
+		&\quad \text{Then } l \in reach_H(V'(x')) \text{ for some } x' \in dom(V')\\
+		&\textbf{case }x' \in \{x_h,x_t\}:\\
+  &\quad \text{WLOG let } x' = x_h\\
+		&\quad \text{But then } reach_H(V(x))(l) \ge 2 \text{ and } \ms{set}(reach_(\overline V(x))) \text{ doesn't hold}\\
+		&\textbf{case } x' \notin \{x_h,x_t\}:\\
+		&\quad x' \in dom(V)\\
+		&\quad x = x' \tag{$l \in reach_H(V(x))$ and $\na{V,H}$}\\
+		&\text{Contradiction, } x \notin domv(V')\\
+  &\quad l \notin locs_{V'',H}(e_2)\\
+  &\text{Hence } l \in g\\
+	&\text{By IH with } C' = C, V = V', H = H, R = R, F_1 = F \cup g 
+		\text{ we have the existence clause. NTS the following: } \\
+	&\emph{(1) } V_o',H_o \sim V',H \tag{assumption} \\
+	&\emph{(2) - (4) } \text{Same as Lemma~\ref{itm:na}}\\
+		&\emph{(5) } |F_1| \ge \Phi_{V',H}(\Gamma',x_h:A,x_t:L^p(A)) + q + p + 1 + C:\\
+	&\quad |F_1| = |F \cup g|\\
+	&\quad = |F| + |g| \tag{$F$ and $g$ disjoint}\\
+	&\quad \ge \Phi_{V,H}(\Gamma) + q + C + |g| \tag{assumption}\\
+		&\quad = \Phi_{V,H}(\Gamma',x_h:A,x_t:L^p(A)) + q+ p + C + |g| \tag{definition of $\Phi$}\\
+	&\quad = \Phi_{V,H}(\Gamma',x_h:A,x_t:L^p(A)) + q + p + 1 + C \tag{$g$ nonempty}\\
+		&\quad\text{By existence clause have } v,H',F' \text{ s.t. }\\
+		&\quad \text{Fact 1 }. V',H,R,F\cup g \vdash e_2 \Downarrow v,H',F'\\
+		&\quad \text{Fact 2 }. |F'| \ge \Phi_{H'}(v:B) + q' + C\\
+	&\text{Apply E:MatCons and we're done}
+  \end{align*}
+  \item[Case 14: E:Share]
+	\begin{align*}
+	&V_o,H_o \vdash \sharecpcst{x}{x_1}{x_2}{e'}  \Downarrow v_o,H_o' \tag{case}\\
+	&V_o(x) = v_o' \tag{ad.}\\
+	&V_o' = (V_o[x_1 \mapsto v_o',x_2 \mapsto v_o']) \restriction_{FV(e')}\\
+	&V_o', H_o \vdash e' \Downarrow v_o,H_o' \tag{ad}\\
+	&\Sigma;\Gamma,x:A \sststile{q'}{q} \sharecpcst{x}{x_1}{x_2}{e'}: B \tag{case}\\
+	&A \curlyvee A_1,A_2,1 \tag{ad.}\\
+	&\Sigma; \Gamma,x_1:A_1,x_2:A_2 \sststile{q'}{q} e' : B \tag{ad.}\\
+&\text{Let } C \in \mathbb{Q}^+, \text{well-formed configuration } V,H,R,F \text{ s.t. }
+		V_o,H_o \sim V,H
+			\text{ and }|F| \ge \Phi_{V,H}(\Gamma,x:A) + q + C\\
+  &\text{NTF } v,H'',F'' \text{ s.t. }\\
+	&\quad 1. V,H,R,F \vdash e \Downarrow v, H'',F'' \text{ and }\\ 
+		&\quad 2. \veq{H_o'}{H''}{v_o}{v}\\
+  &\quad 3. |F''| \ge \Phi_{H''}(v:B) + q' + C\\
+		&\text{Let } V(x) = v',
+  L \subseteq F,
+  |L| = |dom(reach_H(v'))|,
+  H',v'' = copy(H,L,v'),
+	V' = (V[x_1 \mapsto v',x_2 \mapsto v'']) \restriction_{FV(e)}\\
+		&\quad F' =	F \setminus L,
+		g = \{l \in H \mid l \notin F' \cup R \cup locs_{V',H'}(e)\}\\
+		&\text{By IH with } C, V',H',R,F'\cup g \text{, have the existence clause. NTS the following: }\\
+		&\emph{(1) } V_o',H_o \sim V',H' \tag{By Lemma~\ref{itm:copy} and assumption}\\
+		&\emph{(2) - (4) } \text{ same as lemma~\ref{itm:na}}\\ 
+		&\emph{(5) } |F' \cup g| \ge \Phi_{V',H'}(\Gamma,x_1 : A_1,x_2 : A_2) + q + C\\
+		&\text{STS } |(F\setminus L) \cup g| \ge \Phi_{V', H'}(\Gamma,x_1 : A_1,x_2 : A_2) + q + C\\
+		&\quad \iff (|F| - |L|) + |g| \ge \Phi_{V',H'}(\Gamma) + 
+			\Phi_{V',H'}(x_1 : A_1) + \Phi_{V',H'}(x_2 : A_2) + q + C\\
+		&\quad \text{STS } |F| \ge \Phi_{V',H'}(\Gamma) + 
+			\Phi_{V',H'}(x_1 : A_1) + \Phi_{V',H'}(x_2 : A_2) + |L| + q + C\\
+	&\quad \iff |F| \ge \Phi_{V',H'}(\Gamma) + 
+			\Phi_{V,H}(x : A) + q + C \tag{By Lemma~\ref{itm:shareSize}}\\
+		&\quad \iff |F| \ge \Phi_{V,H}(\Gamma,x:A) + q + C \tag{By Lemma~\ref{itm:copyStable}}\\
+		&\text{Instantiate the existence clause and apply E:Share, and we're done}
+	\end{align*}
+  \end{description}
+\end{proof}
+
+\section{\copySem{} over-approximates \gcSem{}}
+
+\begin{definition} A configuration $(V,H,R,F)$ is well-formed if 
+	\begin{enumerate}
+		\item $dom(H) \subseteq reach_H(V) \cup R \cup F$
+		\item $reach_H(V) \cup R \subseteq dom(H) \setminus F$
+		\item $collect(R,reach_H(V),H,F) = \emptyset$
+	\end{enumerate}
+\end{definition}
+
+For a context $(V,H,R,F)$, denote the
+garbage w.r.t a set of locations $L$ 
+as $collect(R,L,H',F') = \{l \in H' \mid l \notin F' \cup R \cup L\}$.
+\begin{lemma}\label{itm:eager}
+	Given a well-formed context $(V,H,R,F)$ and $V,H,R,F \vdash e \Downarrow v,H',F'$, 
+	$dom(H') \subseteq reach_H(v) \cup R \cup F'$,
+	$reach_H(v) \cup R \subseteq dom(H') \setminus F'$ and
+	$collect(R,reach_H'(v),H',F') = \emptyset$.
+\end{lemma}
+
+Now consider two well-formed configurations $\mathcal{C}_1 = (V_1,H_1,R_1,F_1),
+ \mathcal{C}_2 = (V_2,H_2,R_2,F_2)$.\\
+
+A mapping $f : A \to \mathcal{P}(B)$ is a \emph{partition} on $B$ the image of 
+$A$ forms a disjoint union of $B$ 
+(e.g. $\forall x,y \in A, f(x) \cap f(y) = \emptyset \land \bigcup f(A) = B$). Furthermore,
+a partition is \emph{proper} if for any $x \in A$, $f(x) \neq \emptyset$.\\
+Given a proper partition $f$, we can choose an arbitrary 
+$b \in f(a)$ to be the representation for that part; call this 
+singlet set $\{b\}$ $rep(a)$.\\
+
+A simple corollary is the fact that if $V_2,H_2$ is a linear context (e.g. $\na{V_2,H_2}$ holds), then
+$|\gamma(l)| = |(reach_{H_1}(V_1))(l)|$, where $ reach_{H_1}(V_1) = \biguplus_{x \in dom(V)} reach_{H_1}(x)$. 
+In general for a multiset $S$, when this holds, we say that 
+$\gamma$ is a \emph{counting partition} for $S$.\\
+
+For a partition $f : A \to \mathcal{P}(B)$, we write the set of equivalence classes
+as $ec(f) = \{f(x) \mid x \in A\} = f(A)$, i.e. the image of $f$ on its domain $A$.\\
+
+\begin{definition}
+	Let \ms{dir} be the set \{\ms{L},\ms{R},\ms{N}\}, denoting left, right, and next 
+	respectively. We can index values via directions:
+	\begin{align*}
+		get_H(Just(\pairexcst{v_1}{v_2},\ms{L})) &= Just(v_1)\\
+		get_H(Just(\pairexcst{v_1}{v_2},\ms{R})) &= Just(v_2)\\
+		get_H(Just(\pairexcst{v_1}{v_2}),_) &= None\\
+		get_H(Just(l),\ms{N}) &= Just(H(l)) \\
+		get_H(Just(l), \_) &= None\\
+		get_H(r,\_) &= r
+	\end{align*}
+	Let $P$ be a sequence of directions. Extend $get$ to sequence of directions:
+	\begin{align*}
+		find_H(v,D::P) &= find_H(get_H(v,D),P)\\
+		find_H(v,[]) &= v
+	\end{align*}
+	Call $P$ valid w.r.t a value $v$ if $find_H(v,P) = Just (v')$ for some $v'$.
+	Write $V_H(x;P)$ for $fromJust(find_H(V(x),P))$ given a valid sequence $P$ w.r.t $V(x)$,
+	and $reach_H(V(x;P))$ for $reach_H(V_H(x;P))$.
+	Given a map $m : X \to \mathcal{S}(\ms{dir})$ from varibles to valid sequences of directions, 
+	Define $reachPath_{V,H}(X,m) = \biguplus_{x \in X} reach_H(V(x;m(x)))$.
+	
+\end{definition}
+
+\begin{lemma}
+	Let $V_1,H_1 \sim V_2,H_2$. Then for all $x \in dom(V_1)$ and sequence of directions $P$, 
+	Either $find_{H_1}(V_1(x),P) = find_{H_2}(V_2(x),P) = None$ or 
+	$find_{H_1}(V_1(x),P) = v_1$, $find_{H_2}(V_2(x),P) = v_2$ and
+	$\veq{H_1}{H_2}{v_1}{v_2}$
+\end{lemma}
+
+\begin{proof}
+	Induction on length of $P$ and then $H \vdash v \mapsto a : A$.
+\end{proof}
+
+\begin{definition}
+A configuration $\mathcal{C}_2 = (V_2,H_2,R_2,F_2)$ is a \emph{copy extension} of another configuration
+$\mathcal{C}_1 = (V_1,H_1,R_1,F_1)$ iff
+\begin{enumerate}
+\item $V_1,H_1 \sim V_2,H_2$
+\item There is a proper partition $\gamma : dom(H_1) \setminus F_1 \to \mathcal{P}(dom(H_2) \setminus F_2)$ 
+such that for all $l \in dom(\gamma)$, $|\gamma(l)| = reach_{H_1}(V_1)(l) + R_1(l)$
+\item for all $l \in dom(\gamma)$, $x \in dom(V_1)$, valid sequence of directions $P$ w.r.t $V_1(x)$,
+	$|reach_{H_2}(V_2(x;P)) \cap \gamma(l)| = reach_{H_1}(V_1(x;P))(l)$.
+\item for all $l \in dom(\gamma)$, $|\gamma(l) \cap R_2| = R_1(l)$
+\item $|F_1| = |F_2| + |\oh{\gamma}|$, where 
+	$\oh{\gamma} = \bigcup_{P \in ec(\gamma)} C \setminus rep(C)$
+\end{enumerate}
+Write this as $\mathcal{C}_1 \preceq \mathcal{C}_2$.
+\end{definition} 
+
+Note that $\preceq$ is reflexive. Now the key lemma:
+
+\begin{lemma}
+	Let $(\mathcal{C}_2,e)$ be a linear computation. Given that 
+	$\mathcal{C}_2 \vdash^{\mathsf{copy}} e \Downarrow v,H',F'$, and $H' \vDash v \mapsto a : A$, 
+	for all well-formed configurations $\mathcal{C}_1$ such that $\mathcal{C}_1 \preceq \mathcal{C}_2$,
+there is exists a triple
+$(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ and 
+	$\gamma' : dom(Y') \setminus M' \to \mathcal{P}(dom(H') \setminus F')$ s.t.
+	\begin{enumerate}
+			\item $\mathcal{C}_1 \vdash^{\mathsf{free}} e \Downarrow w,Y',M'$
+			\item $\veq{H'}{Y'}{v}{w}$
+			\item $\gamma'$ is a proper partition, such that for all $l \in dom(\gamma')$, 
+				$|\gamma'(l)| = reach_{Y_1}(w_1)(l) + S(l)$
+			\item For all $P$ valid w.r.t $v$, $|reach_{H'}(find_{H'}(v;P)) \cap \gamma'(l)| = 
+				reach_{Y'}(find_{Y'}(w;P))(l)$
+			\item $l \in dom(\gamma')$, 
+					$\gamma'(l) \cap R = \gamma(l) \cap R$ 
+			\item $|M'| = |F'| + |\oh{\gamma'}|$
+	\end{enumerate}
+\end{lemma}
+
+For a configuration $\mathcal{C} = (V,H,R,F)$, denote the current garbage w.r.t a set of root variables 
+$X \subseteq dom(V)$ 
+as $clean(\mathcal{C},L) = \{l \in H \mid l \notin F \cup R \cup L\}$. Some auxiliary lemmas: 
+
+\begin{lemma}\label{itm:aux}
+Let $V_2,H_2,R_2,F_2 \vdash^{\mathsf{copy}} e \Downarrow v,H',F'$, and 
+$V_1,H_1,R_1,F_1 \preceq V_2,H_2,R_2,F_2$ because $(-,\gamma,\eta,-,-)$. Then the following hold:
+for all $l \in dom(H_1) \setminus F_1$, 
+	$X \subseteq dom(V)$, $m : X \to \mathcal{S}(\ms{dir})$, $l \in dom(\gamma)$,
+	$\gamma(l) \subseteq clean(\mathcal{C}_2,reachPath_{V_2,H_2}(X,m))$ iff
+	$l \in clean(\mathcal{C}_1,reachPath_{V_1,H_1}(X,m))$.
+\end{lemma}
+
+\begin{proof}
+	$\implies$
+	\begin{align*}
+		&\gamma(l) \cap (F_2 \cup R_2 \cup reachPath_{V_2,H_2}(X,m)) = 
+			\emptyset \tag{definition of $clean$}\\
+		&\text{NTS } l \notin F_1 \cup R_1 \cup reach_{H_1}(X)\\
+		&\emph{(1) } l \notin F_1 \tag{assumption}\\
+		&\emph{(2) } l \notin R_1\\
+		&\quad \text{Know } \gamma(l) \cap R_2 = \emptyset\\
+		&\quad |\gamma(l) \cap R_2| = R_1(l) = 0 \tag{condition 4. of $\preceq$}\\
+		&\quad l \notin R_1\\
+		&\emph{(3) } l \notin reachPath_{V_1,H_1}(X,m)\\
+		&\quad \text{Know } \gamma(l) \cap reachPath_{V_2,H_2}(X,m) = \emptyset\\
+		&\quad \text{Let } x \in X\\
+		&\quad \gamma(l) \cap reach_{H_2}(V_2(x;m(x))) = \emptyset\\
+		&\quad |\gamma(l) \cap reach_{H_2}(V_2(x;m(x)))| = reach_{H_1}(V_1(x;m(x)))(l) 
+			\tag{condition 3. of $\preceq$}\\
+		&\quad reach_{H_1}(V_1(x;m(x)))(l) = 0\\
+		&\quad reachPath_{V_1,H_1}(X,m)(l) = 0\\
+		&\quad l \notin reachPath_{V_1,H_1}(X,m)\\
+		&\quad \text{Thus, } l \in clean(\mathcal{C}_1,reachPath_{V_1,H_1}(X,m))
+	\end{align*}
+	$\Longleftarrow$
+	\begin{align*}
+		&l \notin (F_1 \cup R_1 \cup reachPath_{V_1,H_1}(X,m))\\
+		&\text{NTS } \gamma(l) \cap (F_2 \cup R_2 \cup reachPath_{V_2,H_2}(X,m)) = \emptyset\\
+		&\emph{(1) } \gamma(l) \cap F_2 = \emptyset \tag{assumption}\\
+		&\emph{(2) } \gamma(l) \cap R_2 = \emptyset\\
+		&\quad |\gamma(l) \cap R_2| = R_1(l) \tag{condition 4. of $\preceq$}\\ 
+		&\quad = 0 \tag{assumption}\\
+		&\quad \gamma(l) \cap R_2 = \emptyset\\
+		&\emph{(3) } \gamma(l) \cap reachPath_{V_2,H_2}(X,m) = \emptyset\\
+		&\quad \text{Let } x \in X\\
+		&\quad |\gamma(l) \cap reach_{H_2}(V_2(x;m(x)))| = reach_{H_1}(V_1(x;m(x)))(l) 
+			\tag{condition 3. of $\preceq$}\\
+		&\quad = 0 \tag{assumption}\\
+		&\quad\gamma(l) \cap reach_{H_2}(V_2(x;m(x))) = \emptyset\\
+		&\quad\gamma(l) \cap reachPath_{V_2,H_2}(X,m) = \emptyset\\
+		&\quad\gamma(l) \cap (F_2 \cup R_2 \cup reachPath_{V_2,H_2}(X,m)) = \emptyset\\
+		&\quad\gamma(l) \in clean(\mathcal{C}_2,reachPath_{V_2,H_2}(X,m))
+	\end{align*}
+\end{proof}
+
+\begin{lemma}\label{itm:copyRel}
+	Given  a proper partition $\gamma : dom(Y) \setminus M \to \mathcal{P}(dom(H)\setminus F)$, 
+	equivalent values $\veq{H}{Y}{v}{w}$, and the 
+	following:
+	\begin{enumerate}
+		\item $L \subseteq F$
+		\item $|L| = |dom(reach_H(v))|$
+		\item $H',v' = copy(H,L,v)$
+		\item $F' =	F \setminus L$
+	\end{enumerate}
+	there is a proper partition $\gamma' : dom(Y) \setminus M \to \mathcal{P}(dom(H) \setminus F')$ 
+	s.t.
+	$|\gamma'(l)| = |\gamma(l)| + reach_Y(w)(l)$, 
+	$|reach_H(v) \cap \gamma'(l)| = |reach_H(v') \cap \gamma'(l)| = |reach_H(v) \cap \gamma(l)|$.
+\end{lemma}
+
+\begin{proof}
+	Induction on $copy$.
+\end{proof}
+
+Now the proving \copySem{} over approximates \gcSem{}:
+\begin{proof}
+Induction on the evaluation judgement.\\
+\begin{description}
+  \item[Case 1: E:Var] Trivial
+  \item[Case 2: E:Const*] Trivival
+  \item[Case 4: E:App] Similar to E:CondT
+  \item[Case 5: E:CondT]
+  \begin{align*}
+		&V,H,R,F \; \vdash^{\copySem} \ifexabt{x}{e_1}{e_2} \Downarrow v, H',F' \tag{case}\\
+		&\text{Let } W,Y,S,M \preceq V,H,R,F \\
+		&\text{Let } W' = W \restriction_{dom(V')}\\
+		&\text{Let } j = \{l \in Y | l \notin M \cup S \cup locs_{W,Y}(e_1) \}\\
+		&\text{NTS } W',Y,S,M \cup j \preceq V',H,R,F \cup g\\
+		&\emph{(1)}\quad W',Y \sim V',H \tag{$W,Y \sim V,H$}\\
+		&\emph{(2)}\quad \text{NTF a proper partition }
+		 \gamma' : dom(Y) \setminus (M \sqcup j) \to \mathcal{P}(dom(H)\setminus (F \cup g))  \\
+		&\quad \text{Let } \gamma'(l) = \gamma \restriction_{dom(Y)\setminus(M \sqcup j)}(l) \setminus g\\
+		&\quad \text{First, show $\gamma'$ is a partition}\\
+		&\quad \text{Let } l, l' \in dom(Y) \setminus (M \sqcup j)\\
+		&\quad \gamma'(l) \cap \gamma'(l') = \emptyset \tag{$\gamma$ is partition}\\
+		&\quad \gamma'(dom(Y) \setminus (M \sqcup j)) = \gamma(dom(Y) \setminus (M \sqcup j)) \setminus g\\
+		&\quad = (\bigsqcup_{l \in dom(Y) \setminus M} \gamma(l) \setminus \bigsqcup_{l \in j} \gamma(l)) 
+			\setminus g\\
+		&\quad = ((dom(H) \setminus F) \setminus (\bigsqcup_{l \in j} \gamma(l))) \setminus g 
+			\tag{$\gamma$ is partition}\\
+		&\quad = (dom(H) \setminus F) \setminus g 
+			\tag{$\bigsqcup_{l \in j} \gamma(l) \subseteq g$ by lemma \ref{itm:aux}}\\
+		&\quad = dom(H) \setminus (F \sqcup g)\\
+		&\quad \text{Hence } \gamma' \text{ is a partition}\\
+		&\quad \gamma' \text{ is also proper: }\\
+		&\quad \text{Let } l \in dom(Y) \setminus (M \sqcup j)\\
+		&\quad \gamma'(l) = \gamma(l) \setminus g\\
+		&\quad \text{AFSOC } \gamma(l) \subseteq g\\ 
+		&\quad l \in j \tag{By Lemma \ref{itm:aux}}\\
+		&\quad \text{Contradiction since assumed } l \notin j\\ 
+		&\quad \text{Now, NTS } |\gamma'(l)| = reach_{Y}(W')(l) + S(l)
+		&\quad \text{Let } l \in dom(\gamma')\\
+		&\quad \gamma'(l) = \gamma(l) \setminus g \tag{definition}\\ 
+		&\quad |\gamma'(l)| = |\gamma(l)| - |\gamma(l) \cap g|\\
+		&\quad = reach_Y(W)(l) + S(l) - |\gamma(l) \cap g|\\
+		&\quad g = reach_H(V\restriction_{dom(V) \setminus FV(e_1)})\\
+		&\quad |\gamma(l) \cap g| = reach_Y(W\restriction_{dom(W)\setminus FV(e_1)})(l) 
+			\tag{condition 3. of $\preceq$}\\
+		&\quad \text{Thus, } |\gamma'(l)| = 
+			reach_Y(W)(l) + S(l) - reach_Y(W\restriction_{dom(W)\setminus FV(e_1)})(l)\\
+		&\quad = reach_Y(W\restriction_{FV(e_1)})(l) +  S(l)\\
+		&\quad = reach_Y(W')(l) +  S(l)\\
+		&\emph{(3)}\quad \text{Let $l \in dom(\gamma'), x \in dom(W')$, 
+			$P$ valid sequence w.r.t $W'(x)$. NTS }\\ 
+		&|reach_{H}(V'(x;P)) \cap \gamma'(l)| = reach_{Y}(W'(x;P))(l)\\ 
+		&\quad \text{STS } |reach_{H}(V'(x;P)) \cap (\gamma(l) \setminus g)| = reach_{Y}(W'(x;P))(l) \\
+		&\quad g \cap reach_H(V'(x;P)) = \emptyset \tag{definition of $g$}\\
+		&\quad |reach_{H}(V'(x;P)) \cap (\gamma(l) \setminus g)| = 
+				|(reach_{H}(V'(x;P)) \setminus g) \cap \gamma(l)|\\
+		&\quad = |reach_{H}(V'(x;P)) \cap \gamma(l)|\\
+		&\quad = |reach_{H}(V(x;P)) \cap \gamma(l)|\\
+		&\quad = reach_{Y}(W(x;P))(l) \tag{condition 3. of $\preceq$}\\
+		&\quad = reach_{Y}(W'(x;P))(l) \\
+		&\emph{(4)}\quad S \subseteq dom(Y) \setminus (M \cup j) \text{ since } S \cap j = \emptyset\\
+		&\quad \text{Let } l \in S \text{. NTS } |\gamma'(l) \cap R| = S(l)\\
+		&\quad \text{STS } |(\gamma(l)\setminus g) \cap R| = S(l)\\
+		&\quad (\gamma(l)\setminus g) \cap R = \gamma(l) \cap (R \setminus g)\\
+		&\quad = \gamma(l) \cap R \tag{$g \cap R = \emptyset$}\\
+		&\quad |\gamma(l) \cap R| = S(l) \tag{condition 4. of $\preceq$}\\
+		&\emph{(5)}\quad \text{NTS } |M \cup j| = |F \cup g| + |\oh{\gamma'}|\\
+		&\quad \text{STS } |M| + |j| = |F| + | g| + |\oh{\gamma'}|\\
+		&\quad \text{By assumption }, |M| = |F| + |\oh{\gamma}|\\
+		&\quad \text{STS } |j| + |\oh{\gamma}| = |g| + |\oh{\gamma'}|\\
+		&\quad \text{NTF a bijection } f : j \oplus \oh{\gamma} \to g \sqcup \oh{\gamma'}\\
+		&\quad \text{First, we know that } g = (\bigsqcup_{l \in j} \gamma(l)) \sqcup L 
+			\text{ for some } L \tag{By \ref{itm:aux}}\\
+		&\quad \text{Let } \mathcal{C}_1 = \{\gamma(l) \mid l \in j\},
+				\mathcal{C}_2 = ec(\gamma) \setminus \mathcal{C}_1\\
+		&\quad \text{Clearly, } \oh{\gamma} = 
+		\bigsqcup_{C  \in \mathcal{C}_1} C \setminus rep(C) \sqcup \bigsqcup_{C  \in \mathcal{C}_2} C \setminus rep(C)\\
+		&\quad \text{Let } D_1 = \bigsqcup_{C  \in \mathcal{C}_1} C \setminus rep(C), 
+		D_2 = \bigsqcup_{C  \in \mathcal{C}_2} C \setminus rep(C)\\
+		&\quad \text{We define the bijection } 
+			f \text{ by parts: } 
+			f_1 : j \oplus D_1 \to \bigsqcup_{C \in \mathcal{C}_2} C, f_2 : D_2 \to L \sqcup \oh{\gamma'}\\
+		&\quad f_1(x) =  
+		\begin{cases}
+			rep(\gamma(l)) &x = (\ms{inl},l)\\
+			l &x = (\ms{inr},l)
+		\end{cases}\\
+		&\quad \text{Clearly, } f_1 \text{ is a bijection, and } |j| + |D_1| = |\bigsqcup_{C \in \mathcal{C}_1} C|\\
+		&\quad \text{To avoid the problem of maintaining a single representative for a class (which might be 
+		collected), }\\
+		&\quad \text{note the following: }\\
+		&\quad |\mathcal{C}_2| = |ec(\gamma) \setminus \{\gamma(l) \mid l \in j\}|\\
+		&\quad = |ec(\gamma \restriction_{dom(Y) \setminus (M \sqcup j)})|\\
+		&\quad = |ec(\gamma')|\\
+		&\text{Meaning that } \mathcal{C}_2 \text{ has the same number of classes as } \gamma' 
+			\text{(note these classes might be different)}\\
+		&\text{Since both } \gamma,\gamma' \text{ are proper partitions we have the following: }\\
+		&|D_2| = |L \sqcup \oh{\gamma'}| \text{ iff } 
+			|\bigsqcup_{C  \in \mathcal{C}_2} C \setminus rep(C)| =
+			|L \sqcup \bigsqcup_{C \in ec(\gamma')} C \setminus rep(C)|
+			\text{ iff }
+		|\bigsqcup_{C  \in \mathcal{C}_2} C| = |L \sqcup \bigsqcup_{C \in ec(\gamma')} C|\\ 
+		&\quad \text{In fact, the latter two sets are equal: }\\
+		&\quad \text{let } l' \in \bigsqcup_{C  \in \mathcal{C}_2} C\\
+		&\quad l' \in H \setminus F \tag{Def. of partition}\\
+		&\quad \textbf{case } l \in g\\
+		&\quad\quad l' \notin \bigsqcup_{l \in j} \gamma(l) \tag{Def. of $\mathcal{C}_2$}\\
+		&\quad\quad l' \in L \tag{Def. of $g$}\\
+		&\quad\quad l' \in L \sqcup \bigsqcup_{C \in ec(\gamma')} C\\
+		&\quad \textbf{case } l' \notin g\\
+		&\quad\quad l' \in H \setminus (F \sqcup g)\\
+		&\quad\quad \text{Exists } C \in ec(\gamma') \text{ s.t. } l' \in C \tag{Def. of partition}\\
+		&\quad\quad l' \in \bigsqcup_{C \in ec(\gamma')} C\\
+		&\quad\quad l' \in L \sqcup \bigsqcup_{C \in ec(\gamma')} C\\
+		&\quad\text{For the other direction, let } l' \in L \sqcup \bigsqcup_{C \in ec(\gamma')} C\\
+		&\quad\textbf{case } l' \in L\\
+		&\quad\quad l' \in H \setminus F \tag{Def. of $L$}\\
+		&\quad\quad \text{Exists } C \in ec(\gamma) \text{ s.t. } l' \in C \tag{Def. of partition}\\
+		&\quad\quad l' \in \bigsqcup_{C \in ec(\gamma)} C\\
+		&\quad\textbf{case } l' \in \bigsqcup_{C \in ec(\gamma')} C\\
+		&\quad\quad l' \in H \setminus (F \sqcup g) \tag{Def. of partition}\\
+		&\quad\quad l' \in H \setminus F \\
+		&\quad\quad \text{Exists } C \in ec(\gamma) \text{ s.t. } l' \in C \tag{Def. of partition}\\
+		&\quad\quad l' \in \bigsqcup_{C \in ec(\gamma)} C\\
+		&\quad\text{Hence we show that } |D_2| = |L \sqcup \oh{\gamma'}|, \text{ and together with the previous 
+		equality, } |j| + |\oh{\gamma}| = |g| + |\oh{\gamma'}|\\
+		&\text{Thus we have } W',Y,S,F \cup j \preceq V',H,R,F \cup g\\
+  	&V',H,R,F \cup g\; \vdash^{\mathsf{copy}} e_1 \Downarrow v, H',F' \tag{case}\\
+		&\text{By IH on $(V',H,R,F\cup g)$, we have } (w,Y',M',\gamma'') \text{ such that }\\
+		&\emph{(1)}\quad  W',Y,S,M \cup j  \vdash^{\gcSem} e_1 \Downarrow w,Y',M'\\
+		&\emph{(2)}\quad \veq{H'}{Y'}{v}{w}\\
+		&\emph{(3)}\quad \gamma' \text{ is a proper partition, and } |\gamma''(l)| = 
+			reach_{Y'}(w)(l) + R(l)\\
+		&\emph{(4)}\quad \gamma''(l) \cap R = \gamma'(l) \cap R \\
+		&\quad \gamma'(l) \cap R = (\gamma(l) \setminus g) \cap R= \gamma(l) \cap R\\
+		&\emph{(5)}\quad |M'| = |F'| + |\oh{\gamma''}|\\
+		&\text{Apply F:CondT to \emph{(1)}, we are done.}
+  \end{align*}
+  \item[Case 6: E:CondF] 
+  Similar to E:CondT
+  \item[Case 7: E:Let]
+  \begin{align*}
+		&V,H,R,F \; \vdash^{\copySem} \irl{let}(e_1; x : \tau.e_2) \Downarrow v_2,H_2,F_2 \tag{case}\\
+		&W,Y,S,M \preceq V,H,R,F \tag{assumption}\\
+		&V_1,H,R',F \vdash^{\copySem} e_1 \Downarrow v_1,H_1,F_1 \tag{admissibility}\\
+		&\text{Let } W_1 = W \restriction_{FV(e_1)}, S' = S \uplus locs_{W,Y}(\irl{lam}(x : \tau.e_2))\\
+		&\text{NTS } W_1,Y,S',M \preceq V_1,H,R',F\\
+		&\emph{(1)}\quad W_1,Y \sim V_1,H \tag{condition 1. of $\preceq$}\\
+		&\emph{(2)a.}\quad \gamma \text{ is a proper partition } \tag{condition 2. of $\preceq$}\\
+		&\emph{(2).b}\quad \text{NTS } |\gamma(l)| = reach_Y(W')(l) + S'(l)\\
+		&\quad |\gamma(l)| = reach_Y(W)(l) + S(l) \tag{condition 2. of $\preceq$}\\
+		&\quad = reach_Y(W')(l) + reach_Y(W\restriction_{FV(e_2)\setminus \{x\}})(l) + S(l)\\
+		&\quad = reach_Y(W')(l) + S'(l)\\
+		&\emph{(3)}\quad \text{Let. } l \in dom(\gamma), x \in dom(W'), P \text{ valid sequence of 
+		directions. Have }\\
+		&\quad |reach_H(V'(x;P)) \cap \gamma(l) = reach_Y(W'(x;P))(l) 
+			\tag{condition 3. of $\preceq$}\\
+		&\emph{(4).a}\quad \text{NTS } S' \subseteq dom(Y)\setminus M\\
+		&\quad S \subseteq dom(Y)\setminus M \tag{condition 4. of $\preceq$}\\
+		&\quad locs_{W,Y}(\irl{lam}(x : \tau.e_2)) \subseteq reach_Y(W) \subseteq dom(Y) \setminus M
+			\tag{well-formed configuration}\\
+		&\quad S' \subseteq dom(Y)\setminus M\\ 
+		&\emph{(4).b}\quad \text{Let } l \in S'. \text{ NTS } |\gamma(l) \cap R'| = S'(l)\\
+		&\quad \text{STS }  |\gamma(l) \cap (R \cup reach_H(FV(e_2) \setminus \{x\})| = S(l) + 
+			reach_Y(FV(e_2) \setminus \{x\})(l)\\
+		&\quad \text{STS } |(\gamma(l) \cap R) \cup (\gamma(l) \cap 
+			reach_H(V(FV(e_2) \setminus \{x\})))| 
+			= S(l) + reach_Y(W(FV(e_2) \setminus \{x\}))(l)\\
+		&\quad \text{STS } |(\gamma(l) \cap R)| + |\gamma(l) \cap reach_H(V(FV(e_2) \setminus \{x\}))| 
+			= S(l) + reach_Y(W(FV(e_2) \setminus \{x\}))(l) 
+			\tag{$R \cap reach_H(V(FV(e_2) \setminus \{x\})) = \emptyset$}\\
+		&\quad \text{STS } |\gamma(l) \cap reach_H(V(FV(e_2) \setminus \{x\}))| 
+			= reach_Y(W(FV(e_2) \setminus \{x\}))(l) \tag{condition 4. of $\preceq$}\\
+		&\quad \text{STS } |\gamma(l) \cap \bigcup_{x' \in FV(e_2) \setminus \{x\}} reach_H(V(x'))|
+			= (\biguplus_{x' \in FV(e_2) \setminus \{x\}} reach_Y(W(x')))(l)\\
+		&\quad \text{Let } x' \in FV(e_2) \setminus \{x\}\\
+		&\quad |\gamma(l) \cap reach_H(V(x'))| = reach_Y(W(x'))(l) \tag{condition 3. of $\preceq$}\\
+		&\emph{(5)}\quad \text{Have } |M| = |F| + |\oh{\gamma}| \tag{condition 5. of $\preceq$}\\
+		&\text{By IH on first premise, there is } (w_1,Y_1,M_1) \text{ and } \gamma_1 \text{ s.t. }\\
+		&\text{Fact 1}. W',Y,S',M \vdash^{\gcSem} e \Downarrow w_1,Y_1,M_1\\
+		&\text{Fact 2}. \veq{H_1}{Y_1}{v}{w}\\
+		&\text{Fact 3}. \gamma_1 \text{ is a proper partition, such that for all } l \in dom(\gamma_1),\\
+		&\quad|\gamma_1(l)| = |reach_{Y_1}(w_1)(l)| + S(l)\\
+		&\text{Fact 4}. \text{For all } P, |reach_{H_1}(find_{H_1}(v_1;P)) \cap \gamma_1(l)| = 
+				reach_{Y_1}(find_{Y_1}(w_1;P))(l)\\
+		&\text{Fact 5}. \gamma_1(l) \cap R' = \gamma(l) \cap R' \text{ and } 
+			S' \subseteq dom(Y_1) \setminus M_1\\
+		&\text{Fact 6}. |M_1| = |F_1| + |\oh{\gamma_1}|\\
+		&V_2,H_1,R, F_1 \cup g \vdash e_2 \Downarrow v_2,H_2,F_2 \tag{admissibility}\\
+		&\text{Let } W_2 = (W[x \mapsto w_1])\restriction_{FV(e_2)}, 
+			j = \{ l \in H_1 \mid l \notin M_1 \cup S \cup locs_{W_2,Y_1}(e_2) \}\\
+		&\text{NTS } W_2,Y_1,S,M_1 \cup j \preceq V_2,H_1,R, F_1 \cup g\\
+		&\emph{(1)}\quad W_2,Y_1 \sim V_2,H_1 \tag{condition 1. of $\preceq$ and Fact 1}\\
+		&\emph{(2)}\quad \text{Let } \gamma_2 : dom(Y_1) \setminus (M_1 \cup j) 
+			\to \mathcal{P}(dom(H_1)\setminus (F_1 \cup g)) \text{ be defined by } 
+			\gamma_2(l) = \gamma_1(l) \setminus g\\
+		&\quad \text{NTS } |\gamma_2(l)| = reach_{Y_1}(W_2)(l) + S(l)\\
+		&\quad \text{STS } |\gamma_1(l)| = |\gamma_1(l) \cap g| + reach_{Y_1}(W_2)(l) + S(l)\\
+		&\quad \textbf{case } x \in FV(e_2):\\
+		&\quad\quad g =  collect(R',v_1,H_1,F_1) \\
+		&\quad\quad = \emptyset  \tag{By \ref{itm:eager}}\\
+		&\quad\quad |\gamma_1(l)| = reach_{Y_1}(w_1)(l) + S'(l) \tag{Fact 3}\\
+		&\quad\quad = reach_{Y_1}(w_1)(l) + 
+			reach_{Y}(W\restriction_{FV(e_2) \setminus \{x\}})(l) + S(l) \\
+		&\quad\quad = reach_{Y_1}(W_2)(l) + S(l)  \\
+		&\quad \textbf{case } x \notin FV(e_2):\\
+		&\quad\quad g = collect(R',v_1,H_1,F_1) \sqcup reach_{H_1}(v_1)\\
+		&\quad\quad = reach_{H_1}(v_1) \tag{By \ref{itm:eager}}\\
+		&\quad\quad |\gamma_1(l) \cap g| = reach_{Y_1}(w_1) \tag{Fact 3}\\
+		&\quad\quad \text{STS } |\gamma_1(l)| = reach_{Y_1}(w_1)(l) + reach_{Y_1}(W_2)(l) + S(l)\\
+		&\quad\quad = reach_{Y_1}(w_1)(l) + S'(l)  \tag{Fact 3}\\
+		&\quad\quad = reach_{Y_1}(w_1)(l) + reach_{Y}(W\restriction_{FV(e_2)\setminus \{x\}})(l) + S(l)\\
+		&\quad\quad = reach_{Y_1}(w_1)(l) + reach_{Y_1}(W\restriction_{FV(e_2)\setminus \{x\}})(l) + S(l) 		\tag{By \ref{itm:stable}}\\
+		&\quad\quad = reach_{Y_1}(W_2)(l) + S(l)\\
+		&\emph{(3)}\quad \text{Let $l \in dom(\gamma_2), x' \in dom(W_2)$, 
+			$P$ valid sequence w.r.t $W_2(x')$. NTS }\\ 
+		&|reach_{H_1}(V_2(x';P)) \cap \gamma_2(l)| = reach_{Y_1}(W_2(x';P))(l)\\ 
+		&\quad \textbf{case } x' = x:\\
+		&\quad\quad |reach_{H_1}(V_2(x';P)) \cap \gamma_2(l)| = reach_{Y_1}(W_2(x';P))(l) \tag{Fact 4}\\ 
+		&\quad \textbf{case } x' \ne x:\\
+		&\quad\quad |reach_{H_1}(V_2(x';P)) \cap \gamma(l)| = reach_{Y_1}(W_2(x';P))(l) 
+			\tag{stability and condition 3. of $\preceq$}\\ 
+		&\quad\quad |reach_{H_1}(V_2(x';P)) \cap \gamma_1(l)| = reach_{Y_1}(W_2(x';P))(l) 
+			\tag{$reach_{H_1}(V_2(x';P)) \subseteq R'$ and Fact 5.}\\
+		&\quad\quad |reach_{H_1}(V_2(x';P)) \cap \gamma_2(l)| = reach_{Y_1}(W_2(x';P))(l) 
+			\tag{$g \cap R' = \emptyset$}\\
+		&\emph{(4).a}\quad \text{NTS } S \subseteq dom(Y_1) \setminus (M_1 \cup j)\\
+		&\quad S' \subseteq dom(Y_1) \setminus M_1 \tag{Fact 5.}\\
+		&\quad S \subseteq dom(Y_1) \setminus M_1\\
+		&\quad S \cap j = \emptyset\\
+		&S \subseteq dom(Y_1) \setminus (M_1 \cup j)\\
+		&\emph{(4).b}\quad \text{Let } l \in S. \text{ NTS } |\gamma_2(l) \cap R| = S(l)\\
+		&\quad |\gamma_2(l) \cap R| = |(\gamma_1(l) \setminus g) \cap R| \\
+		&\quad = |\gamma_1(l) \cap R| \tag{$g \cap R = \emptyset$}\\
+		&\quad = |\gamma(l) \cap R| \tag{Fact 5.}\\
+		&\quad = S(l) \tag{condition 4. of $\preceq$}\\ 
+		&\emph{(5)}\quad \text{NTS } |M_1 \sqcup j| = |F_1 \sqcup g| + \oh{\gamma_2}\\
+		&\quad\text{Exactly the same as in E:CondT}\\
+		&\text{Thus } W_2,Y_1,S,M_1 \cup j \preceq V_2,H_1,R, F_1 \cup g\\
+		&\text{By IH on the second premise, we have } (w_2,Y_2,M_2) \text{ and } \gamma_3 \text{ s.t. }\\
+		&\text{Fact 1'}. W_2,Y_1,S,M_1 \cup j \vdash^{\gcSem} e_2 \Downarrow w_2,Y_2,M_2\\
+		&\text{Fact 2'}. \veq{H_2}{Y_2}{v_2}{w_2}\\
+		&\text{Fact 3'}. \gamma_3 \text{ is a proper partition, such that for all } l \in dom(\gamma_3),\\
+		&\quad|\gamma_3(l)| = |reach_{Y_2}(w_2)(l)| + S(l) + |\gamma_3(l)|\\
+		&\text{Fact 4'}. \text{For all } P, |reach_{H_2}(find_{H_2}(v_2;P)) \cap \gamma_3(l)| = 
+				reach_{Y_2}(find_{Y_2}(w_2;P))(l)\\
+		&\text{Fact 5'}. \gamma_3(l) \cap R = \gamma_2(l) \cap R \text{ and } 
+			S \subseteq dom(Y_2) \setminus M_2\\
+		&\quad \gamma_2(l) \cap R = \gamma_1(l) \cap R \tag{$g \cap R = \emptyset$}\\
+		&\quad = \gamma(l) \cap R \tag{Fact 5. from first premise}\\
+		&\text{Fact 6'}. |M_2| = |F_2| + |\oh{\gamma_3}|\\
+		&\text{Apply F:Let to \emph{(1)}, we are done.}
+  \end{align*}
+	\item[Case 8: E:Pair]
+  Similar to E:Const*
+  \item[Case 9: E:MatP]
+  Similar to E:CondT
+  \item[Case 10: E:Nil]
+  Similar to E:Const*
+  \item[Case 11: E:Cons]
+  \begin{align*}
+		&V,H,R,F \; \vdash \consexcst{x_1}{x_2} \Downarrow l,H' ,F \setminus \{l\} \tag{case}\\
+		&W,Y,S,M \preceq V,H,R,F \tag{assumption}\\
+		&\text{Let } w = \pairexcst{W(x_1)}{W(x_2)}\\
+		&\text{Let } m \in M, Y' = Y\{m \mapsto w\}\\
+		&\emph{(1) }V,H,R,F \; \vdash
+			\consexcst{x_1}{x_2} \Downarrow m,Y' ,M \setminus \{m\} \tag{F:Cons}\\
+		&\emph{(2) } \veq{H}{Y}{v}{w} \tag{assumption}\\
+		&\emph{(3) } \text{Let } \gamma' : dom(Y') \setminus M' \to \mathcal{P}(dom(H')\setminus F')
+			\text{ be defined by } \gamma'(l') = \gamma[m \mapsto \{l\}](l')\\
+		&\quad \gamma' \text{ is a proper partition } 
+			\tag{$\gamma$ proper and $l \notin dom(H) \setminus F$}\\
+		&\quad \text{NTS } |\gamma'(l')| = reach_{Y'}(m)(l') + S(l')\\
+		&\quad \text{STS } |\gamma[m \mapsto \{l\}](l')| = 
+			reach_{Y'}(m)(l') + S(l')\\
+		&\textbf{case } l' = m:\\
+		&\quad |\gamma[m \mapsto \{l\}](l')| = |\{l\}| = 1
+		&\quad 	reach_{Y'}(m)(l') + S(l') = 1 + reach_{Y'}(w_1)(m) + reach_{Y'}(w_2)(m) + S(l')\\
+		&\quad = 1 + S(m) \tag{$M \cap reach_{Y}(W) = \emptyset$}\\
+		&\quad = 1 \tag{$M \cap S = \emptyset$}\\
+		&\textbf{case } l' \ne m:\\
+		&\quad |\gamma[m \mapsto \{l\}](l')| = |\gamma(l')| = reach_H(W)(l') + S(l') 
+			\tag{condition 2. of $\preceq$}\\
+		&\quad = reach_{H'}(w_1)(l') + reach_{H'}(w_2)(l') + S(l')\\
+		&\quad = \{m \mapsto 1\}(l') + reach_{H'}(w_1)(l') + reach_{H'}(w_2)(l') + S(l')\\
+		&\quad = reach_{H'}(m)(l') + S(l')\\
+		&\emph{(4) } \text{Let } l \in dom(\gamma'), P \text{ be a valid path w.r.t } l. \text{ NTS }
+		|reach_{H'}(find_{H'}(l;P)) \cap \gamma'(l')| = 
+				reach_{Y'}(find_{Y'}(m;P))(l')\\
+		&\textbf{case } P = []\\
+		&\quad |reach_{H'}(find_{H'}(l;P)) \cap \gamma'(l')| = |reach_{H'}(l) \cap \gamma'(l')|\\
+		&\quad = |(\{l\} \cup reach_{H'}(v_1) \cup reach_{H'}(v_2)) \cap \gamma'(l')|\\
+		&\quad = |\{l\} \cap \gamma(l')| + |reach_{H'}(v_1) \cap \gamma'(l')| 
+		+ |reach_{H'}(v_2) \cap \gamma'(l')| \\
+		&\quad = \mathbbm{1}_{l' = m} + reach_{Y'}(w_1)(l') + reach_{Y'}(w_2)(l') 
+			\tag{condition 3. of $\preceq$}\\
+		&\quad = reach_{Y'}(m)(l')\\
+		&\quad = reach_{Y'}(find_{Y'}(m;P))(l')\\
+		&\textbf{case } P = \ms{N}::P'\\
+		&\quad |reach_{H'}(find_{H'}(l;\ms{N}::P')) \cap \gamma'(l')| = 
+			|reach_{H'}(\pairexcst{v_1}{v_2}) \cap \gamma'(l')|\\
+		&\quad = reach_{Y'}(find_{Y'}(m;P))(l') \tag{similar to above}\\
+		&\emph{(5) } \text{NTS } S \subseteq dom(\gamma') 
+			\tag{condition 4. of $\preceq$ and $dom(\gamma) \subseteq dom(\gamma')$}\\
+		&\quad\text{Let } l' \in dom(\gamma'). \text{ NTS } 
+			\gamma(l') \cap R = \gamma(l) \cap R\\
+		&\quad \text{STS } \gamma[m \mapsto \{l\}](l') \cap R = \gamma(l') \cap R\\
+		&\textbf{case } l' = m:\\
+		&\quad \gamma[m \mapsto \{l\}](m) \cap R = \{l\} \cap R\\
+		&\quad = \emptyset \tag{well-formed configuration}\\
+		&\quad = \gamma(l') \cap R \tag{well-formed configuration}\\
+		&\textbf{case } l' \ne m:\\
+		&\quad \gamma[m \mapsto \{l\}](m) \cap R = \gamma(l') \cap R\\
+		&\emph{(6) } \text{NTS } |M'| = |F'| + \oh{\gamma'}\\
+		&\quad |M'| = |M| - 1\\
+		&\quad |F'| = |F| - 1\\
+		&\quad \oh{\gamma'} = \oh{\gamma[m \mapsto \{l\}]}\\
+		&\quad = \bigcup C \in ec(\gamma') C \setminus (rep(C))\\
+		&\quad = (\{l\} \setminus \{l\}) \cup \bigcup C \in ec(\gamma) C \setminus (rep(C))\\
+		&\quad = \bigcup C \in ec(\gamma) C \setminus (rep(C))\\
+		&\quad = \bigcup C \in ec(\gamma) C \setminus (rep(C))\\
+		&\quad = \oh{\gamma}\\
+		&\quad \text{STS } |M| - 1 = |F| - 1 + \oh{\gamma}\\
+		&\quad \text{Have } |M| = |F| + \oh{\gamma} \tag{condition 5. of $\preceq$}
+	\end{align*}
+  \item[Case 12: E:MatNil]
+  Similar to E:Cond*
+  \item[Case 13: E:MatCons]
+  \begin{align*}
+		&V,H,R,F \; \vdash^{\copySem} \listcaseexcst{x}{e_1}{x_h}{x_t}{e_2} \Downarrow v,H',F' \tag{case}\\
+		&W,Y,S,M \preceq V,H,R,F \tag{assumption}\\
+		&V',H,R,F \cup g \; \vdash e_2 \Downarrow v, H',F' \tag{admissibility}\\
+		&\text{Let } W' = W \restriction_{dom(V')}\\
+		&\text{Let } j = \{l \in Y | l \notin M \cup S \cup locs_{W',Y}(e_2) \}\\
+		&\text{NTS } W',Y,S,M \cup j \preceq V',H,R,F \cup g\\
+		&\text{Let } \gamma' : dom(Y) \setminus (M \sqcup j) 
+		\to \mathcal{P}(dom(H) \setminus (F \sqcup g)) \text{ be defined by } 
+		\gamma'(l) = \gamma(l) \setminus g\\
+		&\emph{(1) } W',Y \sim V',H \tag{similar to E:CondT}\\
+		&\text{Let } W(x) = m\\
+		&H(m) = \pairexcst{w_h}{w_t}, \veq{H}{Y}{v_h}{w_h},\veq{H}{Y}{v_t}{w_t} \tag{(1)} \\
+		&\emph{(2) } \gamma'(l) \text{ is a proper partition }. \tag{similar to E:CondT}\\
+		&\quad \text{Let } l' \in dom(\gamma')\\
+		&\quad \text{Now, NTS } |\gamma'(l')| = reach_{Y}(W')(l) + S(l')\\
+		&\quad \text{Consider } |\gamma(l') \cap reach_H(V(x))|\\
+		&\quad = |\gamma(l') \cap \{l\}| + |\gamma(l') \cap reach_H(v_h)| 
+			+ |\gamma(l') \cap reach_H(v_t)|\\ 
+		&\quad = reach_Y(W(x))(l') \tag{condition 3. of $\preceq$}\\
+		&\quad = (\{m \mapsto 1\} \uplus reach_Y(w_h) \uplus reach_Y(w_t))(l')\\
+		&\quad = \{m \mapsto 1\}(l') + reach_Y(w_h)(l') + reach_Y(w_t)(l')\\
+		&\quad\text{Note } |\gamma(l') \cap reach_H(v_h)| = 
+			|\gamma(l') \cap reach_H(V(x;[\ms{N},\ms{L}]))|\\
+		&\quad = reach_Y(W(x;[\ms{N},\ms{L}]))(l')\\
+		&\quad = reach_Y(w_h)(l')\\
+		&\quad\text{Similarly, } |\gamma(l') \cap reach_H(v_h)| = reach_Y(w_h)(l')\\
+		&\quad\text{Thus } |\gamma(l') \cap \{l\}| =  \{m \mapsto 1\}(l') = \mathbbm{1}_{l' = m}\\
+		&\quad \text{Back to the NTS: }\\
+		&\quad \gamma'(l') = \gamma(l') \setminus g \tag{definition}\\ 
+		&\quad |\gamma'(l')| = |\gamma(l')| - |\gamma(l') \cap g|\\
+		&\quad = reach_Y(W)(l') + S(l') - |\gamma(l') \cap g|\\
+		&\textbf{case } \{x_h,x_t\} \subseteq FV(e_2):\\
+		&\quad g = \{l\} \cup reach_H(V\restriction_{dom(V) \setminus (FV(e_2)\cup \{x\})})
+			\tag{definition of $g$ and \ref{itm:na}}\\
+		&\quad |\gamma(l') \cap g| = |(\gamma(l') \cap \{l\}) \cup (\gamma(l') \cap
+		reach_H(V\restriction_{dom(V)\setminus (FV(e_2)\cup \{x\})}))|
+		&\quad = \mathbbm{1}_{l' = m} + reach_H(W\restriction_{dom(W)\setminus (FV(e_2)\cup \{x\})})(l')
+			\tag{condition 3. of $\preceq$}\\
+		&\quad \text{Thus, } |\gamma'(l')| = 
+			reach_Y(W)(l') + S(l') - (\mathbbm{1}_{l' = m}
+				+ reach_Y(W\restriction_{dom(W)\setminus (FV(e_2) \cup \{x\})})(l'))\\
+		&\quad = reach_Y(W\restriction_{FV(e_2) \cup \{x\}})(l') + S(l') - \mathbbm{1}_{l' = m}\\
+		&\quad = reach_Y(W\restriction_{FV(e_2)})(l') + 
+			reach_Y(m)(l') + reach_Y(w_h)(l') + reach_Y(w_t)(l') + S(l') - \mathbbm{1}_{l' = m}\\
+		&\quad = reach_Y(W\restriction_{FV(e_2)})(l') + 
+			reach_Y(w_h)(l') + reach_Y(w_t)(l') + S(l')\\
+		&\quad = reach_Y(W')(l') +  S(l')\\
+		&\textbf{case } x_h \in FV(e_2), x_t \notin FV(e_2):\\
+		&\quad g = \{l\} \cup reach_H(V\restriction_{dom(V) \setminus (FV(e_2)\cup \{x\})}) \cup
+			reach_H(v_t)
+			\tag{definition of $g$ and \ref{itm:na}}\\
+		&\quad |\gamma(l') \cap g| = |\gamma(l') \cap \{l\}| + |\gamma(l') \cap
+		reach_H(V\restriction_{dom(V)\setminus (FV(e_2)\cup \{x\})})| + |\gamma(l') \cap reach_H(v_t)|
+		&\quad = \mathbbm{1}_{l' = m} + reach_H(V\restriction_{dom(V)\setminus (FV(e_2)\cup \{x\})})(l')
+			+ |\gamma(l') \cap reach_H(v_t)| \tag{condition 3. of $\preceq$}\\
+		&\quad = \mathbbm{1}_{l' = m} + reach_H(V\restriction_{dom(V)\setminus (FV(e_2)\cup \{x\})})(l')
+			+ reach_Y(w_t)(l') \tag{condition 3. of $\preceq$}\\
+		&\quad \text{Thus, } |\gamma'(l')| = 
+			reach_Y(W)(l') + S(l') - (\mathbbm{1}_{l' = m}
+				+ reach_Y(W\restriction_{dom(W)\setminus (FV(e_2) \cup \{x\})})(l') + reach_Y(w_t)(l))\\
+		&\quad = reach_Y(W\restriction_{FV(e_2)})(l') + 
+			reach_Y(m)(l') + reach_Y(w_h)(l') + reach_Y(w_t)(l') + S(l') - \mathbbm{1}_{l' = m} 
+				- reach_Y(w_t)(l)) \\
+		&\quad = reach_Y(W\restriction_{FV(e_2)})(l') + 
+			reach_Y(w_h)(l') + S(l')\\
+		&\quad = reach_Y(W')(l') +  S(l')\\
+		&\textbf{case } x_t \in FV(e_2), x_h \notin FV(e_2) \text{ and } 
+			\{x_h,x_t\} \cap FV(e_2) = \emptyset: \text{ symmetric to above }\\
+		&\emph{(3) } \text{Let $l' \in dom(\gamma'), x' \in dom(W')$, 
+			$P$ valid sequence w.r.t $W'(x')$. NTS }\\ 
+		&\quad|reach_{H}(V'(x';P)) \cap \gamma'(l')| = reach_{Y}(W'(x';P))(l')\\ 
+		&\textbf{case } x' \notin \{x_h,x_t\}:\\
+		&\quad |reach_{H}(V'(x';P)) \cap \gamma'(l')| = 
+			|reach_{H}(V'(x';P)) \cap (\gamma(l')\setminus g)| \\
+		&\quad = |reach_{H}(V'(x';P)) \cap \gamma(l')| \tag{$g \cap reach_H(V'(x)) = \emptyset$}\\ 
+		&\quad = reach_Y(W'(x;P))(l') \\
+		&\quad = reach_Y(W(x;P))(l') \\
+		&\textbf{case } x' = x_h:\\
+		&\quad |reach_{H}(V'(x';P)) \cap \gamma'(l')| = |reach_{H}(find_H(v_h,P)) \cap \gamma'(l')|\\
+		&\quad |reach_{H}(find_H(v_h,P)) \cap (\gamma(l')\setminus g)|\\
+		&\quad |reach_{H}(find_H(v_h,P)) \cap \gamma(l')| \tag{$g \cap reach_H(V') = \emptyset$}\\
+		&\quad = |reach_{H}(find_H(l,\ms{N}::\ms{L}::P)) \cap \gamma(l')|\\
+		&\quad = |reach_{H}(V(x,\ms{N}::\ms{L}::P)) \cap \gamma(l')|\\
+		&\quad = reach_{Y}(W(x,\ms{N}::\ms{L}::P))(l') \tag{condition 3. of $\preceq$}\\
+		&\quad = reach_{Y}(find_H(m,\ms{N}::\ms{L}::P))(l') \\
+		&\quad = reach_{Y}(find_H(v_h,P))(l') \\
+		&\quad = reach_{Y}(W'(x_h;P))(l') \\
+		&\emph{(4) } \text{Similar to E:CondT}\\
+		&\emph{(5) } \text{Similar to E:CondT}\\
+		&\text{Apply IH and F:MatCons and we're done}
+  \end{align*}
+  \item[Case 14: E:Share]
+	\begin{align*}
+		&V,H,R,F \; \vdash^{\copySem} \sharecpcst{x}{x_1}{x_2}{e} \Downarrow v,H'',F' \tag{case}\\
+		&W,Y,S,M \preceq V,H,R,F \tag{assumption}\\
+		&V',H',R,F' \sqcup g \; \vdash e \Downarrow v,H'',F' \tag{admissibility}\\
+		&\text{Let } W(x) = w'\\
+		&\veq{Y}{H}{v'}{w'} \tag{condition 1 of. $\preceq$}\\
+		&\text{Let } W' = (W[x_1 \mapsto w', x_2 \mapsto w'])\restriction_{FV(e)}\\
+		&\text{Let } j = \{l \in Y | l \notin M \cup S \cup locs_{W',Y}(e) \}\\
+		&\text{NTS } W',Y,S,M \cup j \preceq V',H,R,F \cup g\\
+		&\text{Let } \gamma' : dom(Y) \setminus (M \sqcup j) 
+		\to \mathcal{P}(dom(H) \setminus (F \sqcup g)) \text{ be defined by } 
+		\gamma'(l) = \gamma(l) \setminus g\\
+		&\emph{(1) } W',Y \sim V',H \tag{Similar to E:CondT}\\
+		&\emph{(2) } \text{Have proper partition } \gamma' : 
+			dom(Y) \setminus M \to dom(H') \setminus F' \tag{By $\ref{itm:copyRel}$}\\
+		&\quad \text{Let } j = \{l \in H \mid l \notin M \cup S \cup locs_{W',Y}(e)\}\\
+		&\quad \text{Let } \gamma''(l) : dom(Y) \setminus (M \cup j) \to dom(H') \setminus (F' \cup g)
+			\text{ by defined by } \gamma''(l) =  \gamma'(l) \setminus g\\
+		&\quad \gamma'' \text{ is a proper partition } \tag{Similar to E:CondT}\\
+		&\quad \text{Let } l \in dom(\gamma'')\\
+		&\quad \text{Now, NTS } |\gamma''(l)| = reach_{Y}(W')(l) + S(l')\\
+		&\quad \gamma''(l) = \gamma'(l) \setminus g \tag{definition}\\ 
+		&\quad |\gamma''(l)| = |\gamma'(l)| - |\gamma'(l) \cap g|\\
+		&\quad = |\gamma(l)| + \mathbbm{1}_{l \in reach_Y(w')} - |\gamma'(l) \cap g|\\
+		&\quad = reach_Y(W)(l) + S(l) + reach_Y(w')(l) - |\gamma'(l) \cap g|\\
+		&\textbf{case } \{x_1,x_2\} \subseteq FV(e):\\
+		&\quad g = collect(R,reach_H(V),H,F) = \emptyset \tag{well-formed configuration}\\
+		&\quad |\gamma''(l)| = reach_Y(W)(l) + S(l) + reach_Y(w')(l) \tag{By \ref{itm:copyRel}}\\
+		&\quad = reach_Y(W')(l) + S(l) \\
+		&\textbf{case } x_1 \in FV(e), x_2 \notin FV(e):\\
+		&\quad g = collect(R,reach_H(V),H,F) \cup reach_H'(v') = reach_{H'}(v') 
+			\tag{well-formed configuration}\\
+		&\quad |\gamma''(l)| = reach_Y(W)(l) + S(l) + reach_Y(w')(l)
+			- |\gamma'(l) \cap reach_{H'}(v')|\\
+		&\quad = reach_Y(W)(l) + S(l) + reach_Y(w')(l) - |\gamma(l) \cap reach_H(v')|
+			\tag{By \ref{itm:copyRel}}\\
+		&\quad = reach_Y(W)(l) + S(l) + reach_Y(w')(l) - reach_Y(w')(l) 
+			\tag{condition 3. of $\preceq$}\\
+		&\quad = reach_Y(W)(l) + S(l)\\
+		&\quad = reach_Y(W')(l) + S(l)\\
+		&\textbf{case } x_2 \in FV(e), x_1 \notin FV(e) 
+			\text{ and } \{x_1,x_2\} \cap FV(e) = \emptyset: \text{ symmetric to above}\\
+		&\emph{(3) - (5)} \text{ Similar to E:MatCons}\\ 
+		&\text{Applying the IH then F:Share, and we're done. }
+	\end{align*}
+  \end{description}
+\end{proof}
+
 
 
 %------------------------------------------------------------------------------
