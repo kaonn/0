@@ -371,7 +371,7 @@ as arrows between zero-order (base)  types.
 %
 Types are formally defined in Figure~\ref{fig:exp}. Like in all
 grammars, we provide the abstract (left) and concrete (right) syntax
-for every type former.\jan{cite pfpl}
+for every type former~\cite{PFPL16}.
 A \emph{signature}  $\Sigma : \ms{Var} \to \ms{FTypes}$ is a map from variables to 
 first-order types. 
 A \emph{program} $P$ is a $\Sigma$ indexed map from $\ms{Var}$ to pairs 
@@ -704,8 +704,16 @@ to facilitate the proof of the linearity of the copying semantics introduced lat
 necessary for the implementation. These issues are discussed in
 \ref{sect:implementation}.
 
-\begin{wrapfigure}{r}{0.5\textwidth}
-	\vspace{-20pt}
+For example, we can implement the \texttt{append} and \texttt{appendTwice} function, 
+which has variable sharing. First, we analyze the heap usage of \texttt{append} under 
+\gcSem{}. We case on the first component of the input. In case it's nil, 
+we just return \texttt{l2}, and there are no allocations or deallocations. In case it's
+cons of \texttt{x} and \texttt{xs}, we need to allocate one heap location for the
+cons cell binding \texttt{x} 
+and the recursive result, for which we can use the just matched-on cell. Again, 
+the net overhead is zero. Thus, the total space overhead of \texttt{append} is zero.
+\begin{wrapfigure}{r}{0.4\textwidth}
+	\vspace{-15pt}
 		\begin{center}
 \begin{verbatim}
 let rec append (l1, l2) =
@@ -720,20 +728,12 @@ let rec appendTwice l =
 	(l1',l2')
 \end{verbatim}
 			\end{center}
-				\vspace{-20pt}
+				\vspace{-15pt}
 			\caption{dfs algorithm}
 		\vspace{-10pt}
 \label{fig:dfs}
 \end{wrapfigure}
-
-For example, we can implement the \texttt{append} and \texttt{appendTwice} function, 
-which has variable sharing. First, we analyze the heap usage of \texttt{append} under 
-\gcSem{}. We case on the first component of the input. In case it's nil, 
-we just return \texttt{l2}, and there are no allocations or deallocations. In case it's
-cons of \texttt{x} and \texttt{xs}, we need to allocate one heap location for the
-cons cell binding \texttt{x} 
-and the recursive result, for which we can use the just matched-on cell. Again, 
-the net overhead is zero. Thus, the total space overhead of \texttt{append} is zero.
+%
 For \texttt{appendTwice}, we first share the list \texttt{l} as \texttt{l1} and 
 \texttt{l2}. In the first \texttt{let}, the locations in \texttt{l2} are added to the
 continuation set, which prevents the 
