@@ -778,7 +778,7 @@ leaves 0 constant potential after evaluating. This translates to a bound which s
 the number of allocations \texttt{append} makes is bounded by 1 times size of the first list.
 More generally, we can give the type 
 $\prodtycst{L^p(\irl{int})}{L^q(\irl{int})} \xrightarrow{r/r} L^s(\irl{int})$ such that
-$p + q \ge s + 1$, which still gives a bound with the same number of allocations made. 
+$p \ge s + 1$ and $q \ge s$, which still gives a bound with the same number of allocations made. 
 
 For \texttt{appTwice(l)}, the cost is $2m$, where $m$ is the number of cons 
 constructors in\texttt{l}. Similarly, the resource annotated type of \texttt{appTwice} is
@@ -792,10 +792,10 @@ and the resulting pair of lists both have 0 potential per element.
 With AARA, the type system keeps track of this collection of constraints on
 resource annotations and passes them to an off-the-shelf LP-solver 
 which finds the minimum solution. This is then translated to concrete resource bounds
-like the ones we derived by hand.
+like the ones we derived by hand. It has been shown that this technique can be extended
+to polynomial potential functions, user-defined data types, and higher-order functions while
+still relying on linear constraint solving~\cite{HoffmannAH10,HoffmannW15}.
 %
-
-\jan{Better intro for AARA, polynomial potential somewhere}
 
 \textbf{Linear Potential Functions}
 Before giving the type rules, we need to formalize linear potential as explained above.
@@ -1051,7 +1051,7 @@ annotations set to 1.
 Now, we can give now the improved space overhead bound to \texttt{append} and \texttt{appTwice}:
 \begin{align*}
 	&\texttt{append} : \prodtycst{L^p(\irl{int})}{L^q(\irl{int})} \xrightarrow{r/r} L^s\irl{int}),
-	\text{ where } p + q \ge s\\
+	\text{ where } p \ge s \text{ and } q \ge s\\
 	&\texttt{appTwice} : L^p(\irl{int}) \xrightarrow{q/q} \prodtycst{L^r(\irl{int})}{L^s(\irl{int})}
 	\text{ where } p + q \ge r + s + 1
 \end{align*}
