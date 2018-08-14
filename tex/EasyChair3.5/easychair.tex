@@ -114,7 +114,7 @@
 \newcommand{\gcSem}{\ensuremath{\mathcal{E}_{\ms{gc}}}}
 \newcommand{\copySem}{\ensuremath{\mathcal{E}_{\ms{copy}}}}
 \newtheorem{lemma}[theorem]{Lemma}
-\newtheorem{attempt}[theorem]{Attempt}
+\newtheorem{attempt}{Attempt}
 \newtheorem{corollary}[theorem]{Corollary}
 \theoremstyle{definition}
 \newtheorem{definition}{Definition}
@@ -1066,7 +1066,7 @@ data constructor, we elide the cost metric altogether. Although we defined the c
 1 heap location (as shown in L:Cons and L:MatLD), it can be any constant as long as the introduction
 and elimination rules agree on that constant. Thus we can extend the type system to accurately track
 closure sizes and constructor which vary in size depending on the argument (more in 
-\ref{sect:future-work}).
+Section~\ref{sect:conclusion}).
 
 {\bf Type Inference} One of the benefits of AARA is efficient type
 inference using off-the-shelve LP solvers~\cite{Jost03}, even for
@@ -1085,45 +1085,48 @@ can be found in previous work~\cite{Jost03,HoffmannW15}.
 
 \section{Soundness of $\fogc$}
 
-We seek to prove the following theorem: 
+We seek to prove the following theorem.
 
 \begin{theorem}[Soundness]
-\label{itm:soundness} let $H \vDash V : \Gamma$, $\Sigma; \Gamma \sststile{q'}{q} e : B$,
-$V,H \; \vdash e \Downarrow v, H'$, and $H' \vDash v \mapsto a : A$.
-Then $\forall C \in \mathbb{Q}^{+}$ and $\forall F,R \subseteq \ms{Loc}$,
-if $|F| \ge \Phi_{V,H}(\Gamma) + q + C$,
-then there exists a value $w$, and a freelist $F'$ s.t.
-\begin{enumerate}
-	\item $V,H,R,F \vdash^{\gcSem} e \Downarrow w, Y', F'$
-	\item $\veq{H'}{Y'}{v}{w}$
-\end{enumerate}
+\label{itm:soundness} Let $H \vDash V {:} \Gamma$, $\;\; \Sigma; \Gamma \sststile{q'}{q} e : B$,
+and $V,H \vdash e \Downarrow v, H'$.
+Then for all $F,R \subseteq \ms{Loc}$:
+If $|F| \ge \Phi_{V,H}(\Gamma) + q$,
+then there exists a value $w$, and a freelist $F'$ such that
+$$
+\begin{array}{ccc}
+	V,H,R,F \vdash^{\gcSem} e \Downarrow w, Y', F'  & \text{ and } & \veq{H'}{Y'}{v}{w} \; .
+\end{array}
+$$
 \end{theorem}
 
-Where $V,H \; \vdash e \Downarrow v, H'$ is a judgment from the operational semantics
-derived from \gcSem and $\veq{H'}{Y'}{v}{w}$ is value equivalence. The theorem states that,
-given a terminating expression,
-and given a freelist that is sufficiently large (as predicated by the type derivation), 
+Here, $V,H \vdash e \Downarrow v, H'$ is a standard big-step evaluation judgment
+derived from \gcSem{} and $\veq{H'}{Y'}{v}{w}$ is value equivalence. The theorem states that,
+given a terminating expression
+and a freelist that is sufficiently large (as predicated by the type derivation), 
 a run with \gcSem will normalize to an equivalent value.
 
-To facilitate the proof, we define an intermediate semantics \copySem 
-which is semantically linear. The plan has two stages: show \copySem over 
-approximates \gcSem, meaning that any computation that succeeds with \gcSem will succeed with 
-an equally-sized or smaller freelist with \gcSem. Then we 
-show $\fogc$ is sound w.r.t. \copySem, and thus by the previous step sound w.r.t \gcSem.
+To facilitate the proof, we define an intermediate semantics
+\copySem{} which is semantically linear. The proof has two stages:
+First, we show \copySem{} over-approximates \gcSem, meaning that any
+computation that succeeds with \gcSem{} will succeed with an
+equally-sized or smaller freelist with \gcSem{}. Then we show $\fogc$
+is sound with respect to \copySem{}, and thus by the previous step sound with respect to
+\gcSem{}.
 
 \textbf{Linear Garbage Collection Cost Semantics}
 \label{sect:copy}
-In order to establish the soundness of the our intended semantics \gcSem, we need an 
-intermediary semantics which is \emph{semantically linear}: \copySem.  
-As mentioned in \ref{sect:fop}, this means that locations are linear, i.e. no location can be 
-used twice in a program. Thus, variable sharing is achieved via \emph{copying}: 
+To establish the soundness of the type system, we need an 
+intermediary semantics \copySem{}, which is \emph{semantically linear}.  
+As mentioned in Section~\ref{sect:fop}, this means that locations are linear, that is, no location can be 
+used twice in a program. Variable sharing is achieved via \emph{copying}: 
 the shared value is created by allocating a fresh set of locations from the freelist and copying the 
 locations of the original value one by one. This is also sometimes referred to as deep copying.
 Let $copy(H,L,v,H',v')$ be a 5-place relation on 
 $\ms{Heap} \times \mathcal{P}(\ms{Loc}) \times \ms{Val} \times \ms{Heap} \times \ms{Val}$. 
 Similar to reachability, we write this as 
 $H',v = copy(H,L,v)$ to signify the intended mode for this predicate: $(+,+,+,-,-)$.
-\begin{mathpar}
+{ \small \begin{mathpar}
 	\inferr{
 		H,v = copy(H,L,v)	
 	}{
@@ -1146,14 +1149,13 @@ $H',v = copy(H,L,v)$ to signify the intended mode for this predicate: $(+,+,+,-,
 	H_1,v_1' = copy(H,L_1,v_1)\\
 	H_2,v_2' = copy(H_1,L_2,v_2)\\
 }
-\end{mathpar}
+\end{mathpar}}
 
 Primitives require no cells to copy; a location value is copied recursively; 
 a pair of values is copied sequentially, and the total number of cells required 
 is the size of the reachable set of the value.  
-Now, consider \gcSem with the share rule F:Share replaced with the following: 
-
-\[
+Now, consider \gcSem{} with the share rule F:Share replaced with the following rule.
+{\small \[
 \inferrule{
 	V(x) = v\\
   L \subseteq F\\
@@ -1166,9 +1168,9 @@ Now, consider \gcSem with the share rule F:Share replaced with the following:
 }{
   V,H,R,F \; \vdash \sharecpcst{x}{x_1}{x_2}{e} \Downarrow v,H'',F'
 }(\text{E:Share})
-\]
+\]}
 
-To share a variable, we first copy the shared value; the number of cells required is equal to the
+To share a variable, we first copy the shared value. The number of cells required is equal to the
 size of the reachable set from the value. This copying sharing semantics is what justifies the 
 analysis to use restitute the potential when matching on a cons node, 
 since even if the node was shared, we had to pay for the cost by copying the node when sharing the 
@@ -1177,7 +1179,7 @@ Lastly, any locations not reachable from the current subexpression $e$ is collec
 for the case when a variable is shared but not used later.  
 
 Intuitively, we expect that any terminating compuation
-with \copySem has a corresponding run with \gcSem that can be instantiated with 
+with \copySem{} has a corresponding run with \gcSem{} that can be instantiated with 
 an equally-sized or smaller freelist. Although this seems quite straightforward to prove, a complete
 characterization of the relationship of between the space allocations of two runs with each 
 semantics is necessary. To motivate this, consider the following proof attempt: 
@@ -1188,29 +1190,29 @@ semantics is necessary. To motivate this, consider the following proof attempt:
 	$\mathcal{C}_2 \vdash^{\mathsf{copy}} e \Downarrow v,H',F'$, and $H' \vDash v \mapsto a : A$, 
 	for all configurations $\mathcal{C}_1 = (W,Y,R,M)$ such that $W,Y \sim V,H$ and $|M| = |F|$,
 there is exists a triple
-$(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ s.t.
-	\begin{enumerate}
-			\item $\mathcal{C}_1 \vdash^{\mathsf{free}} e \Downarrow w,Y',M'$
-			\item $\veq{H'}{Y'}{v}{w}$
-			\item $|M'| \ge |F'|$
-	\end{enumerate}
+$(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ such that
+	\begin{center}
+			$\mathcal{C}_1 \vdash^{\mathsf{free}} e \Downarrow w,Y',M'$
+		\hspace{3em} and \hspace{3em}	 $\veq{H'}{Y'}{v}{w}$
+		\hspace{3em} and \hspace{3em}	 $|M'| \ge |F'|$ .
+	\end{center}
 \end{attempt}
 
 We proceed with induction on the derivation of the judgment in \copySem. 
 Almost every case goes through, save for E:Let. 
 First, we get $W_1,Y \sim V_1,H$ and We have the following from induction on the first premise:
-
-\begin{enumerate}
-	\item $W_1,Y,R',M \vdash^{\mathsf{free}} e \Downarrow w_1,Y_1,M_1$
-	\item $\veq{H_1}{Y_1}{v_1}{w_1}$
-	\item $|M_1| \ge |F_1|$
-\end{enumerate}
-
+%
+\begin{center}
+	 $W_1,Y,R',M \vdash^{\mathsf{free}} e \Downarrow w_1,Y_1,M_1$
+   \hspace{3em} and \hspace{3em}	 $\veq{H_1}{Y_1}{v_1}{w_1}$
+   \hspace{3em} and \hspace{3em}	 $|M_1| \ge |F_1|$
+\end{center}
+%
 To instantiate the induction hypothesis on the second premise, we need to show that, among 
 other things, $|M_1 \cup j| \ge |F_1 \cup g|$, where $j$ is the set of collected locations in 
-the \gcSem judgment. We cannot show this precisely because $g$ might contain more cells 
-then $j$ due to the linearity of \copySem, thus preventing a piecewise comparison. 
-But of course $|j|$ is always less than $|g|$, since \gcSem doesn't copy to share 
+the \gcSem{} judgment. We cannot show this precisely because $g$ might contain more cells 
+then $j$ due to the linearity of \copySem{}, thus preventing a piecewise comparison. 
+But of course $|j|$ is always less than $|g|$, since \gcSem{} doesn't copy to share 
 values! This shows that there is a mismatch between the induction hypothesis and the relationship
 between the sizes of the respective freelists and the garbage sets. We present the following 
 criteria which characterizes the required equivalence between two configuration,
@@ -1223,7 +1225,7 @@ $\mathcal{C}_1 = (V_1,H_1,R_1,F_1)$ iff
 \item $V_1,H_1 \sim V_2,H_2$
 \item There is a proper partition $\gamma : dom(H_1) \setminus F_1 \to \mathcal{P}(dom(H_2) \setminus F_2)$ 
 such that for all $l \in dom(\gamma)$, $|\gamma(l)| = reach_{H_1}(V_1)(l) + R_1(l)$
-\item for all $l \in dom(\gamma)$, $x \in dom(V_1)$, valid sequence of directions $P$ w.r.t $V_1(x)$,
+\item For all $l \in dom(\gamma)$, $x \in dom(V_1)$, valid sequence of directions $P$ w.r.t $V_1(x)$,
 	$|reach_{H_2}(V_2(x;P)) \cap \gamma(l)| = reach_{H_1}(V_1(x;P))(l)$.
 \item $R_1 \subseteq dom(H_1) \setminus F_1$ and 
 	for all $l \in R_1$, $|\gamma(l) \cap R_2| = R_1(l)$
@@ -1237,15 +1239,12 @@ The intention is that $\mathcal{C}_2$ is a configuration for initiating an evalu
 The first condition is the straightforward context equivalence.
 The second condition requires the existence of 
 a mapping $\gamma$ that tells us given a location in $H_1$, which locations in $H_2$ 
-are shared instances. For example, consider the expression: 
+are shared instances.
 
-\begin{verbatim}
-share x as x1, x2 in e
-\end{verbatim}
-
-Where the stack is $[\texttt{x} \mapsto 1]$, and the heap equals 
+For example, consider the expression $\sharecst{x}{x_1}{x_2}{e}$ and
+assume the stack is $[\texttt{x} \mapsto 1]$, and the heap equals 
 $[1 \mapsto \pairexcst{0}{\irl{Null}}]$, i.e. \texttt{x} is the list \texttt{[0]}.
-Running with \gcSem, the stack becomes 
+In an evaluation with \gcSem{}, the stack becomes 
 $[\texttt{x1} \mapsto 1,\texttt{x2} \mapsto 1]$, and the heap does not change. With 
 \copySem, we allocate a new location in the heap:
 $[1 \mapsto \pairexcst{0}{\irl{Null}},2 \mapsto \pairexcst{0}{\irl{Null}}]$, and the 
@@ -1254,7 +1253,7 @@ Now $\gamma$ would map 1 to $\{1,2\}$, since both are shared instances of the fo
 
 Thus, each $\gamma(l)$ is mapped to a disjoint subset in $H_2$, and each location in $H_2$ 
 would have a representative in $H_1$. Furthermore, we noticed it is crucial to include the 
-fact that the size of $\gamma(l)$ must be the sum number of references from the stack and 
+fact that the size of $\gamma(l)$ must be the sum of the number of references from the stack and 
 the continuation set. 
 
 While $\gamma$ gives us a relation between the two respective heaps, we still need to know 
@@ -1267,14 +1266,16 @@ subvalues of a value using directions:
 \begin{definition}
 	Let \ms{dir} be the set \{\ms{L},\ms{R},\ms{N}\}, denoting left, right, and next 
 	respectively. We can index values via directions:
-	\begin{align*}
-		get_H(Just(\pairexcst{v_1}{v_2},\ms{L})) &= Just(v_1)\\
-		get_H(Just(\pairexcst{v_1}{v_2},\ms{R})) &= Just(v_2)\\
-		get_H(Just(\pairexcst{v_1}{v_2}),_) &= None\\
-		get_H(Just(l),\ms{N}) &= Just(H(l)) \\
-		get_H(Just(l), \_) &= None\\
-		get_H(r,\_) &= r
-	\end{align*}
+        $$
+	\begin{array}{lclclcl}
+		get_H(Just(\pairexcst{v_1}{v_2},\ms{L})) &=& Just(v_1) & \hspace{4em} &
+		get_H(Just(\pairexcst{v_1}{v_2},\ms{R})) &=& Just(v_2)\\
+		get_H(Just(\pairexcst{v_1}{v_2}),_) &=& None &&
+		get_H(Just(l),\ms{N}) &=& Just(H(l)) \\
+		get_H(Just(l), \_) &=& None &&
+		get_H(r,\_) &=& r
+	\end{array}
+        $$
 	Let $P$ be a sequence of directions. Extend $get$ to sequence of directions:
 	\begin{align*}
 		find_H(v,D::P) &= find_H(get_H(v,D),P)\\
@@ -1299,7 +1300,8 @@ $\sum_{l \in \gamma} |\gamma(l)| - 1$.
 \begin{definition} A configuration $(V,H,R,F)$ is well-formed if 
 	$dom(H) \subseteq reach_H(V) \cup R \cup F$ and $reach_H(V) \subseteq dom(H)\setminus F$.
 \end{definition}
-Now the key lemma:
+
+Now we can formulate the key lemma:
 
 \begin{lemma}
 	Let $(\mathcal{C}_2,e)$ be a linear computation. Given that 
@@ -1325,6 +1327,7 @@ of ways $l$ could be reached from the root set in the \gcSem evaluation. This in
 $reach_{Y_1}(w_1)(l)$ and $S(l)$, but also any paths to $l$ had been collected during the run 
 (this accounts for unused variables that referenced $l$).
 
+\yue{move the following to the appendix}
 For a configuration $\mathcal{C} = (V,H,R,F)$, denote the current garbage w.r.t a set of root variables 
 $X \subseteq dom(V)$ 
 as $clean(\mathcal{C},X) = \{l \in H \mid l \notin F \cup R \cup reach_H(X)\}$. Some auxiliary lemmas: 
@@ -1345,30 +1348,24 @@ Thus, we have shown that we can execute a computation using the
 
 \textbf{Soundness of \copySem}
 \label{sect:soundcopy}
-To formally state the soundness theorem,
-we need to introduce an auxiliary operational semantics (call this \ms{oper}) 
+To state the soundness theorem,
+we introduce an standard big step semantics
 that does not use freelists or accounts for garbage collection. We use
 it to characterize expressions that normalize to values when initialized with a sufficient 
-freelist.  This technique was also employed in \cite{Hofmann:2003:SPH:604131.604148} 
-to establish the soundness of their type system. The operational semantics consists of 
+freelist.  This technique has also be  employed in earlier work on AARA~\cite{Hofmann:2003:SPH:604131.604148}.
+This operational semantics defines 
 judgments of the following form, essentially a simplified version of the full cost semantics:
-
-\[
-\fbox{$V,H \vdash e \Downarrow v, H'$}
-\]
+\fbox{$V,H \vdash e \Downarrow v, H'$}.
 
 This can be read as: under stack $V$, heap $H$ the expression $e$ evaluates to $v$, 
 and engenders a new heap $H'$. The rules are entirely standard and are omitted here.
 In $\ms{oper}$, the ``freelist'' is the whole ambient set of locations $\ms{Loc}$, 
 thus we never run out of locations during evaluation. This introduces a problem when comparing 
-evaluation results between a run with \copySem and $\ms{oper}$, as the return values 
-might not be syntatically equal. Consider the following expression:
-
-\begin{verbatim}
-let _ = [4] in [5]
-\end{verbatim}
-
-Assuming locations are natural numbers, and we run \copySem with the freelist $\{1\}$. 
+evaluation results between a run with \copySem{} and $\ms{oper}$, as the return values 
+might not be syntatically equal. Consider the following expression
+\texttt{let \_ = [4] in [5]}
+%
+Assuming locations are natural numbers, and we run \copySem{} with the freelist $\{1\}$. 
 First, 1 is allocated and mapped to $\texttt{[4]}$. 
 Then, since the first subexpression $\texttt{[4]}$ is not used afterwards, we collect 1, and reuse it
 and map again to $\texttt{[5]}$. Thus the return value is 1.  In a run with $\ms{oper}$, 
@@ -1380,7 +1377,7 @@ does the job. In both runs, the return value maps to the semantic value $\texttt
 Thus semantical equality serves as the basis for context equivalence. 
 Here we define it for contexts, which consisting of only the stack and heap. 
 Later, we extend it the the full configuration. First, define value equivalence as
-a shorthand for semantic equality: 
+a shorthand for semantic equality: \yue{the previous paragraph can be shortened if we need space}
 
 \begin{definition}[Value Equivalence]
 Two values $v_1,v_2$ are equivalent (with the presupposition that they are well-formed w.r.t heaps $H_1,H_2$),
@@ -1397,9 +1394,8 @@ $\ctxeq{V_2,H_2}{V_2,H_2}$
 
 Stated simply, two contexts are equivalent when they have the same domain and equal variables bind 
 equal semantic values. 
-
-
-We are ready to state the soundness theorem now:
+%
+With this, we are ready to state the soundness theorem.
 
 \begin{theorem}[Soundness]
 \label{itm:soundness} let $H \vDash V : \Gamma$, $\Sigma; \Gamma \sststile{q'}{q} e : B$,
@@ -1430,21 +1426,32 @@ will be sufficiently large (as predicated by the type derivation).
 %------------------------------------------------------------------------------
 
 
-\section{Implementation}
+\section{Implementation and Evaluation}
 \label{sect:implementation}
 
-\jan{Implementation of analysis}
+{\bf Implementation}
+We have implemented the novel cost semantics and the type system in
+Resource Aware ML (RaML). The implementation covers full RaML,
+including user-defined data types, higher-order functions, and
+polynomial potential functions. However, there is no destructive match
+for function closures and analyzing the heap-space usage of closures
+still amounts to counting allocations only. The main changes that
+where necessary have been in the rules for sharing and pattern
+matching as described earlier. We also needed to change some
+elaboration passes that were not cost preserving anymore with
+the GC cost model.
+
 The garbage collection cost semantics is implemented as an alternative evaluation module inside
-Resource Aware ML (RaML). As mentioned before, RaML leverages the syntax of OCaml programs. 
+RaML. As mentioned before, RaML leverages the syntax of OCaml programs.
 First, we take the OCaml type checked abstract syntax tree and perform a series of transformations. 
 The evaluation modules operates on the resulting RaML syntax tree. 
 In the gc evaluation module, \texttt{evaluate} has the following signature:
-
+{\small%
 \begin{verbatim}
  evaluate : ('a, unit) Expressions.expression -> int -> (('a value * 'a heap * Int.Set.t) option) 
 \end{verbatim}
-
-Where the second argument \texttt{int} specifies the size of the initial freelist.
+}
+Here, the second argument \texttt{int} specifies the size of the initial freelist.
 The result is a triple of the return value, heap, and freelist, or \texttt{None} 
 in case the freelist was not sufficient for the evaluation.
 Whereas the normal evaluation boxes every value (everything evaluates to a location), 
@@ -1467,12 +1474,13 @@ during program evaluation. However, we allocate all closures from a separate fre
 a separate heap.  This ensures that data constructors are allocated from the correct freelist 
 and no space overhead is created by allocating closures for function declarations.
 
-\textbf{Evaluation}
+
 \label{sect:evaluation}
 \begin{wraptable}{r}{0.5\textwidth}
+\small
 	\vspace{-20pt}
 		\begin{center}
-	\begin{tabular}{l l}
+	\begin{tabular}{ll}
 		\hline
 		\textit{\textbf{function}} & type \\ \hline
 		quicksort & {[}'a -\textgreater 'a -\textgreater bool; 'a list{]} -\textgreater 'a list \\
@@ -1483,20 +1491,19 @@ and no space overhead is created by allocating closures for function declaration
 		dfs & {[}btree; int{]} -\textgreater btree option \\
 		bfs & {[}btree; int{]} -\textgreater btree option \\
 		transpose & 'a list list -\textgreater 'a list list \\
-		map\_it & {[}'a -\textgreater 'b; 'a list list{]} -\textgreater 'b list list * 'b list list \\
+		map\_it & {[}'a -\textgreater 'b; 'a list list{]} -\textgreater 'b list list * 'b list list\\
 		pairs & 'a list -\textgreater ('a * 'a) list \\ \hline
 	\end{tabular}
 			\end{center}
-				\vspace{-20pt}
+				\vspace{-10pt}
 			\caption{Signature of Test Functions}
 		\vspace{-10pt}
 \label{table:sig}
 \end{wraptable}
 
-\jan{discuss different cost metric used in eval}
-
-We evaluated our new analysis on a number of functions (see \ref{table:sig}). 
-The first table shows the type signature for each function. The second table presents the test 
+\textbf{Evaluation}
+We evaluated our new analysis on a number of functions. Table~\ref{table:sig} contains a representative compilation.
+It shows the type signature for each function. Table~\ref{ } presents the test 
 data that
 showcase the difference between the heap metric, the old analysis which only counts 
 heap allocations, and the gc metric, which includes deallocations and copying cost for sharing.
@@ -1551,13 +1558,13 @@ we discuss possible solutions and different approaches in the next sections.
 % Please add the following required packages to your document preamble:
 % \usepackage{booktabs}
 \begin{table}[]
-	\begin{adjustbox}{width=1.2\textwidth,center=\textwidth}
+	\begin{adjustbox}{width=1.1\textwidth,center=\textwidth}
   \begin{tabular}{@{}llllllllll@{}}
 		\toprule
 		 & \multicolumn{4}{l}{heap metric} & \multicolumn{4}{l}{gc metric} &  \\ \midrule
 		 \textit{\textbf{function}} & computed bound & asymptotic & constraints & time & computed bound & asymptotic & constraints & time & optimal \\
 		 quicksort & 1.00 + 3.50*M + 1.50*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 8515 & 0.52 & 0 & O(1) & 8519 & 0.48 & 0 \\
-		 mergesort & 1.00 - 4.67*M + 6.33*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 9572 & 0.64 & -0.50*M + 0.50*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 9578 & 0.58 & \textbackslash{}floor(\textbackslash{}log(M)) \\
+		 mergesort & 1.00 - 4.67*M + 6.33*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 9572 & 0.64 & -0.50*M + 0.50*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 9578 & 0.58 & $\lfloor \log(M) \rfloor$ \\
 		 ocamlsort & 7.50 + 5.50*M + 1.00*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 8565 & 0.51 & 1.00 + 1.00*M & O(M) & 8573 & 0.50 & M+1 \\
 		 selection sort & 2.00 + 3.00*M + 1.00*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 639 & 0.06 & 0 & O(1) & 642 & 0.05 & 0 \\
 		 eratosthenes & 1.00 + 1.50*M + 0.50*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 515 & 0.06 & 0 & O(1) & 517 & 0.04 & 0 \\
@@ -1565,13 +1572,14 @@ we discuss possible solutions and different approaches in the next sections.
 		 bfs & 5.00 + 10.00*M & O(M) & 24737 & 4.15 & 4 & O(1) & 24742 & 1.62 & 4 \\
 		 transpose & 1.00 + 3.50*L*M + 0.50*L*M\textasciicircum{}2 & O(L*M\textasciicircum{}2) & 10680 & 0.50 & 1.00 + 2.00*L*M & O(L*M) & 10684 & 0.50 & max(0,2*L-1) \\
 		 map\_it & 2.00 + 2.00*L*M + 4.00*M & O(L*M) & 30699 & 1.58 & 1.00*M + 1.00*N & O(M+N) & 30703 & 1.57 & M + 1 \\
-		 pairs & 1.00 + 1.00*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 10214 & 0.60 & -0.50*M + 1.00*M*N + 0.50*M\textasciicircum{}2 & O(M\textasciicircum{}2+M*N) & 10217 & 0.64 & 0.5*M\textasciicircum{}2-1.5*M+2 \\
-		  &  &  &  &  &  &  &  &  &  \\ \bottomrule
+		 pairs & 1.00 + 1.00*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 10214 & 0.60 & 0.50*M + 0.50*M\textasciicircum{}2 & O(M\textasciicircum{}2+M*N) & 10217 & 0.64 & 0.5*M\textasciicircum{}2-1.5*M+2 \\ \midrule
 	\end{tabular}
 	\end{adjustbox}
+\caption{Automatic Bound Analysis with RaML \yue{remove asymptotic columns; the bounds could be typeset nicer in math mode and without *'s and 0's}}
+\label{table:bounds}
 \end{table}
 
-\section{Conclusion}
+\section{Conclusion and Future Work}
 \label{sect:conclusion}
 
 \jan{discuss function closures}
