@@ -1251,14 +1251,16 @@ subvalues of a value using directions:
 \begin{definition}
 	Let \ms{dir} be the set \{\ms{L},\ms{R},\ms{N}\}, denoting left, right, and next 
 	respectively. We can index values via directions:
-	\begin{align*}
-		get_H(Just(\pairexcst{v_1}{v_2},\ms{L})) &= Just(v_1)\\
-		get_H(Just(\pairexcst{v_1}{v_2},\ms{R})) &= Just(v_2)\\
-		get_H(Just(\pairexcst{v_1}{v_2}),_) &= None\\
-		get_H(Just(l),\ms{N}) &= Just(H(l)) \\
-		get_H(Just(l), \_) &= None\\
-		get_H(r,\_) &= r
-	\end{align*}
+        $$
+	\begin{array}{lclclcl}
+		get_H(Just(\pairexcst{v_1}{v_2},\ms{L})) &=& Just(v_1) & \hspace{4em} &
+		get_H(Just(\pairexcst{v_1}{v_2},\ms{R})) &=& Just(v_2)\\
+		get_H(Just(\pairexcst{v_1}{v_2}),_) &=& None &&
+		get_H(Just(l),\ms{N}) &=& Just(H(l)) \\
+		get_H(Just(l), \_) &=& None &&
+		get_H(r,\_) &=& r
+	\end{array}
+        $$
 	Let $P$ be a sequence of directions. Extend $get$ to sequence of directions:
 	\begin{align*}
 		find_H(v,D::P) &= find_H(get_H(v,D),P)\\
@@ -1409,21 +1411,32 @@ will be sufficiently large (as predicated by the type derivation).
 %------------------------------------------------------------------------------
 
 
-\section{Implementation}
+\section{Implementation and Evaluation}
 \label{sect:implementation}
 
-\jan{Implementation of analysis}
+{\bf Implementation}
+We have implemented the novel cost semantics and the type system in
+Resource Aware ML (RaML). The implementation covers full RaML,
+including user-defined data types, higher-order functions, and
+polynomial potential functions. However, there is no destructive match
+for function closures and analyzing the heap-space usage of closures
+still amounts to counting allocations only. The main changes that
+where necessary have been in the rules for sharing and pattern
+matching as described earlier. We also needed to change some
+elaboration passes that were not cost preserving anymore with
+the GC cost model.
+
 The garbage collection cost semantics is implemented as an alternative evaluation module inside
-Resource Aware ML (RaML). As mentioned before, RaML leverages the syntax of OCaml programs. 
+RaML. As mentioned before, RaML leverages the syntax of OCaml programs.
 First, we take the OCaml type checked abstract syntax tree and perform a series of transformations. 
 The evaluation modules operates on the resulting RaML syntax tree. 
 In the gc evaluation module, \texttt{evaluate} has the following signature:
-
+{\small%
 \begin{verbatim}
  evaluate : ('a, unit) Expressions.expression -> int -> (('a value * 'a heap * Int.Set.t) option) 
 \end{verbatim}
-
-Where the second argument \texttt{int} specifies the size of the initial freelist.
+}
+Here, the second argument \texttt{int} specifies the size of the initial freelist.
 The result is a triple of the return value, heap, and freelist, or \texttt{None} 
 in case the freelist was not sufficient for the evaluation.
 Whereas the normal evaluation boxes every value (everything evaluates to a location), 
@@ -1446,12 +1459,13 @@ during program evaluation. However, we allocate all closures from a separate fre
 a separate heap.  This ensures that data constructors are allocated from the correct freelist 
 and no space overhead is created by allocating closures for function declarations.
 
-\textbf{Evaluation}
+
 \label{sect:evaluation}
 \begin{wraptable}{r}{0.5\textwidth}
+\small
 	\vspace{-20pt}
 		\begin{center}
-	\begin{tabular}{l l}
+	\begin{tabular}{ll}
 		\hline
 		\textit{\textbf{function}} & type \\ \hline
 		quicksort & {[}'a -\textgreater 'a -\textgreater bool; 'a list{]} -\textgreater 'a list \\
@@ -1462,20 +1476,19 @@ and no space overhead is created by allocating closures for function declaration
 		dfs & {[}btree; int{]} -\textgreater btree option \\
 		bfs & {[}btree; int{]} -\textgreater btree option \\
 		transpose & 'a list list -\textgreater 'a list list \\
-		map\_it & {[}'a -\textgreater 'b; 'a list list{]} -\textgreater 'b list list * 'b list list \\
+		map\_it & {[}'a -\textgreater 'b; 'a list list{]} -\textgreater 'b list list * 'b list list\\
 		pairs & 'a list -\textgreater ('a * 'a) list \\ \hline
 	\end{tabular}
 			\end{center}
-				\vspace{-20pt}
+				\vspace{-10pt}
 			\caption{Signature of Test Functions}
 		\vspace{-10pt}
 \label{table:sig}
 \end{wraptable}
 
-\jan{discuss different cost metric used in eval}
-
-We evaluated our new analysis on a number of functions (see \ref{table:sig}). 
-The first table shows the type signature for each function. The second table presents the test 
+\textbf{Evaluation}
+We evaluated our new analysis on a number of functions. Table~\ref{table:sig} contains a representative compilation.
+It shows the type signature for each function. Table~\ref{ } presents the test 
 data that
 showcase the difference between the heap metric, the old analysis which only counts 
 heap allocations, and the gc metric, which includes deallocations and copying cost for sharing.
@@ -1530,13 +1543,13 @@ we discuss possible solutions and different approaches in the next sections.
 % Please add the following required packages to your document preamble:
 % \usepackage{booktabs}
 \begin{table}[]
-	\begin{adjustbox}{width=1.2\textwidth,center=\textwidth}
+	\begin{adjustbox}{width=1.1\textwidth,center=\textwidth}
   \begin{tabular}{@{}llllllllll@{}}
 		\toprule
 		 & \multicolumn{4}{l}{heap metric} & \multicolumn{4}{l}{gc metric} &  \\ \midrule
 		 \textit{\textbf{function}} & computed bound & asymptotic & constraints & time & computed bound & asymptotic & constraints & time & optimal \\
 		 quicksort & 1.00 + 3.50*M + 1.50*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 8515 & 0.52 & 0 & O(1) & 8519 & 0.48 & 0 \\
-		 mergesort & 1.00 - 4.67*M + 6.33*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 9572 & 0.64 & -0.50*M + 0.50*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 9578 & 0.58 & \textbackslash{}floor(\textbackslash{}log(M)) \\
+		 mergesort & 1.00 - 4.67*M + 6.33*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 9572 & 0.64 & -0.50*M + 0.50*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 9578 & 0.58 & $\lfloor \log(M) \rfloor$ \\
 		 ocamlsort & 7.50 + 5.50*M + 1.00*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 8565 & 0.51 & 1.00 + 1.00*M & O(M) & 8573 & 0.50 & M+1 \\
 		 selection sort & 2.00 + 3.00*M + 1.00*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 639 & 0.06 & 0 & O(1) & 642 & 0.05 & 0 \\
 		 eratosthenes & 1.00 + 1.50*M + 0.50*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 515 & 0.06 & 0 & O(1) & 517 & 0.04 & 0 \\
@@ -1544,13 +1557,14 @@ we discuss possible solutions and different approaches in the next sections.
 		 bfs & 5.00 + 10.00*M & O(M) & 24737 & 4.15 & 4 & O(1) & 24742 & 1.62 & 4 \\
 		 transpose & 1.00 + 3.50*L*M + 0.50*L*M\textasciicircum{}2 & O(L*M\textasciicircum{}2) & 10680 & 0.50 & 1.00 + 2.00*L*M & O(L*M) & 10684 & 0.50 & max(0,2*L-1) \\
 		 map\_it & 2.00 + 2.00*L*M + 4.00*M & O(L*M) & 30699 & 1.58 & 1.00*M + 1.00*N & O(M+N) & 30703 & 1.57 & M + 1 \\
-		 pairs & 1.00 + 1.00*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 10214 & 0.60 & -0.50*M + 1.00*M*N + 0.50*M\textasciicircum{}2 & O(M\textasciicircum{}2+M*N) & 10217 & 0.64 & 0.5*M\textasciicircum{}2-1.5*M+2 \\
-		  &  &  &  &  &  &  &  &  &  \\ \bottomrule
+		 pairs & 1.00 + 1.00*M\textasciicircum{}2 & O(M\textasciicircum{}2) & 10214 & 0.60 & 0.50*M + 0.50*M\textasciicircum{}2 & O(M\textasciicircum{}2+M*N) & 10217 & 0.64 & 0.5*M\textasciicircum{}2-1.5*M+2 \\ \midrule
 	\end{tabular}
 	\end{adjustbox}
+\caption{Automatic Bound Analysis with RaML \yue{remove asymptotic columns; the bounds could be typeset nicer in math mode and without *'s and 0's}}
+\label{table:bounds}
 \end{table}
 
-\section{Conclusion}
+\section{Conclusion and Future Work}
 \label{sect:conclusion}
 
 \jan{discuss function closures}
