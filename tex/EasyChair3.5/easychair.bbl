@@ -112,6 +112,11 @@ Sumit Gulwani, Krishna~K. Mehra, and Trishul~M. Chilimbi.
 \newblock In {\em {36th ACM Symp. on Principles of Prog. Langs. (POPL'09)}},
   2009.
 
+\bibitem{PFPL16}
+Robert Harper.
+\newblock {\em {Practical Foundations for Programming Languages}}.
+\newblock Cambridge University Press, 2016.
+
 \bibitem{Hoffmann11}
 Jan Hoffmann.
 \newblock {\em {Types with Potential: Polynomial Resource Bounds via Automatic
