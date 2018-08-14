@@ -1069,9 +1069,10 @@ Where $\Sigma = [\texttt{dfs} :
 	\prodtycst{\texttt{btree}^0(\irl{nat})}{\irl{nat}} \xrightarrow{2/0} \irl{nat\_ option}]$.\\
 
 {\bf Cost Metrics}
-In previous versions of RAML, the typing judgment is parametrized by a \emph{cost metric} 
-$m : \ms{res\_const \to \mathbb{Q}}$, which assigns a rational constant to 
-the set of control-flow points (\ms{res\_const}). 
+In previous versions of AARA~\cite{Jost10,HoffmannAH10}, the typing judgment and cost semantics
+are parametrized by a \emph{cost metric} 
+$m : \ms{res\_const \to \mathbb{Q}}$, which assigns a constant cost to 
+each step in the semantics.
 Since the cost for all program construct is zero save for the cons
 data constructor, we elide the cost metric altogether. Although we defined the constructor to cost
 1 heap location (as shown in L:Cons and L:MatL), it can be any constant as long as the introduction
@@ -1079,12 +1080,19 @@ and elimination rules agree on that constant. Thus we can extend the type system
 closure sizes and constructor which vary in size depending on the argument (more in 
 \ref{sect:future-work}).
 
-{\bf Type Inference}
-Futhermore, note that given a judgment $\Sigma;\Gamma \sststile{q'}{q} e : A$, there are 
-infinitely many admissible judgments $\Sigma;\Gamma \sststile{q' + k}{q + k} e : A$ 
-for all $k \in \mathbb{N}$. The analysis module will export the constraints generated 
-by the type system into an LP-solver which minimizes all coefficients, so that the 
-smallest admissible $q,q'$ will be used in the resulting symbolic bound.
+{\bf Type Inference} One of the benefits of AARA is efficient type
+inference using off-the-shelve LP solvers~\cite{Jost03}, even for
+non-linear potential functions~\cite{HoffmannAH10,HoffmannW15}. The
+new rules do not complicate inference and previous techniques still
+apply. In a nutshell, inference is performed in three steps: First,
+perform a standard Hindley-Milner type inference for the base
+types. Then, annotate the type derivation with (yet unknown) variables
+for the potential annotations and collect linear constraints that are
+derived from the type rules. Finally, solve the constraints with an LP
+solver and minimize the potential annotations of the inputs. Details
+can be found in previous work~\cite{Jost03,HoffmannW15}.
+
+
 %------------------------------------------------------------------------------
 
 \section{Soundness of $\fogc$}
