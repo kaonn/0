@@ -818,25 +818,30 @@ of \texttt{Node} constructors in the input.
 \textbf{Linear Potential Functions}
 Before giving the type rules, we need to formalize linear potential as explained above.
 Since potential is associated with the \emph{structure} of a value and not the particular heap 
-locations, we need a mapping from
-heap values to semantic values (or structures) of a type. 
+locations, we it is helpful to introduce a mapping from
+heap values to semantic values of a type. 
 First give a denotational semantics for (define the structures of) the first-order types: 
-
+  \begin{minipage}{0.4\linewidth}
 \begin{align*}
 	\denote{\unittyabt} &= \{\val{\irl{Null}}\}\\
 	\denote{\booltyabt} &= \{\val{\irl{T}}, \val{\irl{F}}\}\\
 	\denote{\irl{nat}} &= \mathbb{N}\\
+\end{align*}
+  \end{minipage}%
+\begin{minipage}{0.6\linewidth}
+\begin{align*}
 \pairexcst{a_1}{a_2} &\in \denote{\prodtycst{A_1}{A_2}} 
 	\text{ if } a_1 \in \denote{A_1} \text{ and } a_2 \in \denote{A_2}\\
 \nilexcst &\in \denote{L(A)}\\
 \consexcst{a}{l} &\in \denote{L(A)} \text{ if } a \in \denote{A} \text{ and } l \in \denote{L(A)}\\
 \end{align*}
+  \end{minipage}\\
+The set for each type is the least set such that the above holds. As usual, we write $[a_1,...,a_n]$ for $\consexcst(a_1,...,\consexcst(a_n,\nilexcst))$. \yue{something wrong with these cons's.}
 
-Where semantic set for each type is the least set such that the above holds. Write $[a_1,...,a_n]$ for $\consexcst(a_1,...,\consexcst(a_n,\nilexcst))$.
-We also refer to the elements of a semantic set as structures. \\
-
-Now we give the judgements relating heap values to semantic values, in the form \fbox{$H \vDash v \mapsto a : A$}, which can be read as: under heap $H$, heap value $v$ defines the semantic value $a \in \denote{A}$.  
-
+\begin{figure}[t!]
+  \centering
+  \footnotesize
+  \begin{minipage}{1.04\linewidth}
 \begin{mathpar}
 \inferr{
   H \vDash \val{n} \mapsto n : \irl{nat}
@@ -881,25 +886,27 @@ Now we give the judgements relating heap values to semantic values, in the form 
   H \vDash v_t \mapsto [a_2,\ldots,a_n] : L(A)
 }(\text{V:Cons})
 \end{mathpar}
+  \end{minipage}
+  \caption{Mapping Locations to Semantic Values}
+  \label{fig:semVal}
+\end{figure}
 
+In Figure~\ref{fig:semVal} we give the judgements relating heap values to semantic values, in the form \fbox{$H \vDash v \mapsto a : A$}, which can be read as follows: Under heap $H$, heap value $v$ defines the semantic value $a \in \denote{A}$.  
+%
 Given a stack $V$, we write $H \vDash V : \Gamma$ if $dom(V) = dom(\Gamma)$ and
 for every $x : A \in \Gamma$, $H \vDash V(x) \mapsto a : A$ for some $a \in \llbracket A \rrbracket$.
 
 We introduce linear potential for structures corresponding to the base types. The definition of
-linear potential is standard material, and can be found in \cite{Hoffmann11}, which is also
-a good source for an introduction to AARA. Below is the grammar for resource-annotated types:
-
+linear potential is standard~\cite{Hoffmann11}. Below is the grammar for resource-annotated types:
+%
 \[
-\begin{array}{r l l l}
-\ms{BTypes} & \tau \,\,\,\,\, ::= \\
-	&...\\
-	&\irl{list}^p(\tau)		& L^p(\tau)				\\						
-  \\
-\ms{FTypes} & \rho \,\,\,\,\, ::= \\
-	&\irl{arr}(\tau_1;\tau_2;p;q) 				& \tau_1 \xrightarrow{p/q} \tau_2\\ 	
+\begin{array}{r l l l c r l l l}
+\ms{BTypes} & A \,\,\,\,\, ::= &  \hspace{8em}     &  & \ms{FTypes} & \rho \,\,\,\,\, ::= \\
+	& \ldots &    & & 	 &\irl{arr}(A_1;A_2;p;q) 				& A_1 \xrightarrow{p/q} A_2\\ 	
+	&\irl{list}^p(A)		& L^p(A)		
 \end{array}
 \]
-
+%
 The intended meaning is that a list of $L^p(\tau)$ has $p$ units of potential per 
 cons cell, and a functions of type $\tau_1 \xrightarrow{p/q} \tau_2$ takes constant potential 
 $p$ to run and $q$ is the constant potential left afterwards.
@@ -907,20 +914,20 @@ $p$ to run and $q$ is the constant potential left afterwards.
 With linear potential, each component of a structure is associated with a constant amount of 
 potential.  Given a structure $a$ in a heap $H$, where  $H \vDash v \mapsto a : A$, we define 
 its potential $\Phi_H(a : A)$ by recursion on $A$: 
-
+%
 \begin{align*}
 &\Phi_H(a : A) = 0 &A \in \{\unittycst, \booltyabt, \irl{nat}\}\\
 &\Phi_H(\pairexcst{a_1}{a_2} : \prodtycst{A_1}{A_2}) = \Phi_H(a_1 : A_1) + \Phi_H(a_2 : A_2)\\
 &\Phi_H([a_1,...a_n] : L^p(A)) = p\cdot n + \sum_{1 \le i \le n} \Phi_H(a_i : A)  
 \end{align*}
-
+%
 Now define $A \curlyvee A_1,A_2,n$ as the sharing relation for resource-annotated types:
 \begin{align*}
 	&L^p(A) \curlyvee^n L^q(A_1),L^r(A_2) & \text{if } p = q + r + n \;\text{and}\; 
 			A \curlyvee^n A_1,A_2\\
 	&\prodtycst{A}{B} \curlyvee^n \prodtycst{A_1}{B_1}, \prodtycst{A_2}{B_2}
 		&\text{ if } A \curlyvee^n A_1,A_2 \text{ and } B \curlyvee^n B_1,B_2\\
-	&A \curlyvee^n  A,A& \text{ if } A \in \{\unittycst, \booltycst, \irl{nat}\}\\
+	&A \curlyvee^n  A,A& \text{ if } A \in \{\unittycst, \booltycst, \irl{nat}\}
 \end{align*}
 The sharing relation captures the amount of potential needed to copy a type $A$ where each 
 cons node in any structure in $\llbracket A \rrbracket$ has a copying overhead $n$.
@@ -932,12 +939,16 @@ read as under signature $\Sigma : \ms{Var} \to \ms{FTypes}$,
 context $\Gamma : \ms{Var} \to \ms{BTypes}$, $e$ has type $A$ starting with $q$ units of 
 constant potential and ending with $q'$ units.
 
-The type system is based on the affine type system in \cite{HoffmannW15}. 
-We give a review of the rules below.
+Our type system is based on the one of classic linear AARA~\cite{Jost03}. 
+We give a review of the rules in Figure~\ref{typeRules}.
 Since we are interested in the number of heap locations, 
 there is an implicit side condition in all rules
 which ensures all constants are assumed to be nonnegative.
+\yue{explain the cons, match, and share rules briefly}
 
+\begin{figure}[t!]
+  \centering
+\small
 \begin{mathpar}
 \inferr{
   \Sigma; x : B \sststile{q}{q} x : B
@@ -991,7 +1002,7 @@ which ensures all constants are assumed to be nonnegative.
 }{
   A \;\curlyvee \;A_1, A_2\\
   \Sigma; \Gamma, x_1 : A_1, x_2 : A_2 \sststile{q'}{q} e : B
-}(\text{L:ShareCopy})
+}(\text{L:Share})
 
 \inferr{
   \Sigma; \Gamma_1, \Gamma_2 \sststile{q'}{q} \irl{let}(e_1; x : \tau.e_2) : B
@@ -999,8 +1010,13 @@ which ensures all constants are assumed to be nonnegative.
   \Sigma; \Gamma_1 \sststile{p}{q} e_1 : A \\
   \Sigma; \Gamma_2, x : A \sststile{q'}{p} e_2 : B
 }(\text{L:Let})
-
 \end{mathpar}
+  
+  \caption{Type Rules of Classic AARA~\cite{Jost03}}
+  \label{fig:typeRules}
+\end{figure}
+
+\yue{remove the example}
 Recall that we gave the bound $2m+3$ to dfs in the introduction.
 Formally, this means we can give the following type derivation to dfs:
 \[
@@ -1011,40 +1027,45 @@ Formally, this means we can give the following type derivation to dfs:
 Where $\Sigma = [\texttt{dfs} : 
 	\prodtycst{\texttt{btree}^2(\irl{nat})}{\irl{nat}} \xrightarrow{3/0} \irl{nat\_ option}]$.\\
 
-The new type system replaces the rules L:MatL and L:Share. The observation is that if we ensure 
+{\bf New Rules}
+%
+The new type system for programs with garbage collection replaces the rules L:MatL and L:Share. The observation is that if we ensure 
 that locations are used linearly, we can use destructive pattern matching to model 
 local garbage collection by returning the potential associated with the constructor location
 (notice the extra $+1$ in the second premise):
-
-\[
+%
+{\small \[
 \inferr{
   \Sigma; \Gamma, x : L^p(A) \sststile{q'}{q} \listcaseexcst{x}{e_1}{x_h}{x_t}{e_2} : B
 }{
   \Sigma; \Gamma \sststile{q'}{q} e_1 : B \\
   \Sigma; \Gamma, x_h : A, x_t : L^p(A) \sststile{q'}{q + p + 1} e_2 : B
-}(\text{L:MatL})
-\]
+}(\text{L:MatLD})
+\]}
 
 This is validated by the fact (Lemma \ref{itm:na}) that in the auxiliary linear cost semantics 
-\copySem once a cons-cell is matched on, 
+\copySem{} once a cons-cell is matched on, 
 there can be no live references from the root set to it, and thus 
-we are justified in restituting the potential to type the subexpression $e_2$. The next 
-interesting rule is L:Share:
+we are justified in restituting the potential to type the subexpression $e_2$. \yue{forward ref to copy sem}
 
-\[
+However, the rule L:MatLD is not sound for programs with aliasing of data. We address this issue by 
+replacing the rule L:Share with the rule L:ShareCopy:
+%
+{\small \[
 \inferr{
   \Sigma; \Gamma, x : A \sststile{q'}{q} \sharecpcst{x}{x_1}{x_2}{e} : B
 }{
   A \;\curlyvee^1 \;A_1, A_2\\
   \Sigma; \Gamma, x_1 : A_1, x_2 : A_2 \sststile{q'}{q} e : B
-}(\text{L:Share})
-\]
+}(\text{L:ShareCopy})
+\]}
 
 To share a variabe of type $A$, we need to split the potential between two new annotated types 
 $A_1$ and $A_2$ as usual. In addition, we have to pay an ``overhead'' of 1 for every cons node 
-in any structure in $\llbracket A \rrbracket$. This is used to model the copying overhead 
-in the sharing rule in \copySem.
+in any structure in $\llbracket A \rrbracket$. The idea is that we treat data as if it is
+actually copied. \yue{say something about soundness}
 
+\yue{replace with append}
 Now, we can give the now \emph{constant} space overhead bound to dfs:
 \[
 	\Sigma; \texttt{t} : \texttt{btree}^0(\irl{nat}), \texttt{x} : \irl{nat} 
@@ -1054,6 +1075,7 @@ Now, we can give the now \emph{constant} space overhead bound to dfs:
 Where $\Sigma = [\texttt{dfs} : 
 	\prodtycst{\texttt{btree}^0(\irl{nat})}{\irl{nat}} \xrightarrow{2/0} \irl{nat\_ option}]$.\\
 
+{\bf Cost Metrics}
 In previous versions of RAML, the typing judgment is parametrized by a \emph{cost metric} 
 $m : \ms{res\_const \to \mathbb{Q}}$, which assigns a rational constant to 
 the set of control-flow points (\ms{res\_const}). 
@@ -1064,6 +1086,7 @@ and elimination rules agree on that constant. Thus we can extend the type system
 closure sizes and constructor which vary in size depending on the argument (more in 
 \ref{sect:future-work}).
 
+{\bf Type Inference}
 Futhermore, note that given a judgment $\Sigma;\Gamma \sststile{q'}{q} e : A$, there are 
 infinitely many admissible judgments $\Sigma;\Gamma \sststile{q' + k}{q + k} e : A$ 
 for all $k \in \mathbb{N}$. The analysis module will export the constraints generated 
