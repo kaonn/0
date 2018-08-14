@@ -580,13 +580,22 @@ We define the  \emph{root set} as the union of the locations in the continuation
 and the locations in the current expression $e$. 
 
 The inference rules for the semantics are given in Figure~\ref{fig:costsem}.
-For example, the rule F:Let for let expressions
-states that, to evaluate the expressions $\irl{let}(e_1; x {:} \tau.e_2)$, we evaluate the first 
+For example, the rule F:CondT states that, to evaluate a conditional, 
+look in the stack for the value of the branching boolean.
+In the case it is true, we proceed to evaluate the first branch. This update is only necessary 
+to prove properties about the evaluation, and is not needed in an implementation.
+Furthermore, we collect cells in the heap
+that are not reachable from the root set ($R \cup locs_{V,H}(e_1)$) 
+or already in the current free-list
+$F$, and add them ($g$) to the available cells for evaluating $e_1$. 
+
+Another example is the rule F:Let for let expressions:
+to evaluate the expressions $\irl{let}(e_1; x {:} \tau.e_2)$, we evaluate the first 
 expression with the corresponding restricted stack $V_1$ and a expanded continuation set $R'$. 
 The extra locations come from the free variables of $e_2$ (not including the bound variable $x$),
 which we cannot collect during the evaluation of $e_1$. Next, we extend the restricted stack 
 $V_2$ with the result $v_1$, and evaluate $e_2$ with this stack and the original continuation 
-set $R$. The other rules are similar. \yue{explain one more rule if we have space}
+set $R$. The other rules are similar. 
 
 \begin{figure}[t!]
   \centering
@@ -685,14 +694,13 @@ set $R$. The other rules are similar. \yue{explain one more rule if we have spac
   \label{fig:costsem}
 \end{figure}
 Note that in contrast to the semantics in the previous section, evaluating a variable does not incur
-cost. This ensures that we will be able prove the soundness of the type system. 
+any cost. This ensures that we will be able prove the soundness of the type system. 
 Also, since we don't allow local function definitions, we do not create closures
 during evaluation. % However, our implementation uses closures to implement the global block of 
 % function definitions.
-\yue{the following doesn't seem to belong here. Make the forward
-  reverence more abstract if you really want it.} Also note that we restrict the domain of
+Also note that we restrict the domain of
 the stack to the appropriate variables during evaluation. This is only
-to facilitate the proof of the linearity of \copySem, and not
+to facilitate the proof of the linearity of the copying semantics introduced later, and not
 necessary for the implementation. These issues are discussed in
 \ref{sect:implementation}.
 
@@ -700,24 +708,16 @@ necessary for the implementation. These issues are discussed in
 	\vspace{-20pt}
 		\begin{center}
 \begin{verbatim}
-type btree = Leaf | Node of int*btree*btree
+let rec append (l1, l2) =
+  match l1 with
+    | [] -> l2
+		| x::xs -> x::(append (xs, l2))
 
-let dfs t x =
-
-  let rec dfs_aux queue =
-    match queue with
-      | [] -> None
-      | t::ts -> 
-	match t with
-          | Leaf -> dfs_aux ts
-          | Node(a,t1,t2) -> 
-	    if a = x then 
-	      Some t 
-	    else 
-	      dfs_aux (t1::t2::ts)
-  in
-
-  dfs_aux [t]
+let rec appendTwice l = 
+	share l as l1,l2 in
+	let l1' = append (l1, []) in 
+	let l2' = append (l2, []) in 
+	(l1',l2')
 \end{verbatim}
 			\end{center}
 				\vspace{-20pt}
@@ -726,24 +726,20 @@ let dfs t x =
 \label{fig:dfs}
 \end{wrapfigure}
 
-
-For example, we can implement and analyze the depth-first search (dfs) on trees 
-in Figure~\ref{fig:dfs}.
-The search starts at the root, and checks if the node is the target. If not, 
-the left and right subtrees are queued in that order, and recursively searched.
-%
-To analyze the heap usage under \gcSem{}, assume that a tree \texttt{t} is given 
-as input. To start off the tail-recursive helper, we need to allocate 2 heap locations,
-1 for the cons cell with \texttt{t} and 1 for nil. That is the entire memory overhead: 
-We can show the helper \texttt{dfs\_aux} does not add additional cost. Since the whole program is 
-linear (no variable sharing), constructors can be deallocated in pattern matches.
-If \texttt{queue} is nil, then its location is collected and allocated to \texttt{None}.
-If \texttt{queue} is \texttt{t::ts}, then we have 2 cases. In case \texttt{t} is a leaf, 
-the search continues, with no space used. If \texttt{t} is a node, then the location for the node
-is collected and either used to for \texttt{Some t} or used together with the location for 
-the cons in \texttt{t::ts} to allocate \texttt{t1::t2::ts}, and the search continues without 
-overhead. Since runs through \texttt{dfs\_aux} do not require additional heap locations, 
-we have zero overhead. Thus, the function dfs has a constant space cost of 2.
+For example, we can implement the \texttt{append} and \texttt{appendTwice} function, 
+which has variable sharing. First, we analyze the heap usage of \texttt{append} under 
+\gcSem{}. We case on the first component of the input. In case it's nil, 
+we just return \texttt{l2}, and there are no allocations or deallocations. In case it's
+cons of \texttt{x} and \texttt{xs}, we need to allocate one heap location for the
+cons cell binding \texttt{x} 
+and the recursive result, for which we can use the just matched-on cell. Again, 
+the net overhead is zero. Thus, the total space overhead of \texttt{append} is zero.
+For \texttt{appendTwice}, we first share the list \texttt{l}, which prevents the 
+first call to \texttt{append} from destructing \texttt{l1}. Thus the overhead is 
+the size of the input. The second call has no overhead since \texttt{l2} can be 
+destructed. The return value is a pair which is stack-allocated and doesn't require a heap 
+allocation. Thus, the total space overhead for \texttt{appendTwice} 
+is size of input list \texttt{l}.
 
 % Now, we can run dfs on an example tree 
 % \texttt{t = Node(1,Node(2,Node(4,Leaf,Leaf),Leaf),Node(3,Leaf,Leaf))}:
@@ -781,13 +777,7 @@ we have zero overhead. Thus, the function dfs has a constant space cost of 2.
 % able to derive this optimal bound. 
 
 
-\yue{either replace example or add trees.}
-
-\yue{explain where allocation happens in the semantics. cost metric: 1 cell per constructor; rest on stack }
-
 \yue{explain how this is a cost semantics; what's the relation to blelloch's semantic? size of the minimal initial freelist is blelloch's cost annotation!}
-
-\yue{dfs example: replace this with append and appendTwice; in appendTwice, use explicit sharing}
 
 \section{Automatic Amortized Heap-Space Analysis with GC}
 \label{sect:aara}
