@@ -576,11 +576,23 @@ tracing counting garbage collector: whenever a heap cell becomes unreachable fro
 root set, it becomes collected and added to the freelist as available for reallocation.
 As before, the continuation set $R$ represents the set of locations 
 required to compute the continuation \emph{excluding} the current expression.
-Define the  \emph{root set} as the union of the locations in the continuation set $R$ 
-and the locations in the current expression $e$. For example, F:Let
+We define the  \emph{root set} as the union of the locations in the continuation set $R$ 
+and the locations in the current expression $e$. 
 
-\[
-	\infern{
+The inference rules for the semantics are given in Figure~\ref{fig:costsem}.
+For example, the rule F:Let for let expressions
+states that, to evaluate the expressions $\irl{let}(e_1; x {:} \tau.e_2)$, we evaluate the first 
+expression with the corresponding restricted stack $V_1$ and a expanded continuation set $R'$. 
+The extra locations come from the free variables of $e_2$ (not including the bound variable $x$),
+which we cannot collect during the evaluation of $e_1$. Next, we extend the restricted stack 
+$V_2$ with the result $v_1$, and evaluate $e_2$ with this stack and the original continuation 
+set $R$. The other rules are similar. \yue{explain one more rule if we have space}
+
+\begin{figure}[t!]
+  \centering
+\small
+\begin{mathpar}
+\infern{
 	V_1 = V\restriction_{FV(e_1)}\\
   R' = R \cup locs_{V_2,H}(\irl{lam}(x : \tau.e_2))\\
   V_1,H,R',F \vdash e_1 \Downarrow v_1,H_1,F_1\\
@@ -590,20 +602,6 @@ and the locations in the current expression $e$. For example, F:Let
 }{
   V,H,R,F \; \vdash \irl{let}(e_1; x : \tau.e_2) \Downarrow v_2,H_2,F_2
 }
-\]
-
-This states that, to evaluate a sequence of expressions ($e_1,e_2$), we evaluate the first 
-expression with the corresponding restricted stack $V_1$ and a expanded continuation set $R'$. 
-The extra locations come from the free variables of $e_2$ (not including the bound variable $x$),
-which we cannot collect during the evaluation of $e_1$. Next, we extend the restricted stack 
-$V_2$ with the result $v_1$, and evaluate $e_2$ with this stack and the original continuation 
-set $R$. Below are the abridged rules:
-
-\begin{mathpar}
-\infern
-{ V(x) = v\\
-}
-{V,H,R,F \; \vdash x \Downarrow v,H,F}
 
 \infern{
   V(x) = \irl{T}\\
@@ -660,6 +658,11 @@ set $R$. Below are the abridged rules:
   V,H,R,F \; \vdash \listcaseexcst{x}{e_1}{x_h}{x_t}{e_2} \Downarrow v,H',F'
 }
 
+\infern
+{ V(x) = v\\
+}
+{V,H,R,F \; \vdash x \Downarrow v,H,F}
+
 \infern{
   V(x) =  l\\
   H(l) = \pairexcst{v_h}{v_t} \\
@@ -670,6 +673,7 @@ set $R$. Below are the abridged rules:
   V,H,R,F \; \vdash \listcaseexcst{x}{e_1}{x_h}{x_t}{e_2} \Downarrow v,H',F'
 }
 
+
 \inferr{
   V,H,R,F \; \vdash \sharecst{x}{x_1}{x_2}{e} \Downarrow v,H'',F'
 }{
@@ -677,14 +681,20 @@ set $R$. Below are the abridged rules:
   V'[x_1 \mapsto v',x_2 \mapsto v'],H',R,F \; \vdash e \Downarrow v,H'',F'
 }(\text{F:Share})
 \end{mathpar}
-
-Note that in contrast to the semantics in the previous section, looking up a variable incurs no
+  \caption{Cost Semantics for Perfect Garbage Collection}
+  \label{fig:costsem}
+\end{figure}
+Note that in contrast to the semantics in the previous section, evaluating a variable does not incur
 cost. This ensures that we will be able prove the soundness of the type system. 
-Also, since we don't allow local function definitions, no closures are created 
-during evaluation. However, our implementation uses closures to implement the global block of 
-function definitions. Also note that we restrict the domain of the stack to the appropriate
-variables during evaluation. This is only to facilitate the proof of the linearity of \copySem, 
-and not necessary for the implementation. These issues are discussed in \ref{sect:implementation}.
+Also, since we don't allow local function definitions, we do not create closures
+during evaluation. % However, our implementation uses closures to implement the global block of 
+% function definitions.
+\yue{the following doesn't seem to belong here. Make the forward
+  reverence more abstract if you really want it.} Also note that we restrict the domain of
+the stack to the appropriate variables during evaluation. This is only
+to facilitate the proof of the linearity of \copySem, and not
+necessary for the implementation. These issues are discussed in
+\ref{sect:implementation}.
 
 \begin{wrapfigure}{r}{0.5\textwidth}
 	\vspace{-20pt}
@@ -717,86 +727,98 @@ let dfs t x =
 \end{wrapfigure}
 
 
-For example, we can implement and analyze the following simple dfs algorithm on trees 
-\ref{fig:dfs}.
+For example, we can implement and analyze the depth-first search (dfs) on trees 
+in Figure~\ref{fig:dfs}.
 The search starts at the root, and checks if the node is the target. If not, 
-the left and right subtrees are queued in that order, and recursively searches.
-We now analyze by hand its heap usage under \gcSem. Tree \texttt{t} is given 
-as input; to start off the tail-recursive helper, we need to allocate 2 heap locations,
-1 for the cons cell with \texttt{t}, and 1 for nil. And that's actually the entire overhead; 
-we can show the helper \texttt{dfs\_aux} has no overhead. Note that since the whole program is 
-linear (no variable sharing), we know that constructors can be deallocated in pattern matches. 
+the left and right subtrees are queued in that order, and recursively searched.
+%
+To analyze the heap usage under \gcSem{}, assume that a tree \texttt{t} is given 
+as input. To start off the tail-recursive helper, we need to allocate 2 heap locations,
+1 for the cons cell with \texttt{t} and 1 for nil. That is the entire memory overhead: 
+We can show the helper \texttt{dfs\_aux} does not add additional cost. Since the whole program is 
+linear (no variable sharing), constructors can be deallocated in pattern matches.
 If \texttt{queue} is nil, then its location is collected and allocated to \texttt{None}.
 If \texttt{queue} is \texttt{t::ts}, then we have 2 cases. In case \texttt{t} is a leaf, 
 the search continues, with no space used. If \texttt{t} is a node, then the location for the node
 is collected and either used to for \texttt{Some t} or used together with the location for 
-the cons in \texttt{t::ts} to allocate \texttt{t1::t2::ts}, and the search continues with
-no overhead. Since no runs through \texttt{dfs\_aux} require additional heap locations, 
-it is zero overhead. Thus, this dfs implementation has a constant space cost of 2.
+the cons in \texttt{t::ts} to allocate \texttt{t1::t2::ts}, and the search continues without 
+overhead. Since runs through \texttt{dfs\_aux} do not require additional heap locations, 
+we have zero overhead. Thus, the function dfs has a constant space cost of 2.
 
-Now, we can run dfs on an example tree 
-\texttt{t = Node(1,Node(2,Node(4,Leaf,Leaf),Leaf),Node(3,Leaf,Leaf))}:
-\[
-\emptyset,\emptyset,\emptyset,\{l_1,...,l_1\} 
-	\vdash \texttt{dfs t 3}, l_1, H', 
-	\{l_2, l_4, l_6, l_7, l_9, l_10, l_11,\}
-\], where $H'$ is the heap in \ref{fig:heap}
+% Now, we can run dfs on an example tree 
+% \texttt{t = Node(1,Node(2,Node(4,Leaf,Leaf),Leaf),Node(3,Leaf,Leaf))}:
+% \[
+% \emptyset,\emptyset,\emptyset,\{l_1,...,l_{11}\} 
+% 	\vdash \texttt{dfs t 3}, l_1, H', 
+% 	\{l_2, l_4, l_6, l_7, l_9, l_{10}, l_{11}\}
+% \] for some heap $H'$.
 
-\begin{wrapfigure}{l}{0.5\textwidth}
-	\vspace{-20pt}
-		\begin{center}
-\begin{verbatim}
-	l1 |--> Node@[l8] 
-	l2 |--> <freed>
-	l3 |--> Null 
-	l4 |--> <freed>
-	l5 |--> Null
-	l6 |--> <freed>
-	l7 |--> <freed>
-	l8 |--> <(Cint 3), Leaf@[l3], Leaf@[l5]>, 
-	l9 |--> <freed>
-	l10 |--> <freed>
-	l11 |--> <freed>
-\end{verbatim}
-		\end{center}
-				\vspace{-20pt}
-			\caption{$H'$}
-		\vspace{-10pt}
-\label{fig:heap}
-\end{wrapfigure}
+% \begin{wrapfigure}{l}{0.5\textwidth}
+% 	\vspace{-20pt}
+% 		\begin{center}
+% \begin{verbatim}
+% 	l1 |--> Node@[l8] 
+% 	l2 |--> <freed>
+% 	l3 |--> Null 
+% 	l4 |--> <freed>
+% 	l5 |--> Null
+% 	l6 |--> <freed>
+% 	l7 |--> <freed>
+% 	l8 |--> <(Cint 3), Leaf@[l3], Leaf@[l5]>, 
+% 	l9 |--> <freed>
+% 	l10 |--> <freed>
+% 	l11 |--> <freed>
+% \end{verbatim}
+% 		\end{center}
+% 				\vspace{-20pt}
+% 			\caption{$H'$}
+% 		\vspace{-10pt}
+% \label{fig:heap}
+% \end{wrapfigure}
 
-From this run, we see that the space overhead of dfs is 2 heap locations, which agrees with 
-our manual derivation. In the next section, we see that the type system will also be 
-able to derive this optimal bound. 
+% From this run, we see that the space overhead of dfs is 2 heap locations, which agrees with 
+% our manual derivation. In the next section, we see that the type system will also be 
+% able to derive this optimal bound. 
 
-\section{Automatic Amortized Resource Analysis}
+
+\yue{either replace example or add trees.}
+
+\yue{explain where allocation happens in the semantics. cost metric: 1 cell per constructor; rest on stack }
+
+\yue{explain how this is a cost semantics; what's the relation to blelloch's semantic? size of the minimal initial freelist is blelloch's cost annotation!}
+
+\yue{dfs example: replace this with append and appendTwice; in appendTwice, use explicit sharing}
+
+\section{Automatic Amortized Heap-Space Analysis with GC}
 \label{sect:aara}
 
-\jan{Better intro for AARA, polynomial potential somewhere}
-To introduce AARA, we informally explain the linear potential method for the dfs algorithm.
-We will use the allocation/heap metric which simply counts the number of allocations made 
-(in contrast to the garbage collection metric, the new analysis which records the highwater mark). 
-Given the target function, we associate with each constructor node in the input a
-constant potential $p$. 
-In the type system, this is computed via constraints generated from type checking, but we can 
-just guess and check our assignment. 
-Thus, we need to give the potential assignment to \texttt{t} and \texttt{queue}; let these
-constants be $p$ and $q$, respectively.
-In the body of \texttt{dfs\_aux}, we have
-3 places where heap allocations happen: when the queue is nil, the target was found, 
-or when target was not found and search happens recursively with the two subtrees in the queue.
-The cost of \texttt{None} and \texttt{Some} can be covered if $q = 1$, since constructor nodes
-cost unit potential. However, \texttt{t1::t2::ts} costs $2q+2$, since there are 2 cons cells and 
-each cell has $q$ units of potential. From the 2 pattern matches, we get $p+q$ units of potential,
-so we just have to satisfy the constraint $p+q \ge 2q+2$. One such assignment is $p = 2, q = 0$; 
-and indeed, this is the assignment that RaML derives for dfs. Lastly, to finish the analysis,
-we need to resolve any constant potential required. The case when \texttt{queue} is nil is 
-not covered since nil does not have potential; the initial call to \texttt{dfs\_aux} also 
-requires 2 cons constructors (but 0 potential per cons cell). So we need a total of 3 units 
-of constant potential. Thus the overall allocation cost of dfs is $2m+3$, where $m$ is the number 
-of \texttt{Node} constructors in the input.
+{\bf Automatic Amortized Resource Analysis (AARA)}
+%
+The idea of AARA~\cite{Jost03,Jost10,HoffmannAH10,HoffmannW15} is to automate the potential method of amortized
+analysis using a type system.  Types introduce potential function that
+map data structures of the given type to non-negative numbers. The
+type rules ensure that there is always sufficient potential to cover
+the evaluation cost of the next step and the potential of the
+next program state.
 
-\textbf{Denotational Semantics}
+To illustrate the idea, we informally explain the linear potential method for the dfs algorithm in Figure~\ref{fig:dfs}
+We will use the allocation/heap metric which simply counts the number of cons constructor calls during the evaluation.%
+\footnote{This is in contrast to the highwater mark for the GC semantics \gcSem{} that is targeted by our new analysis.}
+With this metric, the cost of evaluating $\text{dfs}(t,n)$ is $2m+3$, where $m$ is the number 
+of \texttt{Node} constructors in the input.
+%
+
+\yue{1) what's the cost of append and appendTwice with the metric ?}
+
+\yue{2) what are the types of the functions in aara? what do they intuitively mean?}
+
+\yue{3} how does sharing work in appendTwice? What are the types of the variables in the code? (need to add potential)
+
+\yue{4) how do we derive the types automatically? (I can write that later)}
+
+\jan{Better intro for AARA, polynomial potential somewhere}
+
+\textbf{Linear Potential Functions}
 Before giving the type rules, we need to formalize linear potential as explained above.
 Since potential is associated with the \emph{structure} of a value and not the particular heap 
 locations, we need a mapping from
@@ -866,7 +888,6 @@ Now we give the judgements relating heap values to semantic values, in the form 
 Given a stack $V$, we write $H \vDash V : \Gamma$ if $dom(V) = dom(\Gamma)$ and
 for every $x : A \in \Gamma$, $H \vDash V(x) \mapsto a : A$ for some $a \in \llbracket A \rrbracket$.
 
-\textbf{Linear Potential}
 We introduce linear potential for structures corresponding to the base types. The definition of
 linear potential is standard material, and can be found in \cite{Hoffmann11}, which is also
 a good source for an introduction to AARA. Below is the grammar for resource-annotated types:
@@ -1462,6 +1483,8 @@ and no space overhead is created by allocating closures for function declaration
 		\vspace{-10pt}
 \label{table:sig}
 \end{wraptable}
+
+\jan{discuss different cost metric used in eval}
 
 We evaluated our new analysis on a number of functions (see \ref{table:sig}). 
 The first table shows the type signature for each function. The second table presents the test 
