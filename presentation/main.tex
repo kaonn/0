@@ -1,0 +1,737 @@
+% Copyright 2004 by Till Tantau <tantau@users.sourceforge.net>.
+%
+% In principle, this file can be redistributed and/or modified under
+% the terms of the GNU Public License, version 2.
+%
+% However, this file is supposed to be a template to be modified
+% for your own needs. For this reason, if you use this file as a
+% template and not specifically distribute it as part of a another
+% package/program, I grant the extra permission to freely copy and
+% modify this file as you see fit and even to delete this copyright
+% notice. 
+
+\documentclass{beamer}
+
+\usepackage{fullpage}
+\usepackage{latexsym}
+\usepackage{verbatim}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{stackengine}
+\usepackage{scalerel}
+\usepackage{code,proof,amsthm,amssymb, amsmath, mathbbol}
+\usepackage{proof}
+\usepackage{mathpartir}
+\usepackage{turnstile}
+\usepackage{fancyvrb}
+\usepackage{stmaryrd}
+\usepackage{mathtools}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usepackage{minted}
+\usetikzlibrary{shapes.geometric, arrows}
+\newcommand{\ms}[1]{\ensuremath{\mathsf{#1}}}
+\newcommand{\irl}[1]{\mathtt{#1}}
+\newcommand{\nilexabt}{\irl{nil}}
+\newcommand{\consexabt}[2]{\irl{cons}(#1;#2)}
+\newcommand{\listcaseexabt}[5]{\irl{case}(#1)\{#2; #3,#4. #5\}}
+\newcommand{\listcaseexcst}[5]{\irl{case}(#1)\{[] \hookrightarrow #2; #3::#4 \hookrightarrow #5\}}
+\newcommand{\fixexabt}[3]{\irl{fix}\{#2\}(#1.#3)}
+\newcommand{\fixexcst}[3]{\irl{fix}(#1:#2.#3)}
+
+
+
+% There are many different themes available for Beamer. A comprehensive
+% list with examples is given here:
+% http://deic.uab.es/~iblanes/beamer_gallery/index_by_theme.html
+% You can uncomment the themes below if you would like to use a different
+% one:
+%\usetheme{AnnArbor}
+%\usetheme{Antibes}
+%\usetheme{Bergen}
+%\usetheme{Berkeley}
+%\usetheme{Berlin}
+%\usetheme{Boadilla}
+%\usetheme{boxes}
+%\usetheme{CambridgeUS}
+%\usetheme{Copenhagen}
+%\usetheme{Darmstadt}
+%\usetheme{default}
+%\usetheme{Frankfurt}
+%\usetheme{Goettingen}
+%\usetheme{Hannover}
+%\usetheme{Ilmenau}
+%\usetheme{JuanLesPins}
+%\usetheme{Luebeck}
+\usetheme{Madrid}
+%\usetheme{Malmoe}
+%\usetheme{Marburg}
+%\usetheme{Montpellier}
+%\usetheme{PaloAlto}
+%\usetheme{Pittsburgh}
+%\usetheme{Rochester}
+%\usetheme{Singapore}
+%\usetheme{Szeged}
+%\usetheme{Warsaw}
+\title{Enumerating Inductive Types with Combinatorial Species}
+
+% A subtitle is optional and this may be deleted
+\subtitle{}
+
+\author{Yue Niu}
+% - Give the names in the same order as the appear in the paper.
+% - Use the \inst{?} command only if the authors have different
+%   affiliation.
+
+\institute[Carnegie Mellon University] % (optional, but mostly needed)
+{
+  \inst{1}%
+  Department of Computer Science\\
+	Carnegie Mellon University
+}
+% - Use the \inst command only if there are several affiliations.
+% - Keep it simple, no one is interested in your street address.
+
+\date{May 2018}
+% - Either use conference name or its abbreviation.
+% - Not really informative to the audience, more for people (including
+%   yourself) who are reading the slides online
+
+\subject{Theoretical Computer Science}
+% This is only inserted into the PDF information catalog. Can be left
+% out. 
+
+% If you have a file called "university-logo-filename.xxx", where xxx
+% is a graphic format that can be processed by latex or pdflatex,
+% resp., then you can add a logo as follows:
+
+% \pgfdeclareimage[height=0.5cm]{university-logo}{university-logo-filename}
+% \logo{\pgfuseimage{university-logo}}
+
+% Delete this, if you do not want the table of contents to pop up at
+% the beginning of each subsection:
+\AtBeginSubsection[]
+{
+  \begin{frame}<beamer>{Outline}
+    \tableofcontents[currentsection,currentsubsection]
+  \end{frame}
+}
+
+% Let's get started
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+  \tableofcontents
+  % You might wish to add the option [pausesections]
+\end{frame}
+
+% Section and subsections will appear in the presentation overview
+% and table of contents.
+\section{Introduction}
+
+\begin{frame}{Problem}
+Fix a combinatorial problem as a tuple $(\mathcal{I},\mathcal{S},v,m)$, 
+where $\mathcal{I}$ is the set of instances 
+of the problem, and $\mathcal{S}$ are the set of solutions. A verifier 
+$v : \mathcal{I} \times \mathcal{S} \to \irl{bool}$ is a function that returns true iff the given solution 
+is valid for the given instance.  
+A metric $m : \mathcal{S} \to \mathbb{R}$ is a measure of the optimality of a solution. 
+An algorithm $a : \mathcal{I} \to \mathcal{S}$ is then a procedure of finding the optimal solution 
+to each instance of a problem.
+\end{frame}
+
+\begin{frame}{Goal}
+Generate an algorithm $a$ for a problem $(\mathcal{I},\mathcal{S},v,m)$\\
+Criteria:
+\begin{itemize}
+\item Generic in the problem
+\item Has a proof of correctness
+\end{itemize}
+
+What?
+\end{frame}
+
+\begin{frame}{Correctness}
+There are many reasonable definitions of correctness: pen and paper proof, unit testing, 
+proof by typechecking (!)\\
+
+Actually, the last method is basically the idea behind \emph{formal verification}, and this is (we think)
+the most widely accepted and safe way of establishing the correctness of programs.
+\begin{itemize}
+\item Coq
+\item Agda
+\item Isabelle
+\item Idris
+\item ...
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Plan}
+Write a \emph{generic} and \emph{formally verified} procedure in Coq
+that generates the algorithm for a problem specification. 
+\end{frame}
+
+\begin{frame}[fragile]{Brute Force}
+Don't think, just do: 
+
+\begin{verbatim}
+fun (i : I) => 
+  let	candidates = filter (fun s => v (i,s)) (enumerate S)
+    ranked = map (fun s => (m s, s)) candidates
+  in 
+  max (fun ((m1,_),(m2,_)) => m1 >= m2) candidates
+\end{verbatim}
+\end{frame}
+
+\begin{frame}{Enumerating $\mathcal{S}$}
+Simple algorithm. But how to actually get a list of all (?) the elements of $\mathcal{S}$?
+There are a couple approaches: \\
+\begin{itemize}
+\item Functional enumeration \footnote{http://www.cse.chalmers.se/~almstroj/lic.pdf}
+\item Combinatorial species: \footnote{see Brent Yorgey's thesis: https://www.cis.upenn.edu/~sweirich/papers/yorgey-thesis.pdf}
+\end{itemize}
+
+Even more specifically, we are interested in enumerating a particular class of structures $\mathcal{S}$: 
+containers. In functional programming, this is closely related to the idea of functors (i.e. type operators).\\
+
+Combinatorial species has a similar flavor; turns out there are very interesting mathematical properties 
+associated with structures arising from these species. 
+\end{frame}
+
+\tikzstyle{process} = [rectangle, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=orange!30]
+\tikzstyle{arrow} = [thick,->,>=stealth]
+\begin{frame}{The Plan}
+The pipe-line:\\
+\begin{tikzpicture}[node distance=2cm]
+\node (n1) [process] {Gallina type $\tau$};
+\node (n2) [process, right of=n1, xshift=5cm] {Reified type $\eta$};
+\node (n3) [process, below of=n2, yshift=-2cm] {list of Gallina Terms $\irl{list}(\tau)$};
+\draw [arrow] (n1) -- node[anchor=north] {(1) Template coq} (n2);
+\draw [arrow] (n2) -- node[anchor=east] {(2) Enumerate $\eta$} (n3);
+\end{tikzpicture}
+
+For this talk, we focus on (2).
+\end{frame}
+
+\section{Type Theory}
+
+\begin{frame}{Type Theory}
+
+Pass the blame:
+
+\begin{itemize}
+\item Programmer's view: types $\iff$ specifications; terms $\iff$ programs
+\item Logician's view: types $\iff$ propositions; terms $\iff$ proofs 
+\end{itemize}
+
+Inductive rules for constructing the syntax and semantics of a language. 
+\end{frame}
+
+\begin{frame}[fragile]{Types}
+\[
+\begin{array}{r l l l l}
+\ms{Types} & \tau \,\,\,\,\, ::= \\
+	& \irl{nat}                	 			& \irl{nat}											& \text{naturals}\\
+	& \irl{list}(\tau)								& \irl{list}(\tau)    &\text{lists}\\
+	& \irl{arr}(\tau_1;\tau_2)				& A \to B							&\text{functions}\\
+\ms{Exps} & e \,\,\,\,\, ::= \\
+	& \bar{n}                	 			& n											& \text{number}\\
+  & \irl{let}(e_1; x : \tau.e_2)			& \irl{let}\; x = e_1 \; \irl{in}\; e_2   	& \text{composition}\\
+  & \irl{lam}(x:\tau.e) 						&\lambda \; x : \tau. e 		& \text{abstraction}\\
+  & \irl{ap}(f;x) 					& f \; x 										& \text{application}\\
+ 	& \nilexabt					& []   										& \text{nil}\\
+ 	& \consexabt{x_1}{x_2}					& x_1::x_2   										& \text{cons}\\
+ 	& \listcaseexabt{l}{e_1}{x}{xs}{e_2}					& \listcaseexcst{l}{e_1}{x}{xs}{e_2}   	& \text{match list}\\
+	&	\fixexabt{x}{\tau}{e}						&\fixexcst{x}{\tau}{e}				&\text{recursion}\\
+\end{array}
+\]
+\end{frame}
+
+\begin{frame}[fragile]{Typing Judgments}
+Contexts $\Gamma ::= \cdot \mid \Gamma,x$
+\begin{mathpar}
+\inferrule{
+}{
+	\Gamma,x : \tau \vdash x : \tau
+}
+
+\inferrule{
+	\Gamma \vdash e_1 : \tau_1\\
+	\Gamma, x : \tau_1 \vdash e_2 ; \tau_2
+}{
+	\Gamma \vdash \irl{let}(e_1; x : \tau.e_2) : \tau_2	
+}
+
+\inferrule{
+	\Gamma, x : \tau \vdash e : \tau'
+}{
+	\Gamma \vdash \irl{lam}(x:\tau.e) : \tau \to \tau'	
+}
+
+\inferrule{
+	\Gamma \vdash f : \tau \to \tau'\\
+	\Gamma \vdash x : \tau
+}{
+	\Gamma \vdash \irl{ap}(f;x) : \tau'
+}
+
+\inferrule{
+	\Gamma, x : \tau \vdash e : \tau
+}{
+	\Gamma \vdash \fixexabt{x}{\tau}{e}	: \tau	
+}
+\end{mathpar}
+\end{frame}
+
+\begin{frame}[fragile]{Operational Semantics}
+\begin{mathpar}
+\inferrule{
+	e_1 \longmapsto e_1'
+}{
+	\irl{e_1}{e_2} \longmapsto \irl{e_1'}{e_2} 
+}
+
+\inferrule{
+	e_2 \longmapsto e_2'
+}{
+	\irl{ap}(\irl{lam}(x:\tau.e);e_2) \longmapsto 	\irl{ap}(\irl{lam}(x:\tau.e);e_2')
+}
+
+\inferrule{
+	e_2 \; \irl{val}
+}{
+	\irl{ap}(\irl{lam}(x:\tau.e);e_2) \longmapsto [e_2/x]e 
+}
+
+\inferrule{
+}{
+	\fixexabt{x}{\tau}{e}	\longmapsto [\fixexabt{x}{\tau}{e}/x]e
+}
+\end{mathpar}
+\end{frame}
+
+\begin{frame}[fragile]{Hello World: Append}
+\begin{minted}{ocaml}
+let append l1 l2 = 
+fix f : list nat -> list nat -> list nat in 
+  match l1 with 
+  | [] -> l2
+  | x::xs -> x :: f xs l2
+\end{minted}
+\end{frame}
+
+\begin{frame}[fragile]{Coq}
+Coq's internal logic is the "Predicative Calculus of
+Cumulative Inductive Constructions" (pCuIC).
+
+\end{frame}
+
+\begin{frame}[fragile]{pCuIC}
+\begin{figure}
+  \includegraphics[width=\textwidth,height=0.9\textheight,keepaspectratio]{inductive.png}
+  \caption{A boat.}
+  \label{fig:boat1}
+\end{figure}
+\end{frame}
+% You can reveal the parts of a slide one at a time
+% with the \pause command:
+\begin{frame}[fragile]{Inductive Types}
+\begin{minted}{coq}
+Inductive tau (x1 : p1) ... (xn : pn) : i1 -> ... im -> S :=  
+| c1 : a_1,1 -> .... -> a_1,c1 -> tau p1 ... pn
+| ...
+| ck : a_1,k -> .... -> a_1,ck -> tau p1 ... pn
+\end{minted}
+
+\begin{itemize}
+\item $\texttt{tau}$: inductive type
+\item $\texttt{p1} ... \texttt{pn}$: parameter types
+\item $\texttt{i1} ... \texttt{im}$: index types
+\item $\texttt{c1} ... \texttt{ck}$: constructors
+\item $\texttt{S}$: sort (one of $\{\texttt{Type},\texttt{Prop}\}$)
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]{ML Types}
+\begin{minted}{coq}
+Inductive nat : Set :=  
+| O : nat 
+| S : nat -> nat
+
+Inductive list (A : Type) : Type :=  
+| nil : list A 
+| cons : A -> list A -> list A
+\end{minted}
+\end{frame}
+
+\begin{frame}[fragile]{Append}
+\begin{minted}{coq}
+Definition app (A : Type) : list A -> list A -> list A :=
+  fix app l m :=
+  match l with
+   | nil => m
+   | cons a l1 => cons a (app l1 m)
+  end.
+
+> Check app.
+     : forall A : Type, list A -> list A -> list A
+\end{minted}
+\end{frame}
+
+\begin{frame}[fragile]{Getting Dependent}
+\begin{minted}{coq}
+Inductive ilist (A : Type) : nat -> Type :=
+| INil : ilist A 0 
+| ICons : forall n : nat, A -> ilist A n -> ilist A (S n)
+
+> Check ICons "a" (ICons "b" (ICons "c" INil)).
+     : ilist string 3
+\end{minted}
+\end{frame}
+
+\begin{frame}[fragile]{Heterogeneous Lists}
+\begin{minted}{coq}
+Variable A : Type.
+Variable B : A -> Type.
+
+Inductive hlist : list A -> Type :=
+| HNil : hlist nil
+| HCons : forall (x : A) (ls : list A),
+	 B x -> hlist ls -> hlist (x :: ls). 	
+
+Definition f := fun t : Type => list t.
+> Check HCons [1;2;3] (HCons ["a";"c"] (HCons [3;4] (@HNil _ f))).
+      : hlist f [nat; string; nat]
+\end{minted}
+\end{frame}
+
+\begin{frame}[fragile]{Heterogeneous append}
+\begin{minted}{coq}
+Fixpoint happ (ls1 : list A) (hl1 : hlist ls1) : 
+	forall ls2, hlist ls2 -> hlist (ls1 ++ ls2) :=
+    match hl1 in hlist ls1 
+      return forall ls2, hlist ls2 -> hlist (ls1 ++ ls2)
+	  with
+      | HNil => fun _ hl2 => hl2
+      | HCons _ _ x hl1' => 
+          fun _ hl2 => HCons x (happ hl1' hl2)
+    end.
+\end{minted}
+\end{frame}
+
+\begin{frame}[fragile]{Proving theorems}
+\begin{minted}{coq}
+Theorem hmap_happ : forall ls2 (h2 : hlist B1 ls2) 
+		ls1 (h1 : hlist B1 ls1),
+    hmap h1 +++ hmap h2 = hmap (h1 +++ h2).
+  Proof.
+    induction h1. 
+    - simpl. reflexivity.
+    - simpl. rewrite IHh1. reflexivity.
+  Qed.
+\end{minted}
+\end{frame}
+
+\begin{frame}[fragile]{Type Operators}
+Functions on types are called type operators (a unary type operator that satisfy special laws called functors in Haskell): 
+\begin{minted}{coq}
+Definition F : Type -> Type := fun X => prod X X.
+\end{minted}
+All containers are functors, but not all functors are containers. 
+\end{frame}
+
+\begin{frame}[fragile]{Reification}
+Need a \emph{reified} syntax for Coq types, i.e. a representation of pCuIC types in Coq. 
+Sums and products are easy. What about inductive types? 
+\end{frame}
+
+\begin{frame}[fragile]{First Try}
+\footnote{chp. 20 of PFPL}
+\begin{minted}{coq}
+Inductive rec (F : Type -> Type) : Type :=
+| fold : F (rec F) -> rec F.
+
+> Non strictly positive occurrence of "rec" in "F (rec F) -> rec F".
+\end{minted}
+Non strictly positive occurence can introduce incosistency.
+\end{frame}
+
+\begin{frame}[fragile]{Type-In-Type}
+Fortunately, we can encode rec as follows
+\footnote{http://homepages.inf.ed.ac.uk/wadler/papers/free-rectypes/free-rectypes.txt}:
+\begin{minted}{coq}
+Definition rec (F : Type -> Type): Type 
+  := forall X, (F X-> X) -> X.
+Definition nat := rec (fun X => sum unit X).
+Definition list A := rec (fun X => sum unit (prod A X)).
+\end{minted}
+\end{frame}
+
+\begin{frame}[fragile]{Target Types}
+\[
+\begin{array}{r l l l l}
+\ms{Ind. Types} & \tau \,\,\,\,\, ::= \\
+	& \irl{void}                	 			& \emptyset											& \text{void}\\
+	& \irl{unit}                	 			& \star											& \text{unit}\\
+	& \irl{prod}(\tau_1;\tau_2)					& \tau_1 \times \tau_2			&\text{product}\\
+	& \irl{sum}(\tau_1;\tau_2)					& \tau_1 + \tau_2			&\text{sum}\\
+	& \irl{rec}(t.\tau)								& \mu(t.\tau)					&\text{recursive type}
+  \\
+\end{array}
+\]
+\end{frame}
+
+\section{Combinatorial Species}
+
+\begin{frame}{Combinatorial Species}
+A species is an endofunctor on the category of finite sets and bijections. G.A.N. aside, 
+a species can be thought of as a mapping from sets of labels to \emph{structures} built from the 
+labels. These structures are abstract; more over, there's a systematic way of enumerating all structures
+generated from a given label set.
+\end{frame}
+
+\begin{frame}[fragile]{Example Species}
+\begin{figure}
+  \includegraphics[width=\textwidth,height=\textheight,keepaspectratio]{species.png}
+  \label{fig:boat1}
+\footnote{taken from https://www.cis.upenn.edu/~sweirich/papers/yorgey-thesis.pdf}
+\end{figure}
+\end{frame}
+
+\begin{frame}{Idea}
+\begin{center}
+Species $\iff$ Type Operators\\
+\end{center}
+Use the enumeration of species for types.
+\end{frame}
+
+\begin{frame}[fragile]{Species Operations}
+\begin{scriptsize}
+\begin{align*}
+ &\text{Empty Species}\\
+&\mathbb{0}_i &&\mathbb{0}_i(U_1,...,U_k) = [] \\
+& \text{Unit Species}\\
+&\mathbb{1}_i &&\mathbb{1}_i(U_1,...,U_k) =
+		\begin{cases*}
+      [\star] & if $U_i = []$\\
+      []        & otherwise
+    \end{cases*} \\
+& \text{Singleton Species}\\
+&\mathbb{X}_i && \mathbb{X}_i(U_1,...,U_k) = 
+		\begin{cases*}
+      [x] & if $U_i = [x]$\\
+      []        & otherwise
+    \end{cases*} \\
+& \text{Species Sum}\\
+&\mathbb{F} + \mathbb{G} && (\mathbb{F} + \mathbb{G})(U_1,...,U_k) = 
+	\irl{map}\; \irl{inr} \mathbb{F}(U_1,...,U_k) {++} \irl{map};\irl{inr} \mathbb{G}(U_1,...,U_k)& \\
+&\text{Paritional Product}\\
+&\mathbb{F} \bullet \mathbb{G} && (\mathbb{F} \bullet \mathbb{G})(U_1,...,U_k) = 
+	{++}_{i : X_i \sqcup Y_i = U_i}	
+	[(l,r) | l \leftarrow \mathbb{F}(X_1,...,X_k), r \leftarrow \mathbb{G}(Y_1,...,Y_k)]& \\ 
+&\text{Recursive Species}\\
+&\mu(f.\mathbb{G}) && \mu(f.\mathbb{G})(U_1,...,U_k) = \irl{map}\; \irl{fold} (\mathbb{G}[\mu(f.\mathbb{G})/f](U_1,...,U_k))& \\
+\end{align*}
+\end{scriptsize}
+\end{frame}
+
+\begin{frame}[fragile]{Implementation}
+\begin{footnotesize}
+\begin{minted}{coq}
+Section s.
+ Variable ts : list Type.
+
+ Inductive Species : list Type -> Type -> Type := 
+| zero : forall C, Species C (Empty_set)
+| one :  forall C {x} (m : member x ts), Species C unit
+| singleton :  forall C {x} (m : member x ts), Species C (tget' _ ts m)
+| cprod : forall C {F G}, Species C F -> Species C G -> 
+  Species C (prod F G)
+| pprod : forall C {F G}, Species C F -> Species C G -> 
+  Species C (prod F G)
+| ssum : forall C {F G}, Species C F -> Species C G -> 
+  Species C (sum F G)
+| srec : forall C F `{Functor (F)}, Species ((nrec F)::C) (F (nrec F)) -> 
+  Species C (nrec F) 
+| svar : forall C F, member F C -> Species C F
+End s.
+\end{minted}
+\end{footnotesize}
+\end{frame}
+
+\begin{frame}[fragile]{Enumeration}
+\begin{scriptsize}
+\begin{minted}{coq}
+Definition enumerate (n : nat) {ts : list Type} {F} {K} 
+(s : Species ts K F) : 
+forall tls : tlist ts, hlist (Species ts K) K -> list (F).
+Admitted.
+
+Definition enum_limit := 100.
+Definition ts : list Type := [nat : Type].
+Definition F1 := (fun X => sum unit (prod (tget' _ ts HFirst) X)).
+Instance F1F : Functor F1 := 
+{
+  liftF := fun X Y f x => 
+  match x with 
+  | inl tt => inl tt
+  | inr (a,x') => inr (a, f x')
+  end
+}.
+Definition C1 := [nrec F1].
+Definition s := srec ts []  F1 
+	(ssum ts C1 (one ts C1 HFirst) (pprod ts C1 (singleton ts C1 HFirst) 
+	(svar ts C1 (nrec F1) HFirst))).
+Definition tls : tlist ts := Hcons nat [1;2;3] Hnil.
+\end{minted}
+\end{scriptsize}
+\end{frame}
+
+\begin{frame}[fragile]{Enumeration}
+\begin{scriptsize}
+\begin{minted}{coq}
+> Compute enumerate enum_limit s tls HNil
+[fun (X : Type) (x : F1 X -> X) => x (inr (1, x (inr (2, x (inr (3, x (inl tt)))))));
+ fun (X : Type) (x : F1 X -> X) => x (inr (1, x (inr (3, x (inr (2, x (inl tt)))))));
+ fun (X : Type) (x : F1 X -> X) => x (inr (2, x (inr (1, x (inr (3, x (inl tt)))))));
+ fun (X : Type) (x : F1 X -> X) => x (inr (2, x (inr (3, x (inr (1, x (inl tt)))))));
+ fun (X : Type) (x : F1 X -> X) => x (inr (3, x (inr (1, x (inr (2, x (inl tt)))))));
+ fun (X : Type) (x : F1 X -> X) => x (inr (3, x (inr (2, x (inr (1, x (inl tt)))))))]
+	 : list (nrec F1).
+\end{minted}
+\end{scriptsize}
+\end{frame}
+
+\begin{frame}[fragile]{Not Quite Native}
+What about \emph{native} Gallina Types? 
+\begin{minted}{coq}
+Fixpoint arrTy' A (l : list Type) : Type :=
+match l with 
+| [] => A
+| x::xs => x -> (arrTy' A xs)
+end.
+ 
+Definition arr' A := fun l : list Type => arrTy' A l.
+Definition constructor (A : Type) : Type := sigT (arr' A).
+Definition inductive (A : Type) := list (constructor A).
+\end{minted}
+\end{frame}
+
+\begin{frame}[fragile]{Reified Gallina}
+\begin{small}
+\begin{minted}{coq}
+Fixpoint computeS {A} (l : inductive A) : list (list Type) := 
+match l with 
+| [] => []
+| x::xs => 
+  let argT := projT1 x in 
+  argT :: computeS xs
+end.
+
+Section s.
+ Variable ts : list Type.
+
+ Inductive Species : list Type -> Type -> Type := 
+...
+| sind : forall C A (l : inductive A), 
+  hlist (hlist (Species (A::C))) (computeS l) -> 
+  Species C A.
+...
+End s.
+\end{minted}
+\end{small}
+\end{frame}
+
+\begin{frame}[fragile]{All together}
+\begin{small}
+\begin{minted}{coq}
+Definition algorithm (instance solution metric : Type) f 
+ (checker : instance -> solution -> bool)
+ (eval : solution -> metric) 
+ (better : metric -> metric -> bool) := 
+forall (I : instance) (Sol Cand : solution), 
+  (f I = Some Sol -> checker I Sol = true /\ 
+    ((checker I Cand = true) -> 
+      better (eval Sol) (eval Cand) = true))
+/\
+  (f I = None -> ~exists Cand', checker I Cand' = true).
+\end{minted}
+\end{small}
+\end{frame}
+
+\begin{frame}[fragile]{All together}
+\begin{small}
+\begin{minted}{coq}
+Definition synthesize (instance solution metric : Type) f 
+(checker : instance -> solution -> bool) 
+(eval : solution -> metric) 
+(better : metric -> metric -> bool) 
+: instance -> option solution := 
+fun I => 
+let candidates := filter (checker I) (enumerate I) in 
+let ranks := map (fun cand => (eval cand, cand)) candidates in 
+match ranks with 
+| [] => None
+| x::xs => Some (snd (list_max (fun e1 e2 => 
+	match e1, e2 with 
+	| (s1,_), (s2,_) => better s1 s2 
+	end) xs x))
+end.
+\end{minted}
+\end{small}
+\end{frame}
+
+\begin{frame}[fragile]{All together}
+\begin{small}
+\begin{minted}{coq}
+Theorem correct : forall (i s m : Type)
+(checker : i -> s -> bool) 
+(eval : s -> m) 
+(better : m -> m -> bool),
+algorithm i s m (synthesize i s m checker eval better) 
+checker eval better.
+Proof.
+Admitted.
+\end{minted}
+\end{small}
+\end{frame}
+
+
+% Placing a * after \section means it will not show in the
+% outline or table of contents.
+\section*{Summary}
+
+\begin{frame}{Summary}
+  \begin{itemize}
+  \item
+		Generic combinatorial problem $\implies$ brute force enumeration
+  \item
+		Species $\iff$ Functors
+  \end{itemize}
+  
+  \begin{itemize}
+  \item
+    Outlook
+    \begin{itemize}
+    \item
+			Native Gallina Types (Ltac, Template-coq)
+    \item
+			Prove correctness
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+
+
+% All of the following is optional and typically not needed. 
+
+\end{document}
+
+

@@ -220,7 +220,7 @@ bounds are often difficult to derive and to prove sound.
 %
 To assist programmers with deriving memory bounds, the programming
 language community has developed automatic and semi-automatic analysis
-techniques~\cite{Jost03,Chin08,Albert07b}
+techniques~\cite{Jost03,Chin08,Albert07b}.
 %
 These systems are often special cases of more general resource bound
 analyses that are based on abstract
@@ -243,8 +243,8 @@ or simply ignore deallocation in the
 analysis~\cite{Jost03,Jost06,SimoesVFJH12,Chin05,Chin08,Albert07b}. As
 a result, the derived bounds are not accurate when the underlying
 system employs garbage collection. The only exceptions we are aware of
-are the works by Albert et al.~\cite{Albert09,Albert13}, by Braberman
-et al.~\cite{Braberman08}, and by Unnikrishnan et
+are the works by Albert et al.~\cite{Albert09,Albert13}, Braberman
+et al.~\cite{Braberman08}, and Unnikrishnan et
 al.~\cite{UnnikrishnanSL03,Unnikrishnan09}. They analyze the
 heap-space usage of programs with GC in two steps. First, they make
 the deallocation of GC explicit; for example with a static analysis
@@ -259,7 +259,7 @@ derivations as certificates for resource bounds.
 We model the (highwater mark) memory
 usage based on a perfect garbage collector that immediately
 deallocates memory cells when they become unreachable. The bounds that
-are derived with for this cost model are not only a good theoretical
+are derived with respect to this cost model are not only a good theoretical
 measure of the space complexity of the program but also have practical
 relevance. Consider a function $f : A \to B$ and assume we derived a
 bound $b_f : \denote{A} \to \mathbb{N}$. In an execution of $f(a)$, we
@@ -284,7 +284,7 @@ cells used in the mutable store during evaluation. If we traverse the
 evaluation tree in preorder and view each node as a ``step'' 
 of the computation, then a cell is used in the current node
 if they are reachable from the reminder of the
-computation. Our formalization of reachability is identical with the
+computation. Our formalization of reachability is identical to the
 concept that garbage collectors implement to decide if a cell can be
 freed during evaluation. For simplicity, we assume that evaluation of
 the cons node allocates one fresh heap cell and that all other
@@ -294,7 +294,7 @@ existing formulations of cost semantics with
 GC~\cite{Spoonhower:2008:SPP:1411204.1411240,DBLP:journals/entcs/Minamide99}
 is that we update the highwater mark when reachability changes at
 inner nodes of the derivation of the evaluation judgement instead of at
-leaves. Moreover, we use a \emph{freelist}, which represents the
+leaves. Moreover, we use a \emph{freelist}, which represents \emph{named}
 cells available for evaluation. This alternative formulation is
 equivalent to the existing semantics and mainly motivated by the
 soundness proof of our type system for bound analysis.  However, the
@@ -308,15 +308,15 @@ type system is an extension of type-based automatic amortized resource
 analysis
 (AARA)~\cite{Jost03,Jost10,VasconcelosJFH15,HoffmannAH10,HoffmannW15,NgoDFH16}. AARA
 is a template-based technique that introduces potential functions to
-efficiently automatically reduce bound inference to linear
+efficiently and automatically reduce bound inference to linear
 programming. Existing type systems based on AARA can derive bounds on
 the highwater mark of the heap usage for programs with manual
-deallocation~\cite{Jost10}, but can only derive a bound on the number
+deallocation~\cite{Jost10}, but can only derive a bound on the
 number of total heap allocations for programs with
 GC~\cite{HoffmannW15}. This is usually a gross over-approximation of
 the actual memory requirement. Our extension is based on the
 observation that deallocation of a perfect collector can be modeled
-with destructive pattern matching (deallocate the matched cell) if
+with destructive pattern matching (deallocating the matched cell) if
 data structures are used in a linear way. In the type system, we
 extend this observation to non-linear programs and use destructive
 pattern matching to accurately model deallocation even if data is
@@ -335,14 +335,14 @@ a mapping $\gamma$ from the heap used in the GC semantics $H_{gc}$ to \emph{subs
 the heap used in the copying semantics $H_{copy}$ such that the image of 
 $H_{gc}$ under $\gamma$ forms a partition on the second heap. The intuition is that 
 given a cell $l \in H_{gc}$, there must be multiple cells $\gamma(l) \in H_{copy}$  
-that are were allocated during sharing, and thus are ``morally the same'' as $l$.
+that are were allocated during sharing, and thus ``morally the same'' as $l$.
 
 The analysis and the cost semantics have been implemented as an
 extension to Resource Aware ML (RaML)~\cite{HoffmannAH10,HoffmannW15}. RaML is an
 implementation of AARA for a subset of OCaml that can derive
 multivariate polynomial bounds. However, we restrict the technical
 development in this paper to a simple first-order language with
-tuples, lists, and trees. The proofs and ideas carry over the more
+tuples and lists. The proofs and ideas carry over to the more
 complex case of RaML.\footnote{An exception are function closures that
   we discuss in the Section~\ref{sect:conclusion}.}
 %
@@ -360,10 +360,10 @@ decisions throughout the system.
 
 In the technical part of the paper, we focus our attention to a first-order, 
 strictly evaluated functional language. 
-You can think this language to be a simple subset of OCaml or SML. 
+One can think of this language as a simple subset of OCaml or SML. 
 The only recursive data type in the language is the list type. 
 However, our work extends to the expected algebraic data types definable in RaML.
-Being first order, our language does not allow arbitrary local functional definitions. Instead,
+Being first order, the language does not allow arbitrary local functional definitions. Instead,
 all functions are defined at the top level and are mutually recursive by default.
 The types of these functions form a signature for the program, and the semantics and typing 
 judgments will be indexed by this signature.
@@ -494,7 +494,7 @@ justified by the (valid) mode $(+,+,-)$. We also say that the reachable set of $
 In the rules, $\uplus$ is multiset union. For the rest of the paper, we will sometimes mix 
 multiset and set operations as the situation calls for. For example, we will write 
 $l \in S$ for a multiset $S$ if $S(l) \ge 1$. Complete definitions and notations can
-be found in the appendix~\ref{sect:appendix}.
+be found in the appendix.
 
 The notion of reachability naturally lifts to expressions:
 \begin{align*}
@@ -586,10 +586,9 @@ and the locations in the current expression $e$.
 The inference rules for the semantics are given in Figure~\ref{fig:costsem}.
 For example, the rule F:CondT states that, to evaluate a conditional, 
 look in the stack for the value of the branching boolean.
-In the case it is true, we proceed to evaluate the first branch. This update is only necessary 
-to prove properties about the evaluation, and is not needed in an implementation.
+In the case it is true, we proceed to evaluate the first branch.
 Furthermore, we collect cells in the heap
-that are not reachable from the root set ($R \cup locs_{V,H}(e_1)$) 
+that are not reachable from the root set ($R \cup locs_{V',H}(e_1)$) 
 or already in the current free-list
 $F$, and add them ($g$) to the available cells for evaluating $e_1$. 
 
@@ -597,8 +596,8 @@ Another example is the rule F:Let for let expressions:
 to evaluate the expressions $\irl{let}(e_1; x {:} \tau.e_2)$, we evaluate the first 
 expression with the corresponding restricted stack $V_1$ and a expanded continuation set $R'$. 
 The extra locations come from the free variables of $e_2$ (not including the bound variable $x$),
-which we cannot collect during the evaluation of $e_1$. Next, we extend the restricted stack 
-$V_2$ with the result $v_1$, and evaluate $e_2$ with this stack and the original continuation 
+which we cannot collect during the evaluation of $e_1$. Next, we restrict the extended stack 
+to only free variables of $e_2$, and evaluate $e_2$ with this stack and the original continuation 
 set $R$. The other rules are similar. 
 
 \begin{figure}[t!]
@@ -607,19 +606,19 @@ set $R$. The other rules are similar.
 \begin{mathpar}
 \inferrule{
 	V_1 = V\restriction_{FV(e_1)}\\
-  R' = R \cup locs_{V_2,H}(\irl{lam}(x : \tau.e_2))\\
+  R' = R \cup locs_{V,H}(\irl{lam}(x : \tau.e_2))\\
   V_1,H,R',F \vdash e_1 \Downarrow v_1,H_1,F_1\\
-	V_2' = (V[x \mapsto v_1])\restriction_{FV(e_2)}\\
-  g = \{ l \in H_1 \mid l \notin F_1 \cup R \cup locs_{V_2',H_1}(e_2) \}\\
-  V_2',H_1,R, F_1 \cup g \vdash e_2 \Downarrow v_2,H_2,F_2 \\
+	V_2 = (V[x \mapsto v_1])\restriction_{FV(e_2)}\\
+  g = \{ l \in H_1 \mid l \notin F_1 \cup R \cup locs_{V_2,H_1}(e_2) \}\\
+  V_2,H_1,R, F_1 \cup g \vdash e_2 \Downarrow v_2,H_2,F_2 \\
 }{
   V,H,R,F \; \vdash \irl{let}(e_1; x : \tau.e_2) \Downarrow v_2,H_2,F_2
 }(\text{F:Let})
 
 \inferrule{
   V(x) = \irl{T}\\
-  g = \{l \in H \mid l \notin F \cup R \cup locs_{V,H}(e_1)\}\\
 	V' = V\restriction_{FV(e_1)}\\
+  g = \{l \in H \mid l \notin F \cup R \cup locs_{V',H}(e_1)\}\\
   V',H,R,F \cup g\; \vdash e_1 \Downarrow v, H',F'
 }{
   V,H,R,F \; \vdash \ifexabt{x}{e_1}{e_2} \Downarrow v, H',F'
@@ -627,8 +626,8 @@ set $R$. The other rules are similar.
 
 \inferrule{
 	V(x) = \irl{F}\\
-  g = \{l \in H \mid l \notin F \cup R \cup locs_{V,H}(e_2)\}\\
 	V' = V\restriction_{FV(e_2)}\\
+  g = \{l \in H \mid l \notin F \cup R \cup locs_{V',H}(e_2)\}\\
   V',H,R,F \cup g \; \vdash e_2 \Downarrow v, H',F'
 }{
   V,H,R,F \; \vdash \ifexabt{x}{e_1}{e_2} \Downarrow v, H' ,F'
@@ -639,10 +638,11 @@ set $R$. The other rules are similar.
 \inferrule{
   V(x) = v'\\
   P(f) = (y_f,e_f)\\
+	V' = ([y_f \mapsto v']) \restriction_{FV(e_f)}\\
   g = \{l \in H \mid l \notin F \cup R \cup locs_{V,H}(e_f)\}\\
-  [y_f \mapsto v'],H,R,F \cup g \; \vdash e_f \Downarrow v,H',F'\\
+  V'H,R,F \cup g \; \vdash e_f \Downarrow v,H',F'\\
 }{
-  V,H,R,F \; \vdash \appcst{f}{x} \Downarrow v,H',F'
+	V,H,R,F \; \vdash  \irl{ap}(f;x)  \Downarrow v,H',F'
 }(\text{F:App})
 
 % lists
@@ -665,10 +665,10 @@ set $R$. The other rules are similar.
 \inferrule{
   V(x) = \irl{Null}\\
 	V' = V\restriction_{FV(e_1)}\\
-  g = \{l \in H \mid l \notin F \cup R \cup locs_{V,H}(e_1)\}\\
+  g = \{l \in H \mid l \notin F \cup R \cup locs_{V',H}(e_1)\}\\
   V',H,R,F \cup g \; \vdash e_1 \Downarrow v, H',F' \\
 }{
-  V,H,R,F \; \vdash \listcaseexcst{x}{e_1}{x_h}{x_t}{e_2} \Downarrow v,H',F'
+  V,H,R,F \; \vdash \listcaseexabt{x}{e_1}{x_h}{x_t}{e_2} \Downarrow v,H',F'
 }(\text{F:MatNil})
 
 \inferrule
@@ -683,16 +683,17 @@ set $R$. The other rules are similar.
   g = \{l \in H \mid l \notin F \cup R \cup locs_{V',H}(e_2)\}\\
   V',H,R,F \cup g \; \vdash e_2 \Downarrow v, H',F' \\
 }{
-  V,H,R,F \; \vdash \listcaseexcst{x}{e_1}{x_h}{x_t}{e_2} \Downarrow v,H',F'
+  V,H,R,F \; \vdash \listcaseexabt{x}{e_1}{x_h}{x_t}{e_2} \Downarrow v,H',F'
 }(\text{F:MatCons})
 
 
 \inferr{
-  V,H,R,F \; \vdash \sharecst{x}{x_1}{x_2}{e} \Downarrow v,H'',F'
+  V,H,R,F \; \vdash \shareabt{x}{x_1}{x_2}{e} \Downarrow v,H',F'
 }{
-  V = V'[x \mapsto v']\\
+	V(x) = v'\\
+	V' = (V[x_1 \mapsto v',x_2 \mapsto v']) \restriction_{FV(e)}\\
 	g = \{l \in H \mid l \notin F \cup R \cup locs_{V',H}(e)\}\\
-  V'[x_1 \mapsto v',x_2 \mapsto v'],H',R,F \cup g \; \vdash e \Downarrow v,H'',F'
+  V',H,R,F \cup g \; \vdash e \Downarrow v,H',F'
 }(\text{F:Share})
 \end{mathpar}
   \caption{Cost Semantics for Perfect Garbage Collection}
@@ -706,8 +707,7 @@ during evaluation. % However, our implementation uses closures to implement the 
 Also note that we restrict the domain of
 the stack to the appropriate variables during evaluation. This is only
 to facilitate the proof of the linearity of the copying semantics introduced later, and not
-necessary for the implementation. These issues are discussed in
-\ref{sect:implementation}.
+necessary for the implementation. 
 
 For example, we can implement the \texttt{append} and \texttt{appTwice} function, 
 which has variable sharing. First, we analyze the heap usage of \texttt{append} under 
@@ -748,14 +748,14 @@ The second call has no net increase in heap allocations since \texttt{l2} can be
 destructed along the way. 
 The return value is a pair which is stack-allocated and doesn't require a heap 
 allocation. Thus, the total space overhead for \texttt{appTwice} 
-is size of input list \texttt{l}.
+is size of the input list \texttt{l}.
 
 From this, we see that the minimum size for the initial freelist to successively evaluate 
 a call to \texttt{appTwice} is exactly the length of the input. In general, we 
 define the cost of a closed program to be the minimum size of the initial freelist that
-guarantees successful evaluation. Although we don't prove it in this paper, this can be seen
-to be equivalent to the cost annotation in previous cost semantics introduced in 
-section~\ref{sect:fop}, which justifies \gcSem{} as a cost semantics.
+guarantees successful evaluation, which is
+equivalent to the cost annotation in the previous cost semantics introduced in 
+Section~\ref{sect:fop}.
 
 \section{Automatic Amortized Heap-Space Analysis with GC}
 \label{sect:aara}
@@ -763,13 +763,13 @@ section~\ref{sect:fop}, which justifies \gcSem{} as a cost semantics.
 {\bf Automatic Amortized Resource Analysis (AARA)}
 %
 The idea of AARA~\cite{Jost03,Jost10,HoffmannAH10,HoffmannW15} is to automate the potential method of amortized
-analysis using a type system.  Types introduce potential function that
+analysis using a type system.  Types introduce potential functions that
 map data structures of the given type to non-negative numbers. The
 type rules ensure that there is always sufficient potential to cover
 the evaluation cost of the next step and the potential of the
 next program state.
 
-To illustrate the idea, we informally explain the linear potential method for the functions in Figure~\ref{fig:dfs}
+To illustrate the idea, we informally explain the linear potential method for the functions in Figure~\ref{fig:dfs}.
 We will use the allocation/heap metric which simply counts the number of cons constructor calls during the evaluation.%
 \footnote{This is in contrast to the highwater mark for the GC semantics \gcSem{} that is targeted by our new analysis.}
 With this metric, the cost of evaluating \texttt{append(l1,l2)} is $m$, where $m$ is the number 
@@ -782,7 +782,7 @@ Additionally, the function uses 0 constant potential, and
 leaves 0 constant potential after evaluating. This translates to a bound which states that 
 the number of allocations \texttt{append} makes is bounded by 1 times size of the first list.
 For \texttt{appTwice(l)}, the cost under the heap metric is $2m$, where $m$ is the number of cons 
-constructors in\texttt{l}. This is because we have to share the input list across 
+constructors in \texttt{l}. This is because we have to share the input list across 
 two calls of \texttt{append}, which each requires lists with unit potential per element.
 For example, if $\texttt{l} : L^2(\irl{int})$, then \texttt{l1} and 
 \texttt{l2} both get 1 potential per element so that $\texttt{l1} : L^1(\irl{int})$,
@@ -791,10 +791,10 @@ and the resulting pair of lists both have 0 potential per element.
 
 More generally, we can give the following types to \texttt{append} and \texttt{appTwice}:
 \begin{align*}
-	&\texttt{append} : \prodtycst{L^p(\irl{int})}{L^q(\irl{int})} \xrightarrow{r/r} L^s(\irl{int}) \text{ such that }
-	p \ge s + 1 \text{ and } q \ge s\\
-	&\texttt{appTwice} : L^p(\irl{int}) \xrightarrow{q/q} \prodtycst{L^r(\irl{int})}{L^s(\irl{int})}
-	\text{ such that } p \ge r + s + 2
+	&\texttt{append} : \prodtycst{L^p(\irl{int})}{L^q(\irl{int})} \xrightarrow{r/r} L^s(\irl{int}), \text{ 
+	where } p \ge s + 1 \text{ and } q \ge s\\
+	&\texttt{appTwice} : L^p(\irl{int}) \xrightarrow{q/q} \prodtycst{L^r(\irl{int})}{L^s(\irl{int})},
+	\text{ where } p \ge r + s + 2
 \end{align*}
 
 With AARA, the type system keeps track of this collection of constraints on
@@ -805,12 +805,12 @@ to polynomial potential functions, user-defined data types, and higher-order fun
 still relying on linear constraint solving~\cite{HoffmannAH10,HoffmannW15}.
 %
 
-\textbf{Linear Potential Functions}\label{sect:LPF}
+\textbf{Linear Potential Functions}\label{sect:lfp}
 Before giving the type rules, we need to formalize linear potential as explained above.
 Since potential is associated with the \emph{structure} of a value and not the particular heap 
-locations, we it is helpful to introduce a mapping from
+locations, it is helpful to introduce a mapping from
 heap values to semantic values of a type. 
-First give a denotational semantics for (define the structures of) the first-order types: 
+First, we give a denotational semantics for (define the structures of) the first-order types: 
   \begin{minipage}{0.4\linewidth}
 \begin{align*}
 	\denote{\unittyabt} &= \{\val{\irl{Null}}\}\\
@@ -826,7 +826,7 @@ First give a denotational semantics for (define the structures of) the first-ord
 \consexcst{a}{l} &\in \denote{L(A)} \text{ if } a \in \denote{A} \text{ and } l \in \denote{L(A)}\\
 \end{align*}
   \end{minipage}\\
-The set for each type is the least set such that the above holds. As usual, we write $[a_1,...,a_n]$ for $\consexcst{a_1}{,...,\consexcst{a_n}{\nilexcst}}$.
+The meaning of each type is the least set such that the above holds. As usual, we write $[a_1,...,a_n]$ for $\consexcst{a_1}{,...,\consexcst{a_n}{\nilexcst}}$.
 
 \begin{figure}[t!]
   \centering
@@ -905,11 +905,14 @@ potential.  Given a structure $a$ in a heap $H$, where  $H \vDash v \mapsto a : 
 its potential $\Phi_H(a : A)$ by recursion on $A$: 
 %
 \begin{align*}
-&\Phi_H(a : A) = 0 &A \in \{\unittycst, \booltyabt, \irl{nat}\}\\
-&\Phi_H(\pairexcst{a_1}{a_2} : \prodtycst{A_1}{A_2}) = \Phi_H(a_1 : A_1) + \Phi_H(a_2 : A_2)\\
-&\Phi_H([a_1,...a_n] : L^p(A)) = p\cdot n + \sum_{1 \le i \le n} \Phi_H(a_i : A)  
+	&\Phi_H(v : A) = 0 &\text{ if } A \in \{\unittycst, \booltyabt, \irl{nat}\}\\
+&\Phi_H(\pairexcst{v_1}{v_2} : \prodtycst{A_1}{A_2}) = \Phi_H(v_1 : A_1) + \Phi_H(v_2 : A_2)\\
+	&\Phi_H(l : L^p(A)) = p + \Phi_H(v_h : A) + \Phi_H(v_T : L^p(A)) &\text{ if } 
+		H(l) = \pairexcst{v_h}{v_h}
+	%p\cdot n + \sum_{1 \le i \le n} \Phi_H(a_i : A)  
 \end{align*}
 %
+Write $\Phi_{V,H}(\Gamma)$ for $\Sigma_{x \in dom(V)} \Phi_H(V(x) : \Gamma(x))$.\\
 Now define $A \curlyvee A_1,A_2,n$ as the sharing relation for resource-annotated types:
 \begin{align*}
 	&L^p(A) \curlyvee^n L^q(A_1),L^r(A_2) & \text{if } p = q + r + n \;\text{and}\; 
@@ -1031,7 +1034,7 @@ local garbage collection by returning the potential associated with the construc
 \]}
 
 This is validated by the fact (Lemma \ref{itm:na}) that in the auxiliary copying semantics
-(introduced in Section~\ref{sect:soundness}), once a cons-cell is matched on, 
+(introduced in later), once a cons-cell is matched on, 
 there can be no live references from the root set to it, and thus 
 we are justified in restituting the potential to type the subexpression $e_2$.
 
@@ -1056,9 +1059,9 @@ annotations set to 1.
 
 Now, we can give now the improved space overhead bound to \texttt{append} and \texttt{appTwice}:
 \begin{align*}
-	&\texttt{append} : \prodtycst{L^p(\irl{int})}{L^q(\irl{int})} \xrightarrow{r/r} L^s\irl{int}),
+	&\texttt{append} : \prodtycst{L^p(\irl{int})}{L^q(\irl{int})} \xrightarrow{r/r} L^s(\irl{int}),
 	\text{ where } p \ge s \text{ and } q \ge s\\
-	&\texttt{appTwice} : L^p(\irl{int}) \xrightarrow{q/q} \prodtycst{L^r(\irl{int})}{L^s(\irl{int})}
+	&\texttt{appTwice} : L^p(\irl{int}) \xrightarrow{q/q} \prodtycst{L^r(\irl{int})}{L^s(\irl{int})},
 	\text{ where } p + q \ge r + s + 1
 \end{align*}
 
@@ -1135,7 +1138,7 @@ $\ctxeq{V_2,H_2}{V_2,H_2}$
 \end{definition}
 
 Stated simply, two contexts are equivalent when they have the same domain and equal variables bind equal 
-semantic values (structures defined in Section~\ref{sect:lfp}).
+semantic values (defined in Section~\ref{sect:lfp}).
 
 \textbf{Linear Garbage Collection Cost Semantics}
 \label{sect:copy}
@@ -1180,16 +1183,16 @@ is the size of the reachable set of the value.
 Now, consider \gcSem{} with the share rule F:Share replaced with the following rule.
 {\small \[
 \inferrule{
-	V(x) = v\\
+	V(x) = v'\\
   L \subseteq F\\
   |L| = |dom(reach_H(v'))|\\
   H',v'' = copy(H,L,v')\\
-	V_2 = (V[x_1 \mapsto v',x_2 \mapsto v'']) \restriction_{FV(e)}\\
+	V' = (V[x_1 \mapsto v',x_2 \mapsto v'']) \restriction_{FV(e)}\\
 	F' =	F \setminus L\\
-	g = \{l \in H \mid l \notin F' \cup R \cup locs_{V_2,H}(e)\}\\
- 	V_2,H',R,F' \sqcup g \; \vdash e \Downarrow v,H'',F'
+	g = \{l \in H \mid l \notin F' \cup R \cup locs_{V',H}(e)\}\\
+ 	V',H',R,F' \sqcup g \; \vdash e \Downarrow v,H'',F''
 }{
-  V,H,R,F \; \vdash \sharecpcst{x}{x_1}{x_2}{e} \Downarrow v,H'',F'
+  V,H,R,F \; \vdash \sharecpcst{x}{x_1}{x_2}{e} \Downarrow v,H'',F''
 }(\text{E:Share})
 \]}
 
@@ -1255,7 +1258,7 @@ as $collect(R,L,H',F') = \{l \in H' \mid l \notin F' \cup R \cup L\}$.
 The well-formed conditions ensure the stack and continuation sets are within the active region
 of the heap $H \setminus F$, and that
 the active region of the heap does not contain garbage -- all garbage locations 
-are already in the freelist. Although we can leave this condition out, it unnecessary 
+are already in the freelist. Although we can leave this condition out, it unnecessarily 
 complicates the presentation of the theorem. 
 
 Now, we can present the following 
@@ -1283,8 +1286,8 @@ The intention is that $\mathcal{C}_2$ is a configuration for initiating an evalu
 
 The first condition is the straightforward context equivalence.
 The second condition requires the existence of 
-a mapping $\gamma$ that tells us given a location in $H_1$, which locations in $H_2$ 
-are shared instances.
+a mapping $\gamma$ that tells us given a location in $H_1 \setminus F_1$, which locations in 
+$H_2 \setminus F_2$ are shared instances.
 
 For example, consider the expression $\sharecst{x}{x_1}{x_2}{e}$ and
 assume the stack is $[\texttt{x} \mapsto 1]$, and the heap equals 
@@ -1302,7 +1305,8 @@ fact that the size of $\gamma(l)$ must be the sum of the number of references fr
 the continuation set. Furthermore, we also require each subset $\gamma(l)$ (also referred to as class)
 to be nonempty (this is the \emph{proper} partition condition).
 
-While $\gamma$ gives us a relation between the two respective heaps, we still need to know 
+While $\gamma$ gives us a relation between the active regions of two respective heaps, 
+we still need to know 
 exactly how variables on the stack factor in this relationship. Let $l \in H_1$. 
 Specifically, we need to know that the number of references to $l$ from every \emph{sub}value
 in $V_1$ is equal to the size of the corresponding part of the class $\gamma(l)$.  
@@ -1338,7 +1342,7 @@ the intersection of the reachable set of the corresponding subvalue in $V_2$
 with the appropriate class $\gamma(l)$ .
 
 The next condition simply states that the continuation sets respect $\gamma$. Lastly, 
-we have have that $F_1$ is greater $F_2$, with the overhead $\oh{\gamma}$ being exactly the sum 
+we have have that $F_1$ is greater than $F_2$, with the overhead $\oh{\gamma}$ being exactly the sum 
 $\sum_{l \in \gamma} |\gamma(l)| - 1$ 
 (since each class is non-empty, we use $rep(l)$ to choose an arbitrary element of the class $\gamma(l)$). 
 
@@ -1346,7 +1350,7 @@ Now we can formulate the key lemma:
 
 \begin{lemma}
 	Let $(\mathcal{C}_2,e)$ be a linear computation. Given that 
-	$\mathcal{C}_2 \vdash^{\mathsf{copy}} e \Downarrow v,H',F'$, and $H' \vDash v \mapsto a : A$, 
+	$\mathcal{C}_2 \vdash^{\mathsf{copy}} e \Downarrow v,H',F'$,
 	for all well-formed configurations $\mathcal{C}_1$ such that $\mathcal{C}_1 \preceq \mathcal{C}_2$,
 there is exists a triple
 $(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ and 
@@ -1363,29 +1367,28 @@ $(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ and
 	\end{enumerate}
 \end{lemma}
 
-The third condition deserves some explanation. The size of $\gamma(l)$ should equal the total number 
-of ways $l$ could be reached from the root set in the \gcSem evaluation. This includes 
-$reach_{Y_1}(w_1)(l)$ and $S(l)$, but also any paths to $l$ had been collected during the run 
-(this accounts for unused variables that referenced $l$).
+\begin{proof}
+	Induction on the evaluation judgment $\vdash^{\copySem{}}$.
+\end{proof}
 
-Thus, we have shown that we can execute a computation using the 
+Thus, we have shown that we can execute a computation using 
 \gcSem if the computation suceeded in a run with \copySem, and that indeed 
 \copySem is an over approximation of \gcSem.
 
 \textbf{Soundness of $\copySem$}
 \label{sect:soundcopy}
 As mentioned above, we introduce an standard big step semantics $\fbox{$V,H \vdash e \Downarrow v,H'$}$
-that does not use freelists or accounts for garbage collection. We use
+that does not use freelists or account for garbage collection. We use
 it to characterize expressions that normalize to values when initialized with a sufficient 
-freelist.  This technique has also be  employed in earlier work on AARA~\cite{Hofmann:2003:SPH:604131.604148}.
+freelist.  This technique has also been employed in earlier work on AARA~\cite{Hofmann:2003:SPH:604131.604148}.
 
 Let this auxiliary semantics be $\mathcal{E}_{\ms{oper}}$. Here, the ``freelist'' is the whole ambient set of locations $\ms{Loc}$, 
 thus we never run out of locations during evaluation. This introduces a problem 
 already present in the previous section when we related \copySem{} and \gcSem{}, 
 which we solved with value and context equivalence. We give a bit more explanation here.
-When comparing evaluation results between a run with \copySem{} and $\mathcal{E}_{\ms{oper}}$, as the return values 
+When comparing evaluation results between a run with \copySem{} and $\mathcal{E}_{\ms{oper}}$, the return values 
 might not be syntatically equal. Consider the following expression
-\texttt{let \_ = [4] in [5]}
+\texttt{let \_ = [4] in [5]}.
 %
 Assuming locations are natural numbers, and we run \copySem{} with the freelist $\{1\}$. 
 First, 1 is allocated and mapped to $\texttt{[4]}$. 
@@ -1418,13 +1421,14 @@ then there exists a triple $(v,H',F')$, and a freelist $F'$ s.t.
 In other words, given a terminating expression (verified by succeeding with the run using $\mathcal{E}_{\ms{oper}}$)
 and given a freelist that is sufficiently large (as predicated by the type derivation), 
 a run with \copySem will normalize to an equivalent value, and the resulting freelist 
-will be sufficiently large (as predicated by the type derivation). The 5-place predicate $\ms{linear}$ 
+will be sufficiently large (as predicated by the type derivation). The 5-place predicate
+$\ms{linearComp}$ 
 is defined as follows. First, we characterize semantically linear contexts: 
 
 \begin{definition}(Linear context)
 Given a context $(V,H)$, let
 $x,y \in dom(V)$, $x \ne y$, and $r_x = reach_H(V(x))$, $r_y = reach_H(V(y))$.
-	It is \emph{linear} given that  $\ms{set}(r_x), \ms{set}(r_y)$, and $r_x \cap r_y = \emptyset$.
+	It is \emph{linear} given that  $\ms{set}(r_x)$, $\ms{set}(r_y)$, and $r_x \cap r_y = \emptyset$.
 \end{definition}
 
 Where $\ms{set}(S)$ means $S$ a proper set ($S(x) \le 0 \forall x$). 
@@ -1461,7 +1465,7 @@ for function closures and analyzing the heap-space usage of closures
 still amounts to counting allocations only. The main changes that
 where necessary have been in the rules for sharing and pattern
 matching as described earlier. We also needed to change some
-elaboration passes that were not cost preserving anymore with
+elaboration passes that were no longer cost preserving with
 the GC cost model.
 
 The garbage collection cost semantics is implemented as an alternative evaluation module inside
@@ -1475,11 +1479,11 @@ In the gc evaluation module, \texttt{evaluate} has the following signature:
 \end{verbatim}
 }
 Here, the second argument \texttt{int} specifies the size of the initial freelist.
-The result is a triple of the return value, heap, and freelist, or \texttt{None} 
+The result is an option triple of the return value, heap, and freelist; \texttt{None} is returned
 in case the freelist was not sufficient for the evaluation.
 Whereas the normal evaluation boxes every value (everything evaluates to a location), 
 the gc module follows the cost semantics and only boxes data constructors. The rationale is
-that the size for other values can be computed statically and stack allocated. One difference
+that the size for other values can be computed statically and thus stack allocated. One difference
 between the cost semantics and its implementation is that while in the language presented here
 list is the only data type, our implementation supports user defined data types. The extension
 is straightforward except the treatment of the nil constructor, or generally ``empty'' constructors
@@ -1487,8 +1491,8 @@ that has arity zero. For simplicity of presentation, we evaluate all nil constru
 the same null value in the cost semantics. This is natural for lists because all nil constructors 
 are the same, and every list has at most one nil node. However, for custom data types that have 
 more than one kind of empty constructor, it is not possible to map every constructor to the same 
-null value. Thus, the implementation treats all constructors uniformly, so each nil constructor
-also cost one heap location. 
+null value. Thus, the implementation treats all constructors uniformly, so each empty constructor
+also costs one heap location. 
 
 As mentioned before, all functions used in a program are declared in a global mutually 
 recursive block, and we do not account for the constant space overhead for this block in 
@@ -1542,12 +1546,13 @@ quicksort is 'a list). In general, M refers to the number of cons constructors o
 argument (or the number of \emph{outer} cons nodes in case of nested lists); L refers to the
 maximum number of cons nodes of the inner lists.
 
-For the sorting functions aside from mergesort, the new analysis using the gc metric
+For the sorting functions, aside from mergesort, the new analysis using the gc metric
 derived asymptotically better bounds when compared to the heap metric. Furthermore,
 all bounds are \emph{exact} with respect to the cost semantics. In regards to mergesort, 
 the analysis was not able to derive a tight bound due to the limitations of AARA in deriving 
-logarithmic bounds. A particularly nice result is that we can deduce for quicksort, 
-the space usage is exactly 0, which justifies its use as a zero space-overhead sorting algorithm.
+logarithmic bounds. A particularly nice result is that for quicksort, we derive that
+the space usage is exactly 0, which justifies its use as a zero space-overhead 
+(or ``in  place'') sorting algorithm.
 
 Next, we have have the graph search algorithms operating on a binary tree. Again, the gc metric
 was able to derive exact space overheads, while the heap metric derived linear bounds for both.
@@ -1565,12 +1570,12 @@ The last two functions demonstrate how the gc metric performs when there is vari
 map\_it maps the input function across each list in the principal argument twice, returning a
 tuple of nested lists. The gc metric dictates that every outer data constructor in the 
 principal argument needs to be copied, and thus gives the linear bound M + 1. In this case,
-the bound is exact. The pairs functions takes a list and outputs a all pairs of the input list 
+the bound is exact. The pairs functions takes a list and outputs all pairs of the input list 
 which are ordered ascending in input position. For example, 
 pairs [1;2;3;4] = [(1,2);(1,3);(1,4);(2,3);(2.4);(3,4)]. For pairs, the gc metric derived a bound
 that is asymptotically the same as the heap metric, but with better constants. An exact bound 
 could not be derived because the deallocation potential from the pattern match in the 
-definition of pairs is wasted because the matched body could already be typed with zero cost. 
+definition of pairs is wasted since the matched body could already be typed with zero cost. 
 However, this deallocation is used as usual in the cost semantics. Thus the slack in the bound 
 totals to the size of the input. % This example shows a weakness in the new gc metric and analysis; 
 % we discuss possible solutions and different approaches in the next sections. 
@@ -1639,11 +1644,12 @@ with respect to the cost semantics.
 One direction for future work is using the \emph{cost free} metric $\ms{cf}$ to model global garbage 
 collection. In $\ms{cf}$, all resource constants, including constructor nodes, are set to 0.
 A cost-free typing judgment then captures how an expression 
-manipulates the structures in the context into the
-the structure induced by its type. Using this fact, we could express \emph{maximum} in the sequential
+manipulates the structures in the context into
+the structure induced by its type. Using this fact, we could express the \emph{maximum}
+space usage in the sequential
 composition $\irl{let}(e_1; x : \tau.e_2)$ by analyzing $e_1$ twice---once with the cost-free metric 
 and once with the regular metric---and assign potential to $x$ using the result type in the cost-free typing.
-In \cite{Hoffmann:2015:ASC:2769448.2769449}, the authors have successfully employed this 
+In prior work \cite{Hoffmann:2015:ASC:2769448.2769449}, the authors have successfully employed this 
 cost-free metric to analyze parallel programs. Here, the difficulty is showing
 the simultaneous soundness of both destructive pattern matching and the cost-free composition. 
 Another complication is the choice between local variable sharing and global context sharing.
@@ -1657,11 +1663,11 @@ closures, which is not an improvement over the existing
 implementation.  Ideally, we would like to account for deallocation at
 function applications and treat closures similar to other data
 structures in sharing. However, the size of closures cannot be
-determined easily statically and closures can currently not capture
-potential and are shared freely in RaML.  As a result, the techniques
+determined easily statically and closures can not capture
+potential and are currently shared freely in RaML.  As a result, the techniques
 we developed here do not directly carry over to closures.
 
-Finally, we are interesting in exploring if our work can be used to
+Finally, we are interested in exploring if our work can be used to
 improve the efficiency of garbage collection in languages like
 OCaml. A guaranteed upper bound on the heap space can be used in
 different ways to control the frequency of the collections and the
@@ -2016,7 +2022,7 @@ Nested induction on the evaluation judgement and the typing judgement.\\
   \begin{align*}
   &\text{Suppose } H \vDash V : \Gamma, dom(V) = FV(e), \na{V,H}, \dist{\{R,F,locs_{V,H}(e)\}}\\
   &\Sigma; \Gamma' \vdash e_1 : B \tag{ad.}\\
-  &V,H,R,F \cup g \; \vdash e_1 \Downarrow v, H',F' \tag{ad.}\\
+  &V',H,R,F \cup g \; \vdash e_1 \Downarrow v, H',F' \tag{ad.}\\
   &H \vDash V' : \Gamma' \tag{def of W.D.E}\\
   &\text{By IH, we have invariant on the premise } \\
   &\text{NTS (1) - (3) to instantiate invariant on the premise } \\
@@ -2037,7 +2043,6 @@ Nested induction on the evaluation judgement and the typing judgement.\\
   &V'',H,R,F \cup g \; \vdash e_2 \Downarrow v_2, H_2, F' \tag{ad.} \\
   &\text{Suppose } H \vDash V : \Gamma, dom(V) = FV(e), \na{V,H},\dist{\{F,R,locs_{V,H}(e)\}}\\
   &H \vDash V(x) : L(A) \tag{def of W.D.E}\\
-  &H''\vDash v_h : A,\; H'' \vDash v_t : L(A) \tag{ad.}\\
   &H\vDash v_h : A,\; H \vDash v_t : L(A) \\
   &H \vDash V'' : \Gamma', x_h : A, x_t : L(A) \tag{def of W.D.E}\\
   &\text{By IH, we have invariant on the premise} \\
@@ -2070,7 +2075,7 @@ Nested induction on the evaluation judgement and the typing judgement.\\
   &\quad x' \in FV(e) \tag{def of $FV$}\\
   &\quad l' \in locs_{V,H}(e) \tag{def of $locs_{V,H}$}\\
   &\quad l' \notin R \tag{$\dist{\{R,F,locs_{V,H}(e)\}}$}\\
-  &\textbf{case: }  l' \in reach_{H}(V''(x_h)) \\tom
+  &\textbf{case: }  l' \in reach_{H}(V''(x_h)) \\
   &\quad l' \in reach_{H}(v_h)\\
   &\quad l' \in reach_{H}(V(x)) \tag{def of $reach$}\\
   &\quad l' \in locs_{V,H}(e) \tag{def of $locs_{V,H}$}\\
@@ -2463,7 +2468,7 @@ Note that $\preceq$ is reflexive. Now the key lemma:
 
 \begin{lemma}
 	Let $(\mathcal{C}_2,e)$ be a linear computation. Given that 
-	$\mathcal{C}_2 \vdash^{\mathsf{copy}} e \Downarrow v,H',F'$, and $H' \vDash v \mapsto a : A$, 
+	$\mathcal{C}_2 \vdash^{\mathsf{copy}} e \Downarrow v,H',F'$, 
 	for all well-formed configurations $\mathcal{C}_1$ such that $\mathcal{C}_1 \preceq \mathcal{C}_2$,
 there is exists a triple
 $(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ and 
