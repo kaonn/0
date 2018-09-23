@@ -12,6 +12,8 @@
 
 \documentclass{beamer}
 
+\usepackage{adjustbox}
+\usepackage{booktabs}
 \usepackage{fullpage}
 \usepackage{latexsym}
 \usepackage{verbatim}
@@ -30,17 +32,64 @@
 \usepackage{graphicx}
 \usepackage{hyperref}
 \usepackage{tikz}
-\usepackage{minted}
+\usepackage[cache=false]{minted}
+\graphicspath{ {./} }
 \usetikzlibrary{shapes.geometric, arrows}
 \newcommand{\ms}[1]{\ensuremath{\mathsf{#1}}}
 \newcommand{\irl}[1]{\mathtt{#1}}
-\newcommand{\nilexabt}{\irl{nil}}
-\newcommand{\consexabt}[2]{\irl{cons}(#1;#2)}
-\newcommand{\listcaseexabt}[5]{\irl{case}(#1)\{#2; #3,#4. #5\}}
-\newcommand{\listcaseexcst}[5]{\irl{case}(#1)\{[] \hookrightarrow #2; #3::#4 \hookrightarrow #5\}}
-\newcommand{\fixexabt}[3]{\irl{fix}\{#2\}(#1.#3)}
-\newcommand{\fixexcst}[3]{\irl{fix}(#1:#2.#3)}
 
+\newcounter{rule}
+\setcounter{rule}{0}
+\newcommand{\rn}
+  {\addtocounter{rule}{1}(\arabic{rule})}	
+
+\newcounter{infercount}
+\setcounter{infercount}{1}
+\newcommand{\infern}[2]{\inferrule{#1}{#2}(\text{S}_{\arabic{infercount}}\stepcounter{infercount})}
+\newcommand*\ts[2]{%
+  \,\scalebox{1}[0.5]{$\sststile[ss]{\textstyle#1}{\textstyle#2}$}\,
+}
+\newcommand{\inferr}[2]{\inferrule{#2}{#1}}
+\newcommand{\inferrr}[3]{\inferrule[#1]{#2}{#3}}
+\newcommand{\paircaseabt}[4]{\irl{match_P}(#2,#3.#4)}
+\newcommand{\paircasecst}[4]{\irl{match} \; #1\; \{(#2;#3) \hookrightarrow #4\}}
+\newcommand{\na}[1]{\mathsf{linearCtxt}(#1)}
+\newcommand{\nr}[1]{\mathsf{no\_ref}(#1)}
+\newcommand{\stable}[1]{\mathsf{stable}(#1)}
+\newcommand{\set}[1]{\mathsf{set}(#1)}
+\newcommand{\safe}[1]{\mathsf{safe}(#1)}
+\newcommand{\dist}[1]{\mathsf{disjoint}(#1)}
+\newcommand{\stack}[1]{\irl{stack}(#1)}
+\newcommand{\denote}[1]{\llbracket#1\rrbracket}
+\newcommand{\nil}{[]}
+\newcommand{\cons}[2]{\pi(#1,#2)}
+\newcommand{\sharecst}[4]{\irl{share}\;#1\;\irl{as}\;#2,#3\;\irl{in}\;#4}
+\newcommand{\sharecpcst}[4]{\irl{share}\;#1\;\irl{as}\;#2,#3\;\irl{in}\;#4}
+\newcommand{\shareabt}[4]{\irl{share}(#1;#2,#3.#4)}
+\newcommand{\ssize}[2]{\left\Vert #2 \right\Vert_{#1}}
+\newcommand{\card}[1]{card(#1)}
+\newcommand{\val}[1]{\irl{val}(#1)}
+\newcommand{\gc}[3]{\mathsf{gc}(#1,#2,#3)}
+\newcommand{\wfc}[5]{\mathsf{linearComp}(#1,#2,#3,#4,#5)}
+\newcommand{\veq}[4]{#3 \sim^{#1}_{#2} #4}
+\newcommand{\ctxeq}[2]{(#1) \sim (#2)}
+\newcommand{\oh}[1]{\oslash(#1)}
+\newcommand{\fogc}{\ms{FO}^{gc}}
+\newcommand{\jan}[1]{{\color{red} [\emph{Jan: #1}]}}
+\newcommand{\yue}[1]{{\color{blue} [\emph{Yue: #1}]}}
+\newcommand{\gcSem}{\ensuremath{\mathcal{E}_{\ms{gc}}}}
+\newcommand{\copySem}{\ensuremath{\mathcal{E}_{\ms{copy}}}}
+\newtheorem{attempt}{Attempt}
+\theoremstyle{definition}
+
+\input{./generic-defns}
+\input{./syn-defns}
+\input{../pfpl/fun-defns}
+\input{../pfpl/pcf-defns}
+\input{../pfpl/prod-defns}
+\input{../pfpl/sum-defns}
+\input{../pfpl/icoi-defns}
+\input{../pfpl/t-defns}
 
 
 % There are many different themes available for Beamer. A comprehensive
@@ -75,26 +124,26 @@
 %\usetheme{Singapore}
 %\usetheme{Szeged}
 %\usetheme{Warsaw}
-\title{Enumerating Inductive Types with Combinatorial Species}
+\title{Automated Space Bounds for Programs with Garbage Collection}
 
 % A subtitle is optional and this may be deleted
 \subtitle{}
 
-\author{Yue Niu}
+\author{Yue Niu \and Jan Hoffmann}
 % - Give the names in the same order as the appear in the paper.
 % - Use the \inst{?} command only if the authors have different
 %   affiliation.
 
 \institute[Carnegie Mellon University] % (optional, but mostly needed)
 {
-  \inst{1}%
+  %
   Department of Computer Science\\
 	Carnegie Mellon University
 }
 % - Use the \inst command only if there are several affiliations.
 % - Keep it simple, no one is interested in your street address.
 
-\date{May 2018}
+\date{Sep 2018}
 % - Either use conference name or its abbreviation.
 % - Not really informative to the audience, more for people (including
 %   yourself) who are reading the slides online
@@ -133,597 +182,569 @@
 
 % Section and subsections will appear in the presentation overview
 % and table of contents.
-\section{Introduction}
+\section{Cost Semantics}
 
-\begin{frame}{Problem}
-Fix a combinatorial problem as a tuple $(\mathcal{I},\mathcal{S},v,m)$, 
-where $\mathcal{I}$ is the set of instances 
-of the problem, and $\mathcal{S}$ are the set of solutions. A verifier 
-$v : \mathcal{I} \times \mathcal{S} \to \irl{bool}$ is a function that returns true iff the given solution 
-is valid for the given instance.  
-A metric $m : \mathcal{S} \to \mathbb{R}$ is a measure of the optimality of a solution. 
-An algorithm $a : \mathcal{I} \to \mathcal{S}$ is then a procedure of finding the optimal solution 
-to each instance of a problem.
+\begin{frame}{Resource Aware ML}
+  Extension of RaML to deal with garbage collected programs. 
 \end{frame}
 
-\begin{frame}{Goal}
-Generate an algorithm $a$ for a problem $(\mathcal{I},\mathcal{S},v,m)$\\
-Criteria:
-\begin{itemize}
-\item Generic in the problem
-\item Has a proof of correctness
-\end{itemize}
+\begin{frame}{Cost Semantics}
+  \begin{itemize}
+  \item Natural semantics
+  \item Environment + heap + freelist
+  \item Reachability
+    \end{itemize}
 
-What?
+    \begin{center}
+      \includegraphics[scale=0.5]{memory}
+      \end{center}
 \end{frame}
 
-\begin{frame}{Correctness}
-There are many reasonable definitions of correctness: pen and paper proof, unit testing, 
-proof by typechecking (!)\\
+\begin{frame}{Natural Semantics}
+  \begin{itemize}
+  \item Variables\; $\ms{Var} ::= x_1,x_2,...$
+    \item Locations\; $\ms{Loc} ::= l_1,l_2,...$
+    \item Values\; $\ms{Val} ::= \irl{T} ,\irl{F}, \mathbb{N}, \ms{Loc}, \pairexcst{v_1}{v_2} $
+    \item Stacks: $\ms{Var} \to \ms{Val}$
+    \item Heaps: $\ms{Loc} \to \ms{Val}$
+    \end{itemize}
 
-Actually, the last method is basically the idea behind \emph{formal verification}, and this is (we think)
-the most widely accepted and safe way of establishing the correctness of programs.
-\begin{itemize}
-\item Coq
-\item Agda
-\item Isabelle
-\item Idris
-\item ...
-\end{itemize}
+    \[V,H \vdash e \Downarrow v,H'\] Under stack $V$ heap $H$, $e$ evaluates to
+    value $v$ and heap $H'$
 \end{frame}
-
-\begin{frame}{Plan}
-Write a \emph{generic} and \emph{formally verified} procedure in Coq
-that generates the algorithm for a problem specification. 
-\end{frame}
-
-\begin{frame}[fragile]{Brute Force}
-Don't think, just do: 
-
-\begin{verbatim}
-fun (i : I) => 
-  let	candidates = filter (fun s => v (i,s)) (enumerate S)
-    ranked = map (fun s => (m s, s)) candidates
-  in 
-  max (fun ((m1,_),(m2,_)) => m1 >= m2) candidates
-\end{verbatim}
-\end{frame}
-
-\begin{frame}{Enumerating $\mathcal{S}$}
-Simple algorithm. But how to actually get a list of all (?) the elements of $\mathcal{S}$?
-There are a couple approaches: \\
-\begin{itemize}
-\item Functional enumeration \footnote{http://www.cse.chalmers.se/~almstroj/lic.pdf}
-\item Combinatorial species: \footnote{see Brent Yorgey's thesis: https://www.cis.upenn.edu/~sweirich/papers/yorgey-thesis.pdf}
-\end{itemize}
-
-Even more specifically, we are interested in enumerating a particular class of structures $\mathcal{S}$: 
-containers. In functional programming, this is closely related to the idea of functors (i.e. type operators).\\
-
-Combinatorial species has a similar flavor; turns out there are very interesting mathematical properties 
-associated with structures arising from these species. 
-\end{frame}
-
-\tikzstyle{process} = [rectangle, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=orange!30]
-\tikzstyle{arrow} = [thick,->,>=stealth]
-\begin{frame}{The Plan}
-The pipe-line:\\
-\begin{tikzpicture}[node distance=2cm]
-\node (n1) [process] {Gallina type $\tau$};
-\node (n2) [process, right of=n1, xshift=5cm] {Reified type $\eta$};
-\node (n3) [process, below of=n2, yshift=-2cm] {list of Gallina Terms $\irl{list}(\tau)$};
-\draw [arrow] (n1) -- node[anchor=north] {(1) Template coq} (n2);
-\draw [arrow] (n2) -- node[anchor=east] {(2) Enumerate $\eta$} (n3);
-\end{tikzpicture}
-
-For this talk, we focus on (2).
-\end{frame}
-
-\section{Type Theory}
-
-\begin{frame}{Type Theory}
-
-Pass the blame:
-
-\begin{itemize}
-\item Programmer's view: types $\iff$ specifications; terms $\iff$ programs
-\item Logician's view: types $\iff$ propositions; terms $\iff$ proofs 
-\end{itemize}
-
-Inductive rules for constructing the syntax and semantics of a language. 
-\end{frame}
-
-\begin{frame}[fragile]{Types}
-\[
-\begin{array}{r l l l l}
-\ms{Types} & \tau \,\,\,\,\, ::= \\
-	& \irl{nat}                	 			& \irl{nat}											& \text{naturals}\\
-	& \irl{list}(\tau)								& \irl{list}(\tau)    &\text{lists}\\
-	& \irl{arr}(\tau_1;\tau_2)				& A \to B							&\text{functions}\\
-\ms{Exps} & e \,\,\,\,\, ::= \\
-	& \bar{n}                	 			& n											& \text{number}\\
-  & \irl{let}(e_1; x : \tau.e_2)			& \irl{let}\; x = e_1 \; \irl{in}\; e_2   	& \text{composition}\\
-  & \irl{lam}(x:\tau.e) 						&\lambda \; x : \tau. e 		& \text{abstraction}\\
-  & \irl{ap}(f;x) 					& f \; x 										& \text{application}\\
- 	& \nilexabt					& []   										& \text{nil}\\
- 	& \consexabt{x_1}{x_2}					& x_1::x_2   										& \text{cons}\\
- 	& \listcaseexabt{l}{e_1}{x}{xs}{e_2}					& \listcaseexcst{l}{e_1}{x}{xs}{e_2}   	& \text{match list}\\
-	&	\fixexabt{x}{\tau}{e}						&\fixexcst{x}{\tau}{e}				&\text{recursion}\\
-\end{array}
-\]
-\end{frame}
-
-\begin{frame}[fragile]{Typing Judgments}
-Contexts $\Gamma ::= \cdot \mid \Gamma,x$
-\begin{mathpar}
-\inferrule{
-}{
-	\Gamma,x : \tau \vdash x : \tau
-}
-
-\inferrule{
-	\Gamma \vdash e_1 : \tau_1\\
-	\Gamma, x : \tau_1 \vdash e_2 ; \tau_2
-}{
-	\Gamma \vdash \irl{let}(e_1; x : \tau.e_2) : \tau_2	
-}
-
-\inferrule{
-	\Gamma, x : \tau \vdash e : \tau'
-}{
-	\Gamma \vdash \irl{lam}(x:\tau.e) : \tau \to \tau'	
-}
-
-\inferrule{
-	\Gamma \vdash f : \tau \to \tau'\\
-	\Gamma \vdash x : \tau
-}{
-	\Gamma \vdash \irl{ap}(f;x) : \tau'
-}
-
-\inferrule{
-	\Gamma, x : \tau \vdash e : \tau
-}{
-	\Gamma \vdash \fixexabt{x}{\tau}{e}	: \tau	
-}
-\end{mathpar}
-\end{frame}
-
-\begin{frame}[fragile]{Operational Semantics}
-\begin{mathpar}
-\inferrule{
-	e_1 \longmapsto e_1'
-}{
-	\irl{e_1}{e_2} \longmapsto \irl{e_1'}{e_2} 
-}
-
-\inferrule{
-	e_2 \longmapsto e_2'
-}{
-	\irl{ap}(\irl{lam}(x:\tau.e);e_2) \longmapsto 	\irl{ap}(\irl{lam}(x:\tau.e);e_2')
-}
-
-\inferrule{
-	e_2 \; \irl{val}
-}{
-	\irl{ap}(\irl{lam}(x:\tau.e);e_2) \longmapsto [e_2/x]e 
-}
-
-\inferrule{
-}{
-	\fixexabt{x}{\tau}{e}	\longmapsto [\fixexabt{x}{\tau}{e}/x]e
-}
-\end{mathpar}
-\end{frame}
-
-\begin{frame}[fragile]{Hello World: Append}
-\begin{minted}{ocaml}
-let append l1 l2 = 
-fix f : list nat -> list nat -> list nat in 
-  match l1 with 
-  | [] -> l2
-  | x::xs -> x :: f xs l2
-\end{minted}
-\end{frame}
-
-\begin{frame}[fragile]{Coq}
-Coq's internal logic is the "Predicative Calculus of
-Cumulative Inductive Constructions" (pCuIC).
-
-\end{frame}
-
-\begin{frame}[fragile]{pCuIC}
-\begin{figure}
-  \includegraphics[width=\textwidth,height=0.9\textheight,keepaspectratio]{inductive.png}
-  \caption{A boat.}
-  \label{fig:boat1}
-\end{figure}
-\end{frame}
-% You can reveal the parts of a slide one at a time
-% with the \pause command:
-\begin{frame}[fragile]{Inductive Types}
-\begin{minted}{coq}
-Inductive tau (x1 : p1) ... (xn : pn) : i1 -> ... im -> S :=  
-| c1 : a_1,1 -> .... -> a_1,c1 -> tau p1 ... pn
-| ...
-| ck : a_1,k -> .... -> a_1,ck -> tau p1 ... pn
-\end{minted}
-
-\begin{itemize}
-\item $\texttt{tau}$: inductive type
-\item $\texttt{p1} ... \texttt{pn}$: parameter types
-\item $\texttt{i1} ... \texttt{im}$: index types
-\item $\texttt{c1} ... \texttt{ck}$: constructors
-\item $\texttt{S}$: sort (one of $\{\texttt{Type},\texttt{Prop}\}$)
-\end{itemize}
-
-\end{frame}
-
-\begin{frame}[fragile]{ML Types}
-\begin{minted}{coq}
-Inductive nat : Set :=  
-| O : nat 
-| S : nat -> nat
-
-Inductive list (A : Type) : Type :=  
-| nil : list A 
-| cons : A -> list A -> list A
-\end{minted}
-\end{frame}
-
-\begin{frame}[fragile]{Append}
-\begin{minted}{coq}
-Definition app (A : Type) : list A -> list A -> list A :=
-  fix app l m :=
-  match l with
-   | nil => m
-   | cons a l1 => cons a (app l1 m)
-  end.
-
-> Check app.
-     : forall A : Type, list A -> list A -> list A
-\end{minted}
-\end{frame}
-
-\begin{frame}[fragile]{Getting Dependent}
-\begin{minted}{coq}
-Inductive ilist (A : Type) : nat -> Type :=
-| INil : ilist A 0 
-| ICons : forall n : nat, A -> ilist A n -> ilist A (S n)
-
-> Check ICons "a" (ICons "b" (ICons "c" INil)).
-     : ilist string 3
-\end{minted}
-\end{frame}
-
-\begin{frame}[fragile]{Heterogeneous Lists}
-\begin{minted}{coq}
-Variable A : Type.
-Variable B : A -> Type.
-
-Inductive hlist : list A -> Type :=
-| HNil : hlist nil
-| HCons : forall (x : A) (ls : list A),
-	 B x -> hlist ls -> hlist (x :: ls). 	
-
-Definition f := fun t : Type => list t.
-> Check HCons [1;2;3] (HCons ["a";"c"] (HCons [3;4] (@HNil _ f))).
-      : hlist f [nat; string; nat]
-\end{minted}
-\end{frame}
-
-\begin{frame}[fragile]{Heterogeneous append}
-\begin{minted}{coq}
-Fixpoint happ (ls1 : list A) (hl1 : hlist ls1) : 
-	forall ls2, hlist ls2 -> hlist (ls1 ++ ls2) :=
-    match hl1 in hlist ls1 
-      return forall ls2, hlist ls2 -> hlist (ls1 ++ ls2)
-	  with
-      | HNil => fun _ hl2 => hl2
-      | HCons _ _ x hl1' => 
-          fun _ hl2 => HCons x (happ hl1' hl2)
-    end.
-\end{minted}
-\end{frame}
-
-\begin{frame}[fragile]{Proving theorems}
-\begin{minted}{coq}
-Theorem hmap_happ : forall ls2 (h2 : hlist B1 ls2) 
-		ls1 (h1 : hlist B1 ls1),
-    hmap h1 +++ hmap h2 = hmap (h1 +++ h2).
-  Proof.
-    induction h1. 
-    - simpl. reflexivity.
-    - simpl. rewrite IHh1. reflexivity.
-  Qed.
-\end{minted}
-\end{frame}
-
-\begin{frame}[fragile]{Type Operators}
-Functions on types are called type operators (a unary type operator that satisfy special laws called functors in Haskell): 
-\begin{minted}{coq}
-Definition F : Type -> Type := fun X => prod X X.
-\end{minted}
-All containers are functors, but not all functors are containers. 
-\end{frame}
-
-\begin{frame}[fragile]{Reification}
-Need a \emph{reified} syntax for Coq types, i.e. a representation of pCuIC types in Coq. 
-Sums and products are easy. What about inductive types? 
-\end{frame}
-
-\begin{frame}[fragile]{First Try}
-\footnote{chp. 20 of PFPL}
-\begin{minted}{coq}
-Inductive rec (F : Type -> Type) : Type :=
-| fold : F (rec F) -> rec F.
-
-> Non strictly positive occurrence of "rec" in "F (rec F) -> rec F".
-\end{minted}
-Non strictly positive occurence can introduce incosistency.
-\end{frame}
-
-\begin{frame}[fragile]{Type-In-Type}
-Fortunately, we can encode rec as follows
-\footnote{http://homepages.inf.ed.ac.uk/wadler/papers/free-rectypes/free-rectypes.txt}:
-\begin{minted}{coq}
-Definition rec (F : Type -> Type): Type 
-  := forall X, (F X-> X) -> X.
-Definition nat := rec (fun X => sum unit X).
-Definition list A := rec (fun X => sum unit (prod A X)).
-\end{minted}
-\end{frame}
-
-\begin{frame}[fragile]{Target Types}
-\[
-\begin{array}{r l l l l}
-\ms{Ind. Types} & \tau \,\,\,\,\, ::= \\
-	& \irl{void}                	 			& \emptyset											& \text{void}\\
-	& \irl{unit}                	 			& \star											& \text{unit}\\
-	& \irl{prod}(\tau_1;\tau_2)					& \tau_1 \times \tau_2			&\text{product}\\
-	& \irl{sum}(\tau_1;\tau_2)					& \tau_1 + \tau_2			&\text{sum}\\
-	& \irl{rec}(t.\tau)								& \mu(t.\tau)					&\text{recursive type}
-  \\
-\end{array}
-\]
-\end{frame}
-
-\section{Combinatorial Species}
-
-\begin{frame}{Combinatorial Species}
-A species is an endofunctor on the category of finite sets and bijections. G.A.N. aside, 
-a species can be thought of as a mapping from sets of labels to \emph{structures} built from the 
-labels. These structures are abstract; more over, there's a systematic way of enumerating all structures
-generated from a given label set.
-\end{frame}
-
-\begin{frame}[fragile]{Example Species}
-\begin{figure}
-  \includegraphics[width=\textwidth,height=\textheight,keepaspectratio]{species.png}
-  \label{fig:boat1}
-\footnote{taken from https://www.cis.upenn.edu/~sweirich/papers/yorgey-thesis.pdf}
-\end{figure}
-\end{frame}
-
-\begin{frame}{Idea}
-\begin{center}
-Species $\iff$ Type Operators\\
-\end{center}
-Use the enumeration of species for types.
-\end{frame}
-
-\begin{frame}[fragile]{Species Operations}
-\begin{scriptsize}
-\begin{align*}
- &\text{Empty Species}\\
-&\mathbb{0}_i &&\mathbb{0}_i(U_1,...,U_k) = [] \\
-& \text{Unit Species}\\
-&\mathbb{1}_i &&\mathbb{1}_i(U_1,...,U_k) =
-		\begin{cases*}
-      [\star] & if $U_i = []$\\
-      []        & otherwise
-    \end{cases*} \\
-& \text{Singleton Species}\\
-&\mathbb{X}_i && \mathbb{X}_i(U_1,...,U_k) = 
-		\begin{cases*}
-      [x] & if $U_i = [x]$\\
-      []        & otherwise
-    \end{cases*} \\
-& \text{Species Sum}\\
-&\mathbb{F} + \mathbb{G} && (\mathbb{F} + \mathbb{G})(U_1,...,U_k) = 
-	\irl{map}\; \irl{inr} \mathbb{F}(U_1,...,U_k) {++} \irl{map};\irl{inr} \mathbb{G}(U_1,...,U_k)& \\
-&\text{Paritional Product}\\
-&\mathbb{F} \bullet \mathbb{G} && (\mathbb{F} \bullet \mathbb{G})(U_1,...,U_k) = 
-	{++}_{i : X_i \sqcup Y_i = U_i}	
-	[(l,r) | l \leftarrow \mathbb{F}(X_1,...,X_k), r \leftarrow \mathbb{G}(Y_1,...,Y_k)]& \\ 
-&\text{Recursive Species}\\
-&\mu(f.\mathbb{G}) && \mu(f.\mathbb{G})(U_1,...,U_k) = \irl{map}\; \irl{fold} (\mathbb{G}[\mu(f.\mathbb{G})/f](U_1,...,U_k))& \\
-\end{align*}
-\end{scriptsize}
-\end{frame}
-
-\begin{frame}[fragile]{Implementation}
-\begin{footnotesize}
-\begin{minted}{coq}
-Section s.
- Variable ts : list Type.
-
- Inductive Species : list Type -> Type -> Type := 
-| zero : forall C, Species C (Empty_set)
-| one :  forall C {x} (m : member x ts), Species C unit
-| singleton :  forall C {x} (m : member x ts), Species C (tget' _ ts m)
-| cprod : forall C {F G}, Species C F -> Species C G -> 
-  Species C (prod F G)
-| pprod : forall C {F G}, Species C F -> Species C G -> 
-  Species C (prod F G)
-| ssum : forall C {F G}, Species C F -> Species C G -> 
-  Species C (sum F G)
-| srec : forall C F `{Functor (F)}, Species ((nrec F)::C) (F (nrec F)) -> 
-  Species C (nrec F) 
-| svar : forall C F, member F C -> Species C F
-End s.
-\end{minted}
-\end{footnotesize}
-\end{frame}
-
-\begin{frame}[fragile]{Enumeration}
-\begin{scriptsize}
-\begin{minted}{coq}
-Definition enumerate (n : nat) {ts : list Type} {F} {K} 
-(s : Species ts K F) : 
-forall tls : tlist ts, hlist (Species ts K) K -> list (F).
-Admitted.
-
-Definition enum_limit := 100.
-Definition ts : list Type := [nat : Type].
-Definition F1 := (fun X => sum unit (prod (tget' _ ts HFirst) X)).
-Instance F1F : Functor F1 := 
-{
-  liftF := fun X Y f x => 
-  match x with 
-  | inl tt => inl tt
-  | inr (a,x') => inr (a, f x')
-  end
-}.
-Definition C1 := [nrec F1].
-Definition s := srec ts []  F1 
-	(ssum ts C1 (one ts C1 HFirst) (pprod ts C1 (singleton ts C1 HFirst) 
-	(svar ts C1 (nrec F1) HFirst))).
-Definition tls : tlist ts := Hcons nat [1;2;3] Hnil.
-\end{minted}
-\end{scriptsize}
-\end{frame}
-
-\begin{frame}[fragile]{Enumeration}
-\begin{scriptsize}
-\begin{minted}{coq}
-> Compute enumerate enum_limit s tls HNil
-[fun (X : Type) (x : F1 X -> X) => x (inr (1, x (inr (2, x (inr (3, x (inl tt)))))));
- fun (X : Type) (x : F1 X -> X) => x (inr (1, x (inr (3, x (inr (2, x (inl tt)))))));
- fun (X : Type) (x : F1 X -> X) => x (inr (2, x (inr (1, x (inr (3, x (inl tt)))))));
- fun (X : Type) (x : F1 X -> X) => x (inr (2, x (inr (3, x (inr (1, x (inl tt)))))));
- fun (X : Type) (x : F1 X -> X) => x (inr (3, x (inr (1, x (inr (2, x (inl tt)))))));
- fun (X : Type) (x : F1 X -> X) => x (inr (3, x (inr (2, x (inr (1, x (inl tt)))))))]
-	 : list (nrec F1).
-\end{minted}
-\end{scriptsize}
-\end{frame}
-
-\begin{frame}[fragile]{Not Quite Native}
-What about \emph{native} Gallina Types? 
-\begin{minted}{coq}
-Fixpoint arrTy' A (l : list Type) : Type :=
-match l with 
-| [] => A
-| x::xs => x -> (arrTy' A xs)
-end.
+  
+\begin{frame}{Reachability}
  
-Definition arr' A := fun l : list Type => arrTy' A l.
-Definition constructor (A : Type) : Type := sigT (arr' A).
-Definition inductive (A : Type) := list (constructor A).
-\end{minted}
+
+  \begin{mathpar}
+\inferrule{
+	A = reach_H(v_1)\\
+	B = reach_H(v_2)
+}{
+	A \uplus B = reach_H(\pairexcst{v_1}{v_2}) 
+} 
+
+\inferrule{
+	A = reach_H(H(l))\\
+}{
+	\{l\} \uplus A = reach_H(l)
+} 
+
+\inferrule{
+	v \in \mathbb{N} \cup \{\irl{T},\irl{F},\irl{Null}\}
+}{
+	\emptyset = reach_H(v)
+} 
+\end{mathpar}
+
+For a program state $(V, H,e)$, associate to it the \emph{reachable set}:
+\begin{align*}
+  &locs_{V,H}(e) = \biguplus\limits_{x \in FV(e)} reach_H(V(x))
+\end{align*}
+Cost of a program could be defined as the \emph{maximum} size of
+the reachable set for any $(V,H,e)$ in execution. 
 \end{frame}
 
-\begin{frame}[fragile]{Reified Gallina}
-\begin{small}
-\begin{minted}{coq}
-Fixpoint computeS {A} (l : inductive A) : list (list Type) := 
-match l with 
-| [] => []
-| x::xs => 
-  let argT := projT1 x in 
-  argT :: computeS xs
-end.
+\begin{frame}{Previous Work}
+  \begin{itemize}
+  \item Spoonhower, Blelloch, Harper: cost semantics for parallel programs
+    \item Minamide: cost semantics for cbv lambda calculus
+    \end{itemize}
+  \end{frame}
 
-Section s.
- Variable ts : list Type.
+\begin{frame}{Leaf Saturation +  Aggregation}
+  Reachable at the leaf:
+        \[
+	\inferrule{
+		V(x) = v
+		}{
+			V,H,R \vdash x \Downarrow^{|dom(R \uplus reach_H(v))|} v,H
+			}
+         \]
+Aggregate:
+\[
+	\inferrule{
+		V,H,R \uplus locs_{V,H}(x.e_2) \vdash e_1 \Downarrow^{s_1} v_1,H_1\\
+		V[x \mapsto v_1],H,R \vdash e_2 \Downarrow^{s_2} v_2,H_2\\
+	}{
+		V,H,R \vdash \irl{let}(e_1; x : \tau.e_2) \Downarrow^{\max{s_1,s_2}} v_2,H_2
+	}
+      \]
+      
+  \end{frame}
 
- Inductive Species : list Type -> Type -> Type := 
-...
-| sind : forall C A (l : inductive A), 
-  hlist (hlist (Species (A::C))) (computeS l) -> 
-  Species C A.
-...
-End s.
-\end{minted}
-\end{small}
+\begin{frame}{Freelist}
+  \begin{itemize}
+  \item Problem: cost accounted for on use site instead of creation
+  \item Solution: add persistency through freelists
+  \end{itemize}
+The garbage collection cost semantics \gcSem{} is defined by a collection of judgement of the form
+\[
+V,H,R,F \; \vdash e \Downarrow v, H', F'
+\]
+
+Under stack $V$, heap $H$, continuation set $R$,
+freelist $F$,  the $e$ evaluates to  $v$, 
+new heap $H'$ and freelist $F'$.
 \end{frame}
 
-\begin{frame}[fragile]{All together}
-\begin{small}
-\begin{minted}{coq}
-Definition algorithm (instance solution metric : Type) f 
- (checker : instance -> solution -> bool)
- (eval : solution -> metric) 
- (better : metric -> metric -> bool) := 
-forall (I : instance) (Sol Cand : solution), 
-  (f I = Some Sol -> checker I Sol = true /\ 
-    ((checker I Cand = true) -> 
-      better (eval Sol) (eval Cand) = true))
-/\
-  (f I = None -> ~exists Cand', checker I Cand' = true).
-\end{minted}
-\end{small}
+\begin{frame}{Judgments}
+\begin{mathpar}
+\inferrule
+{ V(x) = v\\
+}
+{V,H,R,F \; \vdash x \Downarrow v,H,F}(\text{Var})
+
+\inferrule{
+	V_1 = V\restriction_{FV(e_1)}\\
+  R' = R \cup locs_{V,H}(\lambda x : \tau.e_2)\\
+  V_1,H,R',F \vdash e_1 \Downarrow v_1,H_1,F_1\\
+	V_2 = (V[x \mapsto v_1])\restriction_{FV(e_2)}\\
+  g = \{ l \in H_1 \mid l \notin F_1 \cup R \cup locs_{V_2,H_1}(e_2) \}\\
+  V_2,H_1,R, F_1 \cup g \vdash e_2 \Downarrow v_2,H_2,F_2 \\
+}{
+  V,H,R,F \; \vdash \irl{let}(e_1; x : \tau.e_2) \Downarrow v_2,H_2,F_2
+}(\text{Let})
+\end{mathpar}
+
 \end{frame}
 
-\begin{frame}[fragile]{All together}
-\begin{small}
-\begin{minted}{coq}
-Definition synthesize (instance solution metric : Type) f 
-(checker : instance -> solution -> bool) 
-(eval : solution -> metric) 
-(better : metric -> metric -> bool) 
-: instance -> option solution := 
-fun I => 
-let candidates := filter (checker I) (enumerate I) in 
-let ranks := map (fun cand => (eval cand, cand)) candidates in 
-match ranks with 
-| [] => None
-| x::xs => Some (snd (list_max (fun e1 e2 => 
-	match e1, e2 with 
-	| (s1,_), (s2,_) => better s1 s2 
-	end) xs x))
-end.
-\end{minted}
-\end{small}
+\section{Type System}
+
+\begin{frame}{First Order Types}
+  \[
+\begin{array}{r l l l c r l l l}
+  \ms{BTypes} & A \,\,\,\,\, ::= &\hspace{8em}     &  &\\
+	& \irl{nat}                	 			& \irl{nat}										\\
+	& \unittyabt                	 			& \unittycst								\\
+  & \booltyabt                       & \booltycst                \\
+              & \prodtyabt{A_1}{A_2}       & \prodtycst{A_1}{A_2}\\
+  	&\irl{list}^p(A)		& L^p(A)\\
+
+ \ms{FTypes} & \rho \,\,\,\,\, ::= \\
+              &\irl{arr}(A_1;A_2;p;q) 				& A_1 \xrightarrow{p/q} A_2\\ 	
+\end{array}
+\]
+
 \end{frame}
 
-\begin{frame}[fragile]{All together}
-\begin{small}
-\begin{minted}{coq}
-Theorem correct : forall (i s m : Type)
-(checker : i -> s -> bool) 
-(eval : s -> m) 
-(better : m -> m -> bool),
-algorithm i s m (synthesize i s m checker eval better) 
-checker eval better.
-Proof.
-Admitted.
-\end{minted}
-\end{small}
+\begin{frame}{Structural Values}
+
+\begin{align*}
+	\denote{\unittyabt} &= \{\val{\irl{Null}}\}\\
+	\denote{\booltyabt} &= \{\val{\irl{T}}, \val{\irl{F}}\}\\
+	\denote{\irl{nat}} &= \mathbb{N}\\
+\pairexcst{a_1}{a_2} &\in \denote{\prodtycst{A_1}{A_2}} 
+	\text{ if } a_1 \in \denote{A_1} \text{ and } a_2 \in \denote{A_2}\\
+\nilexcst &\in \denote{L(A)}\\
+\consexcst{a}{l} &\in \denote{L(A)} \text{ if } a \in \denote{A} \text{ and } l \in \denote{L(A)}\\
+\end{align*}
+\end{frame}
+
+\begin{frame}{Linear Potential}
+\begin{align*}
+	&\Phi_H(v : A) = 0 \text{ if } A \in \{\unittycst, \booltyabt, \irl{nat}\}\\
+&\Phi_H(\pairexcst{v_1}{v_2} : \prodtycst{A_1}{A_2}) = \Phi_H(v_1 : A_1) + \Phi_H(v_2 : A_2)\\
+	&\Phi_H(l : L^p(A)) = p + \Phi_H(v_h : A) + \Phi_H(v_T : L^p(A)) \text{ if } 
+		H(l) = \pairexcst{v_h}{v_h}
+	%p\cdot n + \sum_{1 \le i \le n} \Phi_H(a_i : A)  
+\end{align*}
+%
+Write $\Phi_{V,H}(\Gamma)$ for $\Sigma_{x \in dom(V)} \Phi_H(V(x) : \Gamma(x))$.\\
+Now define $A \curlyvee A_1,A_2,n$ as the sharing relation for resource-annotated types:
+\begin{align*}
+	&L^p(A) \curlyvee^n L^q(A_1),L^r(A_2) & \text{if } p = q + r + n \;\text{and}\; 
+			A \curlyvee^n A_1,A_2\\
+	&\prodtycst{A}{B} \curlyvee^n \prodtycst{A_1}{B_1}, \prodtycst{A_2}{B_2}
+		&\text{ if } A \curlyvee^n A_1,A_2 \text{ and } B \curlyvee^n B_1,B_2\\
+	&A \curlyvee^n  A,A& \text{ if } A \in \{\unittycst, \booltycst, \irl{nat}\}
+\end{align*}
+\end{frame}
+
+\begin{frame}{Type Rules}
+  \begin{mathpar}
+\inferr{
+  \Sigma; \Gamma, x : L^p(A) \sststile{q'}{q} \listcaseexcst{x}{e_1}{x_h}{x_t}{e_2} : B
+}{
+  \Sigma; \Gamma \sststile{q'}{q} e_1 : B \\
+  \Sigma; \Gamma, x_h : A, x_t : L^p(A) \sststile{q'}{q + p + {\color{red}{1}}} e_2 : B
+}(\text{L:MatL})
+
+\inferr{
+  \Sigma; \Gamma, x : A \sststile{q'}{q} \sharecpcst{x}{x_1}{x_2}{e} : B
+}{
+  A \;\curlyvee^{\color{red}{1}} \;A_1, A_2\\
+  \Sigma; \Gamma, x_1 : A_1, x_2 : A_2 \sststile{q'}{q} e : B
+}(\text{L:Share})
+
+  \end{mathpar}
+\end{frame}
+
+\begin{frame}[fragile]{Example}
+  \begin{verbatim}
+let rec append (l1, l2) =
+  match l1 with
+  | [] -> l2
+  | x::xs -> x::(append (xs, l2))
+
+let appTwice l = 
+    share l as l1,l2 in
+    let l1' = append (l1, []) in 
+    let l2' = append (l2, []) in 
+    (l1',l2')
+  \end{verbatim}
 \end{frame}
 
 
+\begin{frame}{Old bounds}
+\begin{align*}
+	&\texttt{append} : \prodtycst{L^p(\irl{int})}{L^q(\irl{int})} \xrightarrow{r/r} L^s(\irl{int}), \text{ 
+	where } p \ge s + 1 \text{ and } q \ge s\\
+	&\texttt{appTwice} : L^p(\irl{int}) \xrightarrow{q/q} \prodtycst{L^r(\irl{int})}{L^s(\irl{int})},
+	\text{ where } p \ge r + s + 2
+\end{align*}
+
+\end{frame}
+
+\begin{frame}{New Bounds}
+  \begin{align*}
+	&\texttt{append} : \prodtycst{L^p(\irl{int})}{L^q(\irl{int})} \xrightarrow{r/r} L^s(\irl{int}),
+	\text{ where } {\color{green}{p \ge s}} \text{ and } q \ge s\\
+	&\texttt{appTwice} : L^p(\irl{int}) \xrightarrow{q/q} \prodtycst{L^r(\irl{int})}{L^s(\irl{int})},
+	\text{ where } p + q \ge r + s + {\color{green}{1}}
+\end{align*}
+\end{frame}
+
+\begin{frame}[fragile]{Results}
+\begin{table}[]
+	\begin{adjustbox}{width=1\textwidth, center=\textwidth}
+  \begin{tabular}{@{}llllllllll@{}}
+    \toprule
+		 & \multicolumn{3}{l}{heap metric} & \multicolumn{3}{l}{gc metric} &  \\ \midrule
+		 \textit{\textbf{function}} & computed bound & constraints & time & computed bound &  constraints & time & optimal \\
+		 quicksort & $1.00 + 3.50M + 1.50M^2$ & 8515 & 0.52 & 0 & 8519 & 0.48 & 0 \\
+		 mergesort & $1.00 - 4.67M + 6.33M^2$ & 9572 & 0.64 & $-0.50M + 0.50M^2$ & 9578 & 0.58 & $\lfloor \log(M) \rfloor$ \\
+		 ocamlsort & $7.50 + 5.50M + 1.00M^2$ & 8565 & 0.51 & $1.00 + 1.00M$ & 8573 & 0.50 & $M+1$ \\
+		 selection sort & $2.00 + 3.00M + 1.00M^2$ & 639 & 0.06 & 0 & 642 & 0.05 & 0 \\
+		 eratosthenes & $1.00 + 1.50M + 0.50M^2$ & 515 & 0.06 & 0 & 517 & 0.04 & 0 \\
+		 dfs & $3.00 + 2.00M$ & 5481 & 0.90 & 2 & 5483 & 0.36 & 2 \\
+		 bfs & $5.00 + 10.00M$ & 24737 & 4.15 & 4 & 24742 & 1.62 & 4 \\
+		 transpose & $1.00 + 3.50LM + 0.50LM^2$ & 10680 & 0.50 & $1.00 + 2.00LM$ & 10684 & 0.50 & $\max{(0,2L-1)}$ \\
+		 map\_it & $2.00 + 2.00LM + 4.00M$ & 30699 & 1.58 & $1.00M + 1.00$ & 30703 & 1.57 & M + 1 \\
+		 pairs & $1.00 + 1.00M^2$ & 10214 & 0.60 & $0.50M + 0.50M^2$ & 10217 & 0.64 & $0.5M^2-1.5M+2$ \\ \midrule
+	\end{tabular}
+	\end{adjustbox}
+	\caption{Automatic Bound Analysis with RaML}
+\label{table:bounds}
+\end{table}
+\end{frame}
+
+
+\section{Soundness}
+\begin{frame}{Soundness}
+\begin{theorem}[Soundness]
+\label{itm:soundness} Let $H \vDash V {:} \Gamma$, $\;\; \Sigma; \Gamma \sststile{q'}{q} e : B$,
+and $V,H \vdash e \Downarrow v, H'$.
+Then for all configurations $W,Y,F,R$:
+If $V,H \sim W,Y$ and $|F| \ge \Phi_{V,H}(\Gamma) + q$,
+then there exists a value $w$, and a freelist $F'$ such that
+$$
+\begin{array}{ccc}
+	W,Y,R,F \vdash^{\gcSem} e \Downarrow w, Y', F'  & \text{ and } & \veq{H'}{Y'}{v}{w} \; .
+\end{array}
+$$
+\end{theorem}
+The theorem states that,
+given a terminating expression
+and a freelist that is sufficiently large (as predicated by the type derivation), 
+a run with \gcSem will normalize to an equivalent value.
+\end{frame}
+
+\begin{frame}{Proof Sketch}
+  To facilitate the proof, we define an intermediate semantics
+\copySem{} which is semantically linear. The proof has two stages:
+First, we show \copySem{} over-approximates \gcSem, meaning that any
+computation that succeeds with \gcSem{} will succeed with an
+equally-sized or smaller freelist with \gcSem{}. Then we show $\fogc$
+is sound with respect to \copySem{}, and thus by the previous step sound with respect to
+\gcSem{}.
+The chart below shows the plan for proving the soundess of the type 
+system w.r.t \gcSem:
+
+\tikzstyle{process} = [rectangle, text centered, draw=black, fill=orange!30]
+\tikzstyle{arrow} = [thick,->,>=stealth]
+
+\begin{center}
+\begin{tikzpicture}[node distance=2cm]
+\node (type) [process] {Type Rules};
+\node (copy) [process, right of=type, xshift=3cm] {\copySem};
+\node (free) [process, below of=copy] {\gcSem};
+
+\draw [arrow] (type) -- node[anchor=south] {sound w.r.t (\ref{itm:soundness})} (copy);
+\draw [arrow] (copy) -- node[anchor=west] {Over-approximates (\ref{itm:frugal})} (free);
+\draw [dashed,->] (type) -- node[anchor=south] {} (free);
+
+\end{tikzpicture}
+\end{center}
+\end{frame}
+
+\begin{frame}{Linear Semantics}
+The mediating semantics \copySem{} is \emph{semantically linear}; that is, no location can be 
+used twice in a program. Variable sharing is achieved via \emph{copying}: 
+the shared value is created by allocating a fresh set of locations from the freelist and
+copying the value:
+
+{ \small \begin{mathpar}
+	\inferr{
+		H,v = copy(H,L,v)	
+	}{
+		v \in \{n,\irl{T},\irl{F},\irl{Null}\}
+	}
+
+	\inferr{
+		H'\{l' \mapsto v\},l' = copy(H,L,l) 
+	}{
+		l' \in L\\
+		H',v = copy(H,L \setminus \{l'\},H(l)) 
+	}
+
+\inferr{
+	H_2,\pairexcst{v_1'}{v_2'} = copy(H,L,\pairexcst{v_1}{v_2})
+}{
+	L_1 \sqcup L_2 \subseteq L\\
+	|L_1| = |dom(reach_H(v_1)|\\
+	|L_2| = |dom(reach_H(v_2)|\\
+	H_1,v_1' = copy(H,L_1,v_1)\\
+	H_2,v_2' = copy(H_1,L_2,v_2)\\
+}
+\end{mathpar}}
+\end{frame}
+
+\begin{frame}{Copy Sharing}
+  \small \[
+\inferrule{
+	V(x) = v'\\
+  L \subseteq F\\
+  |L| = |dom(reach_H(v'))|\\
+  H',v'' = copy(H,L,v')\\
+	V' = (V[x_1 \mapsto v',x_2 \mapsto v'']) \restriction_{FV(e)}\\
+	F' =	F \setminus L\\
+	g = \{l \in H \mid l \notin F' \cup R \cup locs_{V',H}(e)\}\\
+ 	V',H',R,F' \sqcup g \; \vdash e \Downarrow v,H'',F''
+}{
+  V,H,R,F \; \vdash \sharecpcst{x}{x_1}{x_2}{e} \Downarrow v,H'',F''
+}
+\]
+\end{frame}
+
+\begin{frame}{Proof Attempt}
+  \begin{attempt}
+	Let $\mathcal{C}_2 = (V,H,R,F)$ be a configuration and $(\mathcal{C}_2, e)$ 
+	be a linear computation. Given that 
+	$\mathcal{C}_2 \vdash^{\mathsf{copy}} e \Downarrow v,H',F'$, 
+	for all configurations $\mathcal{C}_1 = (W,Y,R,M)$ such that $W,Y \sim V,H$ and $|M| = |F|$,
+there is exists a triple
+$(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ such that
+	\begin{center}
+			$\mathcal{C}_1 \vdash^{\mathsf{free}} e \Downarrow w,Y',M'$
+		and 	 $\veq{H'}{Y'}{v}{w}$
+		and 	 $|M'| \ge |F'|$ .
+	\end{center}
+\end{attempt}
+\end{frame}
+
+\begin{frame}{Contention}
+We proceed with induction on the derivation of the judgment in \copySem. 
+Almost every case goes through, save for E:Let. 
+First, we get $W_1,Y \sim V_1,H$ and We have the following from induction on the first premise:
+%
+\begin{center}
+	 $W_1,Y,R',M \vdash^{\mathsf{free}} e \Downarrow w_1,Y_1,M_1$ and, 	 $\veq{H_1}{Y_1}{v_1}{w_1}$
+         and,  $|M_1| \ge |F_1|$
+\end{center}
+%
+To instantiate the induction hypothesis on the second premise, we need to show that, among 
+other things, $|M_1 \cup j| \ge |F_1 \cup g|$, where $j$ is the set of collected locations in 
+the \gcSem{} judgment. We cannot show this precisely because $g$ might contain more cells 
+then $j$ due to the linearity of \copySem{}, thus preventing a piecewise comparison. 
+But of course $|j|$ is always less than $|g|$, since \gcSem{} doesn't copy to share 
+values! This shows that there is a mismatch between the induction hypothesis and the relationship
+between the sizes of the respective freelists and the garbage sets. 
+
+\end{frame}
+
+\begin{frame}{\copySem{} over-approximates \gcSem}
+  Idea: maintain a mapping $\gamma$ from the active heap used in the GC semantics
+  $H_{gc}\setminus F_{gc}$ to \emph{subsets} of
+the heap used in the copying semantics $H_{copy} \setminus F_{copy}$ such that the image of 
+$H_{gc}\setminus F_{gc}$ under $\gamma$ forms a partition on $H_{copy} \setminus F_{copy}$.
+The intuition is that given a cell $l \in H_{gc}$, there must be multiple cells
+$\gamma(l)$ in  $H_{copy}\setminus F_{copy}$  
+that are were allocated during sharing, and thus ``morally the same'' as $l$.
+
+\begin{center}
+\includegraphics[scale=0.4]{relation}
+\end{center}
+\end{frame}
+
+\begin{frame}{Well-formed configuration}
+  \begin{definition} A configuration $(V,H,R,F)$ is well-formed if 
+	\begin{enumerate}
+		\item $dom(H) \subseteq reach_H(V) \cup R \cup F$
+		\item $reach_H(V) \cup R \subseteq dom(H) \setminus F$
+		\item $collect(R,reach_H(V),H,F) = \emptyset$
+	\end{enumerate}
+\end{definition}
+\end{frame}
+
+\begin{frame}{Subvalues}
+  \begin{definition}
+	Let \ms{dir} be the set \{\ms{L},\ms{R},\ms{N}\}, denoting left, right, and next 
+	respectively. We can index values via directions:
+        $$
+	\begin{array}{lclclcl}
+		get_H(Just(\pairexcst{v_1}{v_2},\ms{L})) &=& Just(v_1) & \hspace{4em} &
+		get_H(Just(\pairexcst{v_1}{v_2},\ms{R})) &=& Just(v_2)\\
+		get_H(Just(\pairexcst{v_1}{v_2}),_) &=& None &&
+		get_H(Just(l),\ms{N}) &=& Just(H(l)) \\
+		get_H(Just(l), \_) &=& None &&
+		get_H(r,\_) &=& r
+	\end{array}
+        $$
+	Let $P$ be a sequence of directions. Extend $get$ to sequence of directions:
+	\begin{align*}
+		find_H(v,D::P) &= find_H(get_H(v,D),P)\\
+		find_H(v,[]) &= v
+	\end{align*}
+	Call $P$ valid w.r.t a value $v$ if $find_H(v,P) = Just (v')$ for some $v'$.
+	Write $V_H(x;P)$ for $fromJust(find_H(V(x),P))$ given a valid sequence $P$ w.r.t $V(x)$,
+	and $reach_H(V(x;P))$ for $reach_H(V_H(x;P))$.
+\end{definition}
+\end{frame}
+
+
+\begin{frame}{Copy Extension}
+\begin{definition}
+A well-formed configuration $\mathcal{C}_2 = (V_2,H_2,R_2,F_2)$ is a \emph{copy extension} of another well-formed configuration
+$\mathcal{C}_1 = (V_1,H_1,R_1,F_1)$ iff
+\begin{enumerate}
+\item $V_1,H_1 \sim V_2,H_2$
+\item There is a proper partition $\gamma : dom(H_1) \setminus F_1 \to \mathcal{P}(dom(H_2) \setminus F_2)$ 
+such that for all $l \in dom(\gamma)$, $|\gamma(l)| = reach_{H_1}(V_1)(l) + R_1(l)$
+\item For all $l \in dom(\gamma)$, $x \in dom(V_1)$, valid sequence of directions $P$ w.r.t $V_1(x)$,
+	$|reach_{H_2}(V_2(x;P)) \cap \gamma(l)| = reach_{H_1}(V_1(x;P))(l)$.
+\item	For all $l \in dom(\gamma)$, $|\gamma(l) \cap R_2| = R_1(l)$
+\item $|F_1| = |F_2| + |\oh{\gamma}|$, where 
+	$\oh{\gamma} = \bigcup_{P \in ec(\gamma)} P \setminus (rep(P))$
+\end{enumerate}
+Write this as $\mathcal{C}_1 \preceq \mathcal{C}_2$.
+\end{definition} 
+
+The intention is that $\mathcal{C}_2$ is a configuration for initiating an evaluation using \copySem
+, and $\mathcal{C}_1$ a configuration for \gcSem. 
+\end{frame}
+
+\begin{frame}{Extension Lemma}
+  \begin{lemma}\label{itm:frugal}
+	Let $(\mathcal{C}_2,e)$ be a linear computation. Given that 
+	$\mathcal{C}_2 \vdash^{\mathsf{copy}} e \Downarrow v,H',F'$,
+	for all well-formed configurations $\mathcal{C}_1$ such that $\mathcal{C}_1 \preceq \mathcal{C}_2$,
+there is exists a triple
+$(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ and 
+	$\gamma' : dom(Y') \setminus M' \to \mathcal{P}(dom(H') \setminus F')$ s.t.
+	\begin{enumerate}
+			\item $\mathcal{C}_1 \vdash^{\mathsf{free}} e \Downarrow w,Y',M'$
+			\item $\veq{H'}{Y'}{v}{w}$
+			\item $\gamma'$ is a proper partition, such that for all $l \in dom(\gamma')$, 
+				$|\gamma'(l)| = |reach_{Y_1}(w_1)(l)| + S(l)$
+			\item For all $P$, $|reach_{H'}(find_{H'}(v;P)) \cap \gamma'(l)| = 
+				reach_{Y'}(find_{Y'}(w;P))(l)$
+			\item For all $l \in dom(\gamma')$, $\gamma'(l) \cap R = \gamma(l) \cap R$
+			\item $|M'| = |F'| + |\oh{\gamma'}|$
+	\end{enumerate}
+\end{lemma}
+\end{frame}
+
+\begin{frame}{Operational Semantics}
+  To state the soundness theorem, we need an operational semantics to witness terminating expressions.
+  Just take $\mathcal{E}_{\ms{oper}}$ the normal natural semantics with
+  rules of the form $V,H \vdash e \Downarrow v,H$.\\
+  
+  In words, the theorem states that given a terminating expression (as shown by a run with
+  $\mathcal{E}_{\ms{oper}}$),
+and given a freelist that is sufficiently large (as predicated by the type derivation), 
+a run with \copySem will normalize to an equivalent value, and the resulting freelist 
+will be sufficiently large (as predicated by the type derivation).
+\end{frame}
+
+\begin{frame}{Linear Context}
+First, we characterize semantically linear contexts: 
+\begin{definition}[Linear context]
+Given a context $(V,H)$, let
+$x,y \in dom(V)$, $x \ne y$, and $r_x = reach_H(V(x))$, $r_y = reach_H(V(y))$.
+	It is \emph{linear} given that  $\ms{set}(r_x)$, $\ms{set}(r_y)$, and $r_x \cap r_y = \emptyset$.
+      \end{definition}
+      
+Where $\ms{set}(S)$ means $S$ a proper set ($S(x) \le 0 \forall x$). 
+Denote this by $\na{V,H}$. Whenever $\na{V,H}$ holds,
+there is at 
+most one path from a variable on the stack $V$ to any location in $H$. 
+\end{frame}
+
+\begin{frame}{Linearity of \copySem}
+Now we can 
+formalize our intuition for linear computations: 
+\begin{definition}[Linear computation]
+Given a configuration $\mathcal{C} = (V,H,R,F)$ and an expression $e$, 
+we say the 5-tuple $(\mathcal{C},e)$ is a \emph{computation}; it is a \emph{linear computation} 
+given the that  $dom(V) = FV(e)$, $\na{V,H}$, and $\dist{\{R,F,locs_{V,H}(e)\}}$.
+And we write $\wfc{V}{H}{R}{F}{e}$ to denote this fact.
+\end{definition}
+
+% main lemma
+Given a semantically linear computation, the resulting value is linear: 
+\begin{lemma}[Linearity of \copySem]\label{itm:na}
+For all stacks $V$ and heaps $H$, let  $V,H,R,F \; \vdash e \Downarrow v, H', F'$ 
+and $\Sigma; \Gamma \vdash e : B$. Then given that $\wfc{V}{H}{R}{F}{e}$, we have that $\ms{set}(reach_{H'}(v))$ and $\dist{\{R,F',reach_{H'}(v)\}}$.
+\end{lemma}
+\end{frame}
+
+\begin{frame}{Soundness of \copySem}
+\begin{theorem}[Soundness]
+\label{b} let $H_o \vDash V_o : \Gamma$, $\Sigma; \Gamma \sststile{q'}{q} e : B$,
+$V_o,H_o \; \vdash e \Downarrow v_o, H_o'$.
+Then $\forall C \in \mathbb{Q}^{+}$ and configuration $V,H,R,F$ s.t.
+\begin{enumerate} 
+\item $V_o,H_o \sim V,H$
+\item $\wfc{V}{H}{R}{F}{e}$
+\item $|F| \ge \Phi_{V,H}(\Gamma) + q + C$ 
+\end{enumerate}
+then there exists a triple $(v,H',F')$, and a freelist $F'$ s.t.
+\begin{enumerate}
+  \item $V,H,R,F \vdash e \Downarrow v, H', F'$
+	\item $\veq{H_o'}{H'}{v_o}{v}$
+  \item $|F'| \ge \Phi_{H'}(v:B) + q' + C$
+\end{enumerate}
+\end{theorem}
+\end{frame}
+
+  
 % Placing a * after \section means it will not show in the
 % outline or table of contents.
 \section*{Summary}
 
 \begin{frame}{Summary}
   \begin{itemize}
-  \item
-		Generic combinatorial problem $\implies$ brute force enumeration
-  \item
-		Species $\iff$ Functors
+  \item New cost semantics for garbage collection of first-order functional programs
+  \item Extension of type based amortized analysis to derive better space bounds
   \end{itemize}
   
   \begin{itemize}
-  \item
-    Outlook
+  \item Questions:
     \begin{itemize}
-    \item
-			Native Gallina Types (Ltac, Template-coq)
-    \item
-			Prove correctness
+    \item Extension to higher-order functions
+    \item Type rules for accounting for non-local garbage collection;
+      variable sharing vs context sharing
     \end{itemize}
   \end{itemize}
 \end{frame}
