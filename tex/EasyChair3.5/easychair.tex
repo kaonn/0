@@ -32,6 +32,7 @@
 \usepackage{color}
 \usepackage{wrapfig}
 \usepackage{bbm}
+\usepackage{rotating}
 \usetikzlibrary{positioning} 
 
 \allowdisplaybreaks
@@ -110,6 +111,7 @@
 \newcommand{\ctxeq}[2]{(#1) \sim (#2)}
 \newcommand{\oh}[1]{\oslash(#1)}
 \newcommand{\fogc}{\ms{FO}^{gc}}
+\newcommand{\foheap}{\text{RaML}^{\ms{heap}}}
 \newcommand{\jan}[1]{{\color{red} [\emph{Jan: #1}]}}
 \newcommand{\yue}[1]{{\color{blue} [\emph{Yue: #1}]}}
 \newcommand{\gcSem}{\ensuremath{\mathcal{E}_{\ms{gc}}}}
@@ -283,7 +285,7 @@ cost is the highwater mark on the heap usage, or the maximum number of
 cells used in the mutable store during evaluation. If we traverse the 
 evaluation tree in preorder and view each node as a ``step'' 
 of the computation, then a cell is used in the current node
-if they are reachable from the reminder of the
+if it is reachable from the reminder of the
 computation. Our formalization of reachability is identical to the
 concept that garbage collectors implement to decide if a cell can be
 freed during evaluation. For simplicity, we assume that evaluation of
@@ -299,7 +301,9 @@ cells available for evaluation. This alternative formulation is
 equivalent to the existing semantics and mainly motivated by the
 soundness proof of our type system for bound analysis.  However, the
 cost semantics is a natural approach and different enough from its
-predecessors~\cite{Spoonhower:2008:SPP:1411204.1411240,DBLP:journals/entcs/Minamide99}
+predecessors~\cite{Spoonhower:2008:SPP:1411204.1411240,DBL     Note: Visa Forms MUST BE TYPED before print out; Then must Sign
+
+P:journals/entcs/Minamide99}
 to be of interest in its own right.
 
 \emph{Our second technical contribution} is the type system for
@@ -335,7 +339,7 @@ a mapping $\gamma$ from the heap used in the GC semantics $H_{gc}$ to \emph{subs
 the heap used in the copying semantics $H_{copy}$ such that the image of 
 $H_{gc}$ under $\gamma$ forms a partition on the second heap. The intuition is that 
 given a cell $l \in H_{gc}$, there must be multiple cells $\gamma(l) \in H_{copy}$  
-that are were allocated during sharing, and thus ``morally the same'' as $l$.
+that were allocated during sharing, and thus ``morally the same'' as $l$.
 
 The analysis and the cost semantics have been implemented as an
 extension to Resource Aware ML (RaML)~\cite{HoffmannAH10,HoffmannW15}. RaML is an
@@ -453,7 +457,7 @@ we employ a heap, which persistently binds
 locations to values (normalized terms).  As usual, we derive the cost
 of a (terminating) program from the number of heap locations 
 used during execution, which in our case is the \emph{maximum difference} 
-between the sizes of the initial and final freelist. Locations is an infinite set of names
+between the sizes of the initial and final freelist. We let \ms{Loc} be an infinite set of names
 for addressing the heap.
 %
 For the rest of the paper, we use the following:
@@ -491,14 +495,18 @@ justified by the (valid) mode $(+,+,-)$. We also say that the reachable set of $
 } 
 \end{mathpar}
 %
-In the rules, $\uplus$ is multiset union. For the rest of the paper, we will sometimes mix 
+In the rules, $\uplus$ is multiset union. $L$ is a multiset because we need to keep track of
+the \emph{number} of ways a location might be reached in order to prove soundness. However, the
+cost semantics can be read by truncating any multiset to a set.
+Furthermore, we will sometimes mix
 multiset and set operations as the situation calls for. For example, we will write 
 $l \in S$ for a multiset $S$ if $S(l) \ge 1$. Complete definitions and notations can
 be found in the appendix.
 
-The notion of reachability naturally lifts to expressions:
+The notion of reachability naturally lifts to expressions and contexts:
 \begin{align*}
-  &locs_{V,H}(e) = \biguplus\limits_{x \in FV(e)} reach_H(V(x))
+  &reach_H(V) = \biguplus\limits_{x \in dom(V)} reach_H(V(x))
+  &&locs_{V,H}(e) = reach_H(V\restriction_{FV(e)})
 \end{align*}
 Where $FV : \ms{Exp} \to \mathcal{P}(\ms{Var})$ denotes the set of free-variables of expressions as usual.\\
 
@@ -507,7 +515,7 @@ Now we are ready to give a first attempt to modeling the cost semantics for a
 tracing garbage collector. Before we present our new semantics, we explain an
 existing cost semantics we experimented with~\cite{DBLP:journals/entcs/Minamide99}. Judgements have the form
 %
-$V,H,R \vdash e \Downarrow^s v,H$,
+$V,H,R \vdash e \Downarrow^s v,H'$,
 %
 which can be read as follows. Under stack $V \in \ms{Stack}$, heap $H \in \ms{Heap}$, 
 and continuation set $R \subseteq \ms{Loc}$, $e$ evaluates to $v$ 
@@ -571,11 +579,12 @@ the evaluation judgment states that under stack $V$, heap $H$, continuation (mul
 freelist $F$, and program $P$ with signature $\Sigma$, the expression $e$ evaluates to value $v$, 
 and engenders a new heap $H'$ and freelist $F'$. In comparison with the attempt from 
 the previous section, the key ingredient we added is the freelist, which serves 
-as the set of available locations. We call $R$ a (multi)set since the fact that 
+as the set of available locations. Similar to the predicate $reach$, 
+We call $R$ a (multi)set since the fact that 
 it's a multiset is only useful during the soundness proof. For evaluation, it is 
-convenient to just view $R$ as a set; the same is true for $reach_H(v)$.
+convenient to just view $R$ as a set. 
 
-The semantics \gcSem{} is to designed to model the heap usage of a program running with a 
+The semantics \gcSem{} is designed to model the heap usage of a program running with a 
 tracing counting garbage collector: whenever a heap cell becomes unreachable from the 
 root set, it becomes collected and added to the freelist as available for reallocation.
 As before, the continuation set $R$ represents the set of locations 
@@ -594,7 +603,7 @@ $F$, and add them ($g$) to the available cells for evaluating $e_1$.
 
 Another example is the rule F:Let for let expressions:
 to evaluate the expressions $\irl{let}(e_1; x {:} \tau.e_2)$, we evaluate the first 
-expression with the corresponding restricted stack $V_1$ and a expanded continuation set $R'$. 
+expression with the corresponding restricted stack $V_1$ and an expanded continuation set $R'$. 
 The extra locations come from the free variables of $e_2$ (not including the bound variable $x$),
 which we cannot collect during the evaluation of $e_1$. Next, we restrict the extended stack 
 to only free variables of $e_2$, and evaluate $e_2$ with this stack and the original continuation 
@@ -773,8 +782,8 @@ To illustrate the idea, we informally explain the linear potential method for th
 We will use the allocation/heap metric which simply counts the number of cons constructor calls during the evaluation.%
 \footnote{This is in contrast to the highwater mark for the GC semantics \gcSem{} that is targeted by our new analysis.}
 With this metric, the cost of evaluating \texttt{append(l1,l2)} is $m$, where $m$ is the number 
-of cons constructors in \texttt{l1}, and the resource annotated type of append is 
-$\prodtycst{L^1(\irl{int})}{L^0(\irl{int})} \xrightarrow{0/0} L^1(\irl{int})$.
+of cons constructors in \texttt{l1}, and the resource annotated type of \texttt{append} is 
+$\prodtycst{L^1(\irl{int})}{L^0(\irl{int})} \xrightarrow{0/0} L^0(\irl{int})$.
 This type says that to type \texttt{append(l1,l2)}, we need \texttt{l1} 
 to have 1 potential per element, \texttt{l2} to have 0 per element, and the result 
 will be a list with 0 potential per element.
@@ -792,10 +801,13 @@ and the resulting pair of lists both have 0 potential per element.
 More generally, we can give the following types to \texttt{append} and \texttt{appTwice}:
 \begin{align*}
 	&\texttt{append} : \prodtycst{L^p(\irl{int})}{L^q(\irl{int})} \xrightarrow{r/r} L^s(\irl{int}), \text{ 
-	where } p \ge s + 1 \text{ and } q \ge s\\
+	where } p \ge s + 1 \text{ and } q \ge s \; (r \in \mathbb{Q})\\
 	&\texttt{appTwice} : L^p(\irl{int}) \xrightarrow{q/q} \prodtycst{L^r(\irl{int})}{L^s(\irl{int})},
-	\text{ where } p \ge r + s + 2
+	\text{ where } p \ge r + s + 2 \; (q \in \mathbb{Q})
 \end{align*}
+
+Notice that the constant potentials $r$ and $q$ are unconstrained since the functions don't
+use any potential in the base cases.
 
 With AARA, the type system keeps track of this collection of constraints on
 resource annotations and passes them to an off-the-shelf LP-solver 
@@ -820,8 +832,7 @@ First, we give a denotational semantics for (define the structures of) the first
   \end{minipage}%
 \begin{minipage}{0.6\linewidth}
 \begin{align*}
-\pairexcst{a_1}{a_2} &\in \denote{\prodtycst{A_1}{A_2}} 
-	\text{ if } a_1 \in \denote{A_1} \text{ and } a_2 \in \denote{A_2}\\
+\denote{\prodtycst{A_1}{A_2}} &= \denote{A_1} \times \denote{A_2}\\
 \nilexcst &\in \denote{L(A)}\\
 \consexcst{a}{l} &\in \denote{L(A)} \text{ if } a \in \denote{A} \text{ and } l \in \denote{L(A)}\\
 \end{align*}
@@ -897,7 +908,7 @@ linear potential is standard~\cite{Hoffmann11}. Below is the grammar for resourc
 \]
 %
 The intended meaning is that a list of $L^p(A)$ has $p$ units of potential per 
-cons cell, and a functions of type $A \xrightarrow{p/q} B$ takes constant potential 
+cons cell, and a function of type $A \xrightarrow{p/q} B$ takes constant potential 
 $p$ to run and $q$ is the constant potential left afterwards.
 
 With linear potential, each component of a structure is associated with a constant amount of 
@@ -928,7 +939,7 @@ cons node in any structure in $\llbracket A \rrbracket$ has a copying overhead $
 \label{sect:typing}
 The type system $\fogc$ consists of rules of the form \fbox{$\Sigma;\Gamma \sststile{q'}{q} e : A$}, 
 read as under signature $\Sigma : \ms{Var} \to \ms{FTypes}$, 
-context $\Gamma : \ms{Var} \to \ms{BTypes}$, $e$ has type $A$ starting with $q$ units of 
+typing environment $\Gamma : \ms{Var} \to \ms{BTypes}$, $e$ has type $A$ starting with $q$ units of 
 constant potential and ending with $q'$ units.
 
 Our type system is based on the one of classic linear AARA~\cite{Jost03}. 
@@ -961,7 +972,7 @@ rest of the expression with the two new variables $x_1: A_1$, $x_2 : A_2$.
 }
 {
   \Sigma(f) = A \xmapsto{q/q'} B
-}
+}(\text{L:Fun})
 
 \inferr{
   \Sigma; \Gamma, x : \irl{bool} \sststile{q'}{q} \ifexcst{x}{e_t}{e_f} : B
@@ -1057,7 +1068,7 @@ actually copied. This is sound w.r.t the copying semantics because the size of t
 reachable set of a value $v$ is exactly the linear potential of $v : A$ with all resource 
 annotations set to 1.
 
-Now, we can give now the improved space overhead bound to \texttt{append} and \texttt{appTwice}:
+Now, we can give the improved space overhead bound to \texttt{append} and \texttt{appTwice}:
 \begin{align*}
 	&\texttt{append} : \prodtycst{L^p(\irl{int})}{L^q(\irl{int})} \xrightarrow{r/r} L^s(\irl{int}),
 	\text{ where } p \ge s \text{ and } q \ge s\\
@@ -1069,12 +1080,13 @@ Now, we can give now the improved space overhead bound to \texttt{append} and \t
 In previous versions of AARA~\cite{Jost10,HoffmannAH10}, the typing judgment and cost semantics
 are parametrized by a \emph{cost metric} 
 $m : \ms{res\_const \to \mathbb{Q}}$, which assigns a constant cost to 
-each step in the semantics.
-Since the cost for all program construct is zero save for the cons
-data constructor, we elide the cost metric altogether. Although we defined the constructor to cost
+each step in the semantics. Thus we instantiate the previous type system with the heap metric,
+the cost metric that measures heap cost, resulting in a concrete type system $\foheap$.
+We give a full evaluation of the improvements of $\fogc$ over $\foheap$ in Section~\ref{sect:conclusion}.
+Although we defined the constructor to cost
 1 heap location (as shown in L:Cons and L:MatLD), it can be any constant as long as the introduction
 and elimination rules agree on that constant. Thus we can extend the type system to accurately track
-closure sizes and constructor which vary in size depending on the argument (more in 
+closure sizes and constructors which vary in size depending on the argument (more in 
 Section~\ref{sect:conclusion}).
 
 {\bf Type Inference} One of the benefits of AARA is efficient type
@@ -1098,10 +1110,10 @@ We seek to prove the following theorem.
 
 \begin{theorem}[Soundness]
 \label{itm:soundness} Let $H \vDash V {:} \Gamma$, $\;\; \Sigma; \Gamma \sststile{q'}{q} e : B$,
-and $V,H \vdash e \Downarrow v, H'$.
+and $V,H \vdash^{\mathcal{E}_{\ms{oper}}} e \Downarrow v, H'$.
 Then for all configurations $W,Y,F,R$:
 If $V,H \sim W,Y$ and $|F| \ge \Phi_{V,H}(\Gamma) + q$,
-then there exists a value $w$, and a freelist $F'$ such that
+there exists a value $w$, and a freelist $F'$ such that
 $$
 \begin{array}{ccc}
 	W,Y,R,F \vdash^{\gcSem} e \Downarrow w, Y', F'  & \text{ and } & \veq{H'}{Y'}{v}{w} \; .
@@ -1109,10 +1121,10 @@ $$
 $$
 \end{theorem}
 
-Here, $V,H \vdash e \Downarrow v, H'$ is a standard big-step evaluation judgment
-derived from \gcSem{} $V,H \sim W,Y$ is context equivalence, and $\veq{H'}{Y'}{v}{w}$ is value equivalence 
-(these are defined below). The theorem states that,
-given a terminating expression
+Here,$\mathcal{E}_{\ms{oper}}$ is a standard big-step semantics, with judgments of the form
+$\fbox{$V,H \vdash e \Downarrow v,H'$}$
+derived from \gcSem{}, $V,H \sim W,Y$ is context equivalence, and $\veq{H'}{Y'}{v}{w}$
+is value equivalence (these are defined below). The theorem states that, given a terminating expression
 and a freelist that is sufficiently large (as predicated by the type derivation), 
 a run with \gcSem will normalize to an equivalent value.
 
@@ -1123,6 +1135,30 @@ computation that succeeds with \gcSem{} will succeed with an
 equally-sized or smaller freelist with \gcSem{}. Then we show $\fogc$
 is sound with respect to \copySem{}, and thus by the previous step sound with respect to
 \gcSem{}.
+
+As mentioned above, we introduce a big step semantics $\mathcal{E}_{\ms{oper}}$
+that does not use freelists or account for garbage collection. We use
+it to characterize expressions that normalize to values when initialized with a sufficient 
+freelist.  This technique has also been employed in earlier work on AARA~\cite{Hofmann:2003:SPH:604131.604148}.
+In the judgment $V,H \vdash e \Downarrow v,H'$, the ``freelist'' is the whole ambient set of
+locations $\ms{Loc}$, thus we never run out of locations during evaluation. This introduces a
+problem for value and context equivalence: when comparing evaluation results between a run
+with \copySem{} and $\mathcal{E}_{\ms{oper}}$, the return values 
+might not be syntactically equal. Consider the following expression
+$e = \texttt{let \_ = [4] in [5]}$.
+%
+Let \ms{Loc} = $\mathbb{N}$, the natural numbers. Consider the evaluation
+$\emptyset,\emptyset,\emptyset,\{1\} \vdash^{\copySem{}} e \Downarrow v_1,H_1,F_1$. 
+First, 1 is allocated and mapped to $\texttt{[4]}$. 
+Then, since the first subexpression $\texttt{[4]}$ is not used afterwards, we collect 1, and reuse it
+and map again to $\texttt{[5]}$. Thus $v_1 = 1$.  In an evaluation
+$\emptyset,\emptyset,\emptyset,\{1\} \vdash^{\mathcal{E}_{\ms{oper}}} e \Downarrow v_2,H_2,F_2$, 
+we also first map 1 to $\texttt{[4]}$, but then 
+allocate a new location, say 2, and map it to $\texttt{[5]}$, and $v_2 =  2$. Due to the 
+difference in allocation strategies and the fact that both are nondeterministic, we need a more 
+robust notion of equality for values. Luckily, the structures from the denotational semantics 
+does the job. In both runs, the return value maps to the semantic value $\texttt{[5]}$.
+Thus we use semantical equality above as the basis for value and context equivalence:
 
 \begin{definition}[Value Equivalence]
 Two values $v_1,v_2$ are equivalent (with the presupposition that they are well-formed w.r.t heaps $H_1,H_2$),
@@ -1198,27 +1234,27 @@ Now, consider \gcSem{} with the share rule F:Share replaced with the following r
 
 To share a variable, we first copy the shared value. The number of cells required is equal to the
 size of the reachable set from the value. This copying sharing semantics is what justifies the 
-analysis to use restitute the potential when matching on a cons node, 
+analysis to restitute the potential when matching on a cons node, 
 since even if the node was shared, we had to pay for the cost by copying the node when sharing the 
 original value. Next, we restrict the stack to the appropriate variables. 
-Lastly, any locations not reachable from the current subexpression $e$ is collected. This is 
+Lastly, any locations not reachable from the current subexpression $e$ are collected. This is 
 for the case when a variable is shared but not used later.  
 
 Intuitively, we expect that any terminating compuation
 with \copySem{} has a corresponding run with \gcSem{} that can be instantiated with 
 an equally-sized or smaller freelist. Although this seems quite straightforward to prove, a complete
-characterization of the relationship of between the space allocations of two runs with each 
+characterization of the relationship between the space allocations of two runs with each 
 semantics is necessary. To motivate this, consider the following proof attempt: 
 
 \begin{attempt}
 	Let $\mathcal{C}_2 = (V,H,R,F)$ be a configuration and $(\mathcal{C}_2, e)$ 
 	be a linear computation. Given that 
-	$\mathcal{C}_2 \vdash^{\mathsf{copy}} e \Downarrow v,H',F'$, and $H' \vDash v \mapsto a : A$, 
+	$\mathcal{C}_2 \vdash^{\copySem} e \Downarrow v,H',F'$, and $H' \vDash v \mapsto a : A$, 
 	for all configurations $\mathcal{C}_1 = (W,Y,R,M)$ such that $W,Y \sim V,H$ and $|M| = |F|$,
-there is exists a triple
+there exists a triple
 $(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ such that
 	\begin{center}
-			$\mathcal{C}_1 \vdash^{\mathsf{free}} e \Downarrow w,Y',M'$
+			$\mathcal{C}_1 \vdash^{\gcSem} e \Downarrow w,Y',M'$
 		\hspace{3em} and \hspace{3em}	 $\veq{H'}{Y'}{v}{w}$
 		\hspace{3em} and \hspace{3em}	 $|M'| \ge |F'|$ .
 	\end{center}
@@ -1226,10 +1262,10 @@ $(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ such that
 
 We proceed with induction on the derivation of the judgment in \copySem. 
 Almost every case goes through, save for E:Let. 
-First, we get $W_1,Y \sim V_1,H$ and We have the following from induction on the first premise:
+First, we get $W_1,Y \sim V_1,H$ and we have the following from induction on the first premise:
 %
 \begin{center}
-	 $W_1,Y,R',M \vdash^{\mathsf{free}} e \Downarrow w_1,Y_1,M_1$
+	 $W_1,Y,R',M \vdash^{\gcSem} e \Downarrow w_1,Y_1,M_1$
    \hspace{3em} and \hspace{3em}	 $\veq{H_1}{Y_1}{v_1}{w_1}$
    \hspace{3em} and \hspace{3em}	 $|M_1| \ge |F_1|$
 \end{center}
@@ -1244,7 +1280,7 @@ between the sizes of the respective freelists and the garbage sets.
 
 Before giving the full relationship between two configurations that allows the successful proof,
 We first give coherence conditions to a configuration. For a configuration $(V,H,R,F)$, denote the
-garbage w.r.t a set of locations $L$ 
+garbage w.r.t. a set of locations $L$ 
 as $collect(R,L,H',F') = \{l \in H' \mid l \notin F' \cup R \cup L\}$.
 
 \begin{definition} A configuration $(V,H,R,F)$ is well-formed if 
@@ -1262,7 +1298,7 @@ are already in the freelist. Although we can leave this condition out, it unnece
 complicates the presentation of the theorem. 
 
 Now, we can present the following 
-criteria which characterizes the required equivalence between two configuration,
+criteria which characterize the required equivalence between two configurations,
 called \emph{copy extension}.
 \begin{definition}
 A well-formed configuration $\mathcal{C}_2 = (V_2,H_2,R_2,F_2)$ is a \emph{copy extension} of another well-formed configuration
@@ -1299,8 +1335,9 @@ $[1 \mapsto \pairexcst{0}{\irl{Null}},2 \mapsto \pairexcst{0}{\irl{Null}}]$, and
 stack changes accordingly: $[\texttt{x1} \mapsto 1,\texttt{x2} \mapsto 2]$.
 Now $\gamma$ would map 1 to $\{1,2\}$, since both are shared instances of the former.
 
-Thus, each $\gamma(l)$ is mapped to a disjoint subset in $H_2$, and each location in $H_2$ 
-would have a representative in $H_1$. Furthermore, we noticed it is crucial to include the 
+Thus, the image of $\gamma$ is a collection of disjoint subsets whose union is $dom(H_2) \setminus F_2$,
+and each location in $dom(H_2) \setminus F_2$ belongs to a unique class whose preimage is the  
+unique representative in $dom(H_1) \setminus F_1$. Furthermore, we noticed it is crucial to include the 
 fact that the size of $\gamma(l)$ must be the sum of the number of references from the stack and 
 the continuation set. Furthermore, we also require each subset $\gamma(l)$ (also referred to as class)
 to be nonempty (this is the \emph{proper} partition condition).
@@ -1319,10 +1356,10 @@ subvalues of a value using directions:
         $$
 	\begin{array}{lclclcl}
 		get_H(Just(\pairexcst{v_1}{v_2},\ms{L})) &=& Just(v_1) & \hspace{4em} &
-		get_H(Just(\pairexcst{v_1}{v_2},\ms{R})) &=& Just(v_2)\\
-		get_H(Just(\pairexcst{v_1}{v_2}),_) &=& None &&
 		get_H(Just(l),\ms{N}) &=& Just(H(l)) \\
-		get_H(Just(l), \_) &=& None &&
+                get_H(Just(\pairexcst{v_1}{v_2},\ms{R})) &=& Just(v_2) &&
+                get_H(Just(l), \_) &=& None\\
+                get_H(Just(\pairexcst{v_1}{v_2}),\ms{N}) &=& None &&
 		get_H(r,\_) &=& r
 	\end{array}
         $$
@@ -1336,13 +1373,13 @@ subvalues of a value using directions:
 	and $reach_H(V(x;P))$ for $reach_H(V_H(x;P))$.
 \end{definition}
 
-With this, the third condition gives us a more fined grained restriction: for any subvalue in $V_1$,
+With this, the third condition gives us a more fine grained restriction: for any subvalue in $V_1$,
 the number of references from it to $l$ is equal to the size of 
 the intersection of the reachable set of the corresponding subvalue in $V_2$
 with the appropriate class $\gamma(l)$ .
 
 The next condition simply states that the continuation sets respect $\gamma$. Lastly, 
-we have have that $F_1$ is greater than $F_2$, with the overhead $\oh{\gamma}$ being exactly the sum 
+we have that $F_1$ is greater than $F_2$, with the overhead $\oh{\gamma}$ being exactly the sum 
 $\sum_{l \in \gamma} |\gamma(l)| - 1$ 
 (since each class is non-empty, we use $rep(l)$ to choose an arbitrary element of the class $\gamma(l)$). 
 
@@ -1350,13 +1387,13 @@ Now we can formulate the key lemma:
 
 \begin{lemma}
 	Let $(\mathcal{C}_2,e)$ be a linear computation. Given that 
-	$\mathcal{C}_2 \vdash^{\mathsf{copy}} e \Downarrow v,H',F'$,
+	$\mathcal{C}_2 \vdash^{\copySem{}} e \Downarrow v,H',F'$,
 	for all well-formed configurations $\mathcal{C}_1$ such that $\mathcal{C}_1 \preceq \mathcal{C}_2$,
-there is exists a triple
+there exists a triple
 $(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ and 
 	$\gamma' : dom(Y') \setminus M' \to \mathcal{P}(dom(H') \setminus F')$ s.t.
 	\begin{enumerate}
-			\item $\mathcal{C}_1 \vdash^{\mathsf{free}} e \Downarrow w,Y',M'$
+			\item $\mathcal{C}_1 \vdash^{\gcSem{}} e \Downarrow w,Y',M'$
 			\item $\veq{H'}{Y'}{v}{w}$
 			\item $\gamma'$ is a proper partition, such that for all $l \in dom(\gamma')$, 
 				$|\gamma'(l)| = |reach_{Y_1}(w_1)(l)| + S(l)$
@@ -1375,31 +1412,36 @@ Thus, we have shown that we can execute a computation using
 \gcSem if the computation suceeded in a run with \copySem, and that indeed 
 \copySem is an over approximation of \gcSem.
 
-\textbf{Soundness of $\copySem$}
+\textbf{Soundness of $\fogc$}
 \label{sect:soundcopy}
-As mentioned above, we introduce an standard big step semantics $\fbox{$V,H \vdash e \Downarrow v,H'$}$
-that does not use freelists or account for garbage collection. We use
-it to characterize expressions that normalize to values when initialized with a sufficient 
-freelist.  This technique has also been employed in earlier work on AARA~\cite{Hofmann:2003:SPH:604131.604148}.
+For the second part of the proof, we show $\fogc$ is sound w.r.t. \copySem{}. First,
+we characterize semantically linear contexts: 
 
-Let this auxiliary semantics be $\mathcal{E}_{\ms{oper}}$. Here, the ``freelist'' is the whole ambient set of locations $\ms{Loc}$, 
-thus we never run out of locations during evaluation. This introduces a problem 
-already present in the previous section when we related \copySem{} and \gcSem{}, 
-which we solved with value and context equivalence. We give a bit more explanation here.
-When comparing evaluation results between a run with \copySem{} and $\mathcal{E}_{\ms{oper}}$, the return values 
-might not be syntatically equal. Consider the following expression
-\texttt{let \_ = [4] in [5]}.
-%
-Assuming locations are natural numbers, and we run \copySem{} with the freelist $\{1\}$. 
-First, 1 is allocated and mapped to $\texttt{[4]}$. 
-Then, since the first subexpression $\texttt{[4]}$ is not used afterwards, we collect 1, and reuse it
-and map again to $\texttt{[5]}$. Thus the return value is 1.  In a run with $\mathcal{E}_{\ms{oper}}$, 
-we also first map 1 to $\texttt{[4]}$, but then 
-allocate a new location, say 2, and map it to $\texttt{[5]}$, and the return value is 2. Due to the 
-difference in allocation strategies and the fact that both are nondeterministic, we need a more 
-robust notion of equality for values. Luckily, the structures from the denotational semantics 
-does the job. In both runs, the return value maps to the semantic value $\texttt{[5]}$.
-Thus we used semantical equality above as the basis for value and context equivalence. 
+\begin{definition}(Linear context)
+Given a context $(V,H)$, let
+$x,y \in dom(V)$, $x \ne y$, and $r_x = reach_H(V(x))$, $r_y = reach_H(V(y))$.
+	It is \emph{linear} given that  $\ms{set}(r_x)$, $\ms{set}(r_y)$, and $r_x \cap r_y = \emptyset$.
+\end{definition}
+
+Where $\ms{set}(S)$ means $S$ a proper set ($\forall x, S(x) \le 1$). 
+Denote this by $\na{V,H}$. Whenever $\na{V,H}$ holds,
+there is at 
+most one path from a variable on the stack $V$ to any location in $H$. Now we can 
+formalize our intuition for linear computations: 
+
+\begin{definition}[Linear computation]
+Given a configuration $\mathcal{C} = (V,H,R,F)$ and an expression $e$, 
+we say the 5-tuple $(\mathcal{C},e)$ is a \emph{computation}; it is a \emph{linear computation} 
+given that  $dom(V) = FV(e)$, $\na{V,H}$, and $\dist{\{R,F,locs_{V,H}(e)\}}$.
+And we write $\wfc{V}{H}{R}{F}{e}$ to denote this fact.
+\end{definition}
+
+% main lemma
+Given a semantically linear computation, the resulting value is linear: 
+\begin{lemma}[Linearity of \copySem]\label{itm:na}
+For all stacks $V$ and heaps $H$, let  $V,H,R,F \; \vdash e \Downarrow v, H', F'$ 
+and $\Sigma; \Gamma \vdash e : B$. Then given that $\wfc{V}{H}{R}{F}{e}$, we have that $\ms{set}(reach_{H'}(v))$ and $\dist{\{R,F',reach_{H'}(v)\}}$.
+\end{lemma}
 
 \begin{theorem}[Soundness]
 \label{b} let $H_o \vDash V_o : \Gamma$, $\Sigma; \Gamma \sststile{q'}{q} e : B$,
@@ -1421,35 +1463,7 @@ then there exists a triple $(v,H',F')$, and a freelist $F'$ s.t.
 In other words, given a terminating expression (verified by succeeding with the run using $\mathcal{E}_{\ms{oper}}$)
 and given a freelist that is sufficiently large (as predicated by the type derivation), 
 a run with \copySem will normalize to an equivalent value, and the resulting freelist 
-will be sufficiently large (as predicated by the type derivation). The 5-place predicate
-$\ms{linearComp}$ 
-is defined as follows. First, we characterize semantically linear contexts: 
-
-\begin{definition}(Linear context)
-Given a context $(V,H)$, let
-$x,y \in dom(V)$, $x \ne y$, and $r_x = reach_H(V(x))$, $r_y = reach_H(V(y))$.
-	It is \emph{linear} given that  $\ms{set}(r_x)$, $\ms{set}(r_y)$, and $r_x \cap r_y = \emptyset$.
-\end{definition}
-
-Where $\ms{set}(S)$ means $S$ a proper set ($S(x) \le 0 \forall x$). 
-Denote this by $\na{V,H}$. Whenever $\na{V,H}$ holds,
-there is at 
-most one path from a variable on the stack $V$ to any location in $H$. Now we can 
-formalize our intuition for linear computations: 
-
-\begin{definition}[Linear computation]
-Given a configuration $\mathcal{C} = (V,H,R,F)$ and an expression $e$, 
-we say the 5-tuple $(\mathcal{C},e)$ is a \emph{computation}; it is a \emph{linear computation} 
-given the that  $dom(V) = FV(e)$, $\na{V,H}$, and $\dist{\{R,F,locs_{V,H}(e)\}}$.
-And we write $\wfc{V}{H}{R}{F}{e}$ to denote this fact.
-\end{definition}
-
-% main lemma
-Given a semantically linear computation, the resulting value is linear: 
-\begin{lemma}[Linearity of \copySem]\label{itm:na}
-For all stacks $V$ and heaps $H$, let  $V,H,R,F \; \vdash e \Downarrow v, H', F'$ 
-and $\Sigma; \Gamma \vdash e : B$. Then given that $\wfc{V}{H}{R}{F}{e}$, we have that $\ms{set}(reach_{H'}(v))$ and $\dist{\{R,F',reach_{H'}(v)\}}$.
-\end{lemma}
+will be sufficiently large (as predicated by the type derivation).
 %------------------------------------------------------------------------------
 
 
@@ -1471,7 +1485,7 @@ the GC cost model.
 The garbage collection cost semantics is implemented as an alternative evaluation module inside
 RaML. As mentioned before, RaML leverages the syntax of OCaml programs.
 First, we take the OCaml type checked abstract syntax tree and perform a series of transformations. 
-The evaluation modules operates on the resulting RaML syntax tree. 
+The evaluation modules operate on the resulting RaML syntax tree. 
 In the gc evaluation module, \texttt{evaluate} has the following signature:
 {\small%
 \begin{verbatim}
@@ -1487,7 +1501,7 @@ that the size for other values can be computed statically and thus stack allocat
 between the cost semantics and its implementation is that while in the language presented here
 list is the only data type, our implementation supports user defined data types. The extension
 is straightforward except the treatment of the nil constructor, or generally ``empty'' constructors
-that has arity zero. For simplicity of presentation, we evaluate all nil constructors to
+that have arity zero. For simplicity of presentation, we evaluate all nil constructors to
 the same null value in the cost semantics. This is natural for lists because all nil constructors 
 are the same, and every list has at most one nil node. However, for custom data types that have 
 more than one kind of empty constructor, it is not possible to map every constructor to the same 
@@ -1530,11 +1544,12 @@ and no space overhead is created by allocating closures for function declaration
 
 \textbf{Evaluation}
 We evaluated our new analysis on a number of functions. Table~\ref{table:sig} contains a representative compilation.
-It shows the type signature for each function. Table~\ref{table:bounds} presents the test 
-data that
-showcase the difference between the heap metric, the old analysis which only counts 
-heap allocations, and the gc metric, which includes deallocations and copying cost for sharing.
-For each metric, we show the heap space bound computed by RaML, 
+It shows the type signature for each function.
+Table~\ref{table:bounds} presents the test data that
+showcase the difference between $\foheap$, the previous RaML type system instantiated with the
+heap metric,the old analysis which only counts 
+heap allocations, and $\fogc$, which includes deallocations and copying cost for sharing.
+For each type system, we show the heap space bound computed by RaML, 
 the number of constraints generated, and the time elapsed during analysis. The last column gives
 the expression for the exact heap high watermark derived by hand and verified by running the 
 cost semantics.
@@ -1564,13 +1579,14 @@ empty list. When ``flipping'' the first row $r$ of the input and appending this 
 we need to create $|r|$ many new nil and cons constructors to store the row as a column. While this
 overhead only occurs once, RaML is unable to infer this from the source code, and thus the cost
 is repeated over the entire input matrix, resulting in the linear bound (w.r.t the size of the 
-matrix). 
+matrix). This artifact is unrelated to the new extension; it is a limitation
+due to the implementation of RaML. 
 
 The last two functions demonstrate how the gc metric performs when there is variable sharing.
 map\_it maps the input function across each list in the principal argument twice, returning a
 tuple of nested lists. The gc metric dictates that every outer data constructor in the 
 principal argument needs to be copied, and thus gives the linear bound M + 1. In this case,
-the bound is exact. The pairs functions takes a list and outputs all pairs of the input list 
+the bound is exact. The function ``pairs'' takes a list and outputs all pairs of the input list 
 which are ordered ascending in input position. For example, 
 pairs [1;2;3;4] = [(1,2);(1,3);(1,4);(2,3);(2.4);(3,4)]. For pairs, the gc metric derived a bound
 that is asymptotically the same as the heap metric, but with better constants. An exact bound 
@@ -1589,7 +1605,7 @@ totals to the size of the input. % This example shows a weakness in the new gc m
 	\begin{adjustbox}{width=1\textwidth, center=\textwidth}
   \begin{tabular}{@{}llllllllll@{}}
 		\toprule
-		 & \multicolumn{3}{l}{heap metric} & \multicolumn{3}{l}{gc metric} &  \\ \midrule
+		 & \multicolumn{3}{l}{$\foheap$} & \multicolumn{3}{l}{$\fogc$} &  \\ \midrule
 		 \textit{\textbf{function}} & computed bound & constraints & time & computed bound &  constraints & time & optimal \\
 		 quicksort & $1.00 + 3.50M + 1.50M^2$ & 8515 & 0.52 & 0 & 8519 & 0.48 & 0 \\
 		 mergesort & $1.00 - 4.67M + 6.33M^2$ & 9572 & 0.64 & $-0.50M + 0.50M^2$ & 9578 & 0.58 & $\lfloor \log(M) \rfloor$ \\
@@ -1693,7 +1709,108 @@ total memory that is requested from the operating system.
 % to modeling the composition in the garbage collection cost semantics.
 
 
-\newpage
+\section{Example Derivations}
+\label{sect:example}
+
+In the following, let $A = \irl{int}$.
+
+\begin{verbatim}
+let rec append (l1, l2) =
+  match l1 with
+    | [] -> l2
+    | x::xs -> let r = append (xs, l2) in x::r
+\end{verbatim}
+
+$P = [\texttt{append} \mapsto e_{\texttt{append}}]$\\
+$\Sigma = [\texttt{append} \mapsto \prodtycst{L^p(A)}{L^p(A)} \xrightarrow{q/q} \L^p(A)]$\\
+
+Type derivation:
+\begin{tiny}
+\[
+\infer[\text{L:MatL}]{
+	\Sigma; l_1 : L^p(A), l_2 : L^p(A) \sststile{q}{q} 
+		\listcaseexabt{l_1}{l_2}{x}{xs}{\irl{let}\; r = append(xs,l_2) \; \irl{in}\; x::r } : L^p(A)
+}{
+	\infer[\text{L:Var}]{
+		\Sigma; l_2 : L^p(A) \sststile{q}{q} l_2 : L^p(A)
+	}{
+	}&
+	\infer[\text{L:Let}]{
+		\Sigma; l_2 : L^p(A), x : A, xs : L^p(A) \sststile{q}{q + p + 1} 
+				\irl{let}\; r = append(xs,l_2) \; \irl{in}\; x::r : L^p(A)
+	}{
+		\infer[\text{L:App}]{
+			\Sigma; L_2 : L^p(A), xs : L^p(A) \sststile{q+p+1}{q+p+1} append(xs,l_2) : L^p(A)
+		}{
+			append : \xrightarrow{q/q} \prodtycst{L^p(A)}{L^p(A)} \to \L^p(A) \in \Sigma
+		}&
+		\infer[\text{L:Cons}]{
+			\Sigma; x : A, r : L^p(A) \sststile{q}{q+p+1} x::r : L^p(A)
+		}{
+		}
+	}
+}
+\]
+\end{tiny}
+
+\begin{verbatim}
+let appTwice l = 
+    share l as l1,l2 in
+    let l1' = append (l1, []) in 
+    let l2' = append (l2, []) in 
+    (l1',l2')
+\end{verbatim}
+
+
+$P = [\texttt{appTwice} \mapsto e_{\texttt{appTwice}}]$\\
+$\Sigma = [\texttt{appTwice} \mapsto L^{r+s+1}(A) \xrightarrow{q/q} \prodtycst{L^r(A)}{L^s(A)},
+\texttt{append} \mapsto \prodtycst{L^p(A)}{L^p(A)} \xrightarrow{q/q} \L^p(A)]$\\
+
+\begin{tiny}
+\begin{mathpar}
+\infer[\text{L:ShareCopy}]{
+  \Sigma; l : L^{r+s+1}(A) \sststile{q}{q}
+  \shareabt{l}{l1}{l2}{\uletabt{l1'}{append(l1,[])}{\uletabt{l2'}{append(l2,[])}{\pairexcst{l1'}{l2'}}}}
+  : \prodtycst{L^r(A)}{L^s(A)}
+}{
+  L^{r+s+1}(A) \curlyvee^1 L^r(A), L^s(A)&
+  \infer[\text{L:Let}]{
+  \Sigma; l1 : L^r(A), l2 : L^s(A) \sststile{q}{q}
+  \uletabt{l1'}{append(l1,[])}{\uletabt{l2'}{append(l2,[])}{\pairexcst{l1'}{l2'}}}
+  : \prodtycst{L^r(A)}{L^s(A)}
+}{
+  \infer[\text{L:Fun}]
+  {
+    \Sigma; l1 : L^r(A) \sststile{q}{q} append(l1,[]) : L^r(A)
+  }{
+    \pairexcst{l1}{[]} : \prodtycst{L^r(A)}{L^r(A)}&
+    \Sigma(append) = \prodtycst{L^r(A)}{L^r(A)} \xrightarrow{q/q} \L^r(A)
+    }
+  &...
+}
+}\\
+\text{Derivation of ...}\\
+
+  \infer[\text{L:Let}]{
+  \Sigma;l2 : L^s(A),l1' : L^r(A) \sststile{q}{q} \uletabt{l2'}{append(l2,[])}{\pairexcst{l1'}{l2'}}
+  : \prodtycst{L^r(A)}{L^s(A)}
+}{
+   \infer[\text{L:Fun}]
+   {
+     \Sigma;l2 : L^s(A) \sststile{q}{q} append(l2,[]) : L^s(A)
+   }{
+    \pairexcst{l2}{[]} : \prodtycst{L^s(A)}{L^s(A)}&
+    \Sigma(append) = \prodtycst{L^s(A)}{L^s(A)} \xrightarrow{q/q} \L^s(A)
+  }&
+  \infer[\text{L:Pair}]{
+    \Sigma;l1' : L^r(A), l2' : L^s(A) \sststile{q}{q} \pairexcst{l1'}{l2'} :  \prodtycst{L^r(A)}{L^s(A)}
+  }
+  {
+  }
+}
+\end{mathpar}
+\end{tiny}
+
 \label{sect:bib}
 \bibliographystyle{plain}
 %\bibliographystyle{alpha}

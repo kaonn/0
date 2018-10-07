@@ -185,22 +185,31 @@
 \section{Cost Semantics}
 
 \begin{frame}{Resource Aware ML}
-  Extension of RaML to deal with garbage collected programs. 
+  With regards to GC, RaML can currently
+  \begin{itemize}
+  \item Type system can only count allocations
+  \item Deallocation can be manually simulated with ticks
+  \item No variable sharing
+  \end{itemize}
+  This work resolves these issues via a new garbage collection cost semantics
+  and an extension of the type system
+  
 \end{frame}
 
 \begin{frame}{Cost Semantics}
   \begin{itemize}
-  \item Natural semantics
-  \item Environment + heap + freelist
+  \item Operational semantics
+  \item Stack + heap + freelist
   \item Reachability
-    \end{itemize}
-
+  \end{itemize}
+  Many different schemes for GC: tracing (mark and sweep, generational), reference count, escape
+  analysis
     \begin{center}
       \includegraphics[scale=0.5]{memory}
-      \end{center}
+    \end{center}
 \end{frame}
 
-\begin{frame}{Natural Semantics}
+\begin{frame}{Operational Semantics}
   \begin{itemize}
   \item Variables\; $\ms{Var} ::= x_1,x_2,...$
     \item Locations\; $\ms{Loc} ::= l_1,l_2,...$
@@ -309,6 +318,7 @@ new heap $H'$ and freelist $F'$.
 
 \end{frame}
 
+
 \section{Type System}
 
 \begin{frame}{First Order Types}
@@ -326,6 +336,7 @@ new heap $H'$ and freelist $F'$.
 \end{array}
 \]
 
+Cost Model: only cons cells have a cost of 1, all other values have cost 0
 \end{frame}
 
 \begin{frame}{Structural Values}
@@ -351,7 +362,86 @@ new heap $H'$ and freelist $F'$.
 \end{align*}
 %
 Write $\Phi_{V,H}(\Gamma)$ for $\Sigma_{x \in dom(V)} \Phi_H(V(x) : \Gamma(x))$.\\
-Now define $A \curlyvee A_1,A_2,n$ as the sharing relation for resource-annotated types:
+Now define $A \curlyvee A_1,A_2$ as the sharing relation for resource-annotated types:
+\begin{align*}
+	&L^p(A) \curlyvee L^q(A_1),L^r(A_2) & \text{if } p = q + r \;\text{and}\; 
+			A \curlyvee A_1,A_2\\
+	&\prodtycst{A}{B} \curlyvee \prodtycst{A_1}{B_1}, \prodtycst{A_2}{B_2}
+		&\text{ if } A \curlyvee A_1,A_2 \text{ and } B \curlyvee B_1,B_2\\
+	&A \curlyvee  A,A& \text{ if } A \in \{\unittycst, \booltycst, \irl{nat}\}
+\end{align*}
+Enables ``quasi-linear'' type system that allows variable sharing
+\end{frame}
+
+\begin{frame}[fragile]{Example}
+  \begin{verbatim}
+let rec append (l1, l2) =
+  match l1 with
+  | [] -> l2
+  | x::xs -> x::(append (xs, l2))
+
+let appTwice l = 
+    share l as l1,l2 in
+    let l1' = append (l1, []) in 
+    let l2' = append (l2, []) in 
+    (l1',l2')
+
+;;
+
+let _  = append [1;2;3;4;5] [] in 
+let _ = appTwice [1;2;3;4;5] in ()
+  \end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile]{Example}
+  \begin{verbatim}
+let rec append (l1, l2) =
+  match l1 with
+  | [] -> l2
+  | x::xs -> x::(append (xs, l2))
+
+let appTwice l = 
+    share l as l1,l2 in
+    let l1' = append (l1, []) in 
+    let l2' = append (l2, []) in 
+    (l1',l2')
+
+;;
+
+let _  = append [1;2;3;4;5] [] in (* overhead = 0 *)
+let _ = appTwice [1;2;3;4;5] in () (* overhead = |l| = 5 *)
+  \end{verbatim}
+\end{frame}
+
+
+\begin{frame}{Example}
+  Notice that for \texttt{append}, the program is 
+  \begin{itemize}
+  \item completely linear
+  \item cost can be accurately modeled by destructive pattern matching
+  \end{itemize}
+  For \texttt{appTwice}, the program is
+  \begin{itemize}
+  \item non-linear due to sharing
+  \item destructive pattern matching is unsound
+  \end{itemize}
+  But we can still derive a reasonable bound for \texttt{appTwice} if the type system can 
+  somehow treat shared variables in a linear way
+\end{frame}
+
+\begin{frame}{Old bounds}
+  Currently, these are the best bounds derivable in RaML:
+  \begin{align*}
+	&\texttt{append} : \prodtycst{L^p(\irl{int})}{L^q(\irl{int})} \xrightarrow{r/r} L^s(\irl{int}), \text{ 
+	where } p \ge s + 1 \text{ and } q \ge s\\
+	&\texttt{appTwice} : L^p(\irl{int}) \xrightarrow{q/q} \prodtycst{L^r(\irl{int})}{L^s(\irl{int})},
+	\text{ where } p \ge r + s + 2
+\end{align*}
+
+\end{frame}
+
+\begin{frame}{Copy Sharing}
+Destructive matching can be made sound if we introduce copy sharing:
 \begin{align*}
 	&L^p(A) \curlyvee^n L^q(A_1),L^r(A_2) & \text{if } p = q + r + n \;\text{and}\; 
 			A \curlyvee^n A_1,A_2\\
@@ -359,9 +449,11 @@ Now define $A \curlyvee A_1,A_2,n$ as the sharing relation for resource-annotate
 		&\text{ if } A \curlyvee^n A_1,A_2 \text{ and } B \curlyvee^n B_1,B_2\\
 	&A \curlyvee^n  A,A& \text{ if } A \in \{\unittycst, \booltycst, \irl{nat}\}
 \end{align*}
+Setting $n = 1$ gives the right copying overhead for the current cost model
 \end{frame}
 
 \begin{frame}{Type Rules}
+  Now, destructive matching is sound:
   \begin{mathpar}
 \inferr{
   \Sigma; \Gamma, x : L^p(A) \sststile{q'}{q} \listcaseexcst{x}{e_1}{x_h}{x_t}{e_2} : B
@@ -378,32 +470,6 @@ Now define $A \curlyvee A_1,A_2,n$ as the sharing relation for resource-annotate
 }(\text{L:Share})
 
   \end{mathpar}
-\end{frame}
-
-\begin{frame}[fragile]{Example}
-  \begin{verbatim}
-let rec append (l1, l2) =
-  match l1 with
-  | [] -> l2
-  | x::xs -> x::(append (xs, l2))
-
-let appTwice l = 
-    share l as l1,l2 in
-    let l1' = append (l1, []) in 
-    let l2' = append (l2, []) in 
-    (l1',l2')
-  \end{verbatim}
-\end{frame}
-
-
-\begin{frame}{Old bounds}
-\begin{align*}
-	&\texttt{append} : \prodtycst{L^p(\irl{int})}{L^q(\irl{int})} \xrightarrow{r/r} L^s(\irl{int}), \text{ 
-	where } p \ge s + 1 \text{ and } q \ge s\\
-	&\texttt{appTwice} : L^p(\irl{int}) \xrightarrow{q/q} \prodtycst{L^r(\irl{int})}{L^s(\irl{int})},
-	\text{ where } p \ge r + s + 2
-\end{align*}
-
 \end{frame}
 
 \begin{frame}{New Bounds}
@@ -461,15 +527,12 @@ a run with \gcSem will normalize to an equivalent value.
 \end{frame}
 
 \begin{frame}{Proof Sketch}
-  To facilitate the proof, we define an intermediate semantics
-\copySem{} which is semantically linear. The proof has two stages:
-First, we show \copySem{} over-approximates \gcSem, meaning that any
-computation that succeeds with \gcSem{} will succeed with an
-equally-sized or smaller freelist with \gcSem{}. Then we show $\fogc$
-is sound with respect to \copySem{}, and thus by the previous step sound with respect to
-\gcSem{}.
-The chart below shows the plan for proving the soundess of the type 
-system w.r.t \gcSem:
+  \begin{itemize}
+  \item define an intermediate semantics \copySem{} which is semantically linear
+  \item show \copySem{} over-approximates \gcSem
+  \item show $\fogc$ is sound with respect to \copySem{}
+  \end{itemize}
+  i.e.
 
 \tikzstyle{process} = [rectangle, text centered, draw=black, fill=orange!30]
 \tikzstyle{arrow} = [thick,->,>=stealth]
@@ -489,10 +552,8 @@ system w.r.t \gcSem:
 \end{frame}
 
 \begin{frame}{Linear Semantics}
-The mediating semantics \copySem{} is \emph{semantically linear}; that is, no location can be 
-used twice in a program. Variable sharing is achieved via \emph{copying}: 
-the shared value is created by allocating a fresh set of locations from the freelist and
-copying the value:
+  Variable sharing is achieved via \emph{copying}: semantic counterpart/justification for the sharing
+  relation in the type system
 
 { \small \begin{mathpar}
 	\inferr{
@@ -554,17 +615,16 @@ $(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ such that
 \end{frame}
 
 \begin{frame}{Contention}
-We proceed with induction on the derivation of the judgment in \copySem. 
-Almost every case goes through, save for E:Let. 
-First, we get $W_1,Y \sim V_1,H$ and We have the following from induction on the first premise:
+Induction on the derivation of the judgment in \copySem: trouble in E:Let. 
+IH on first premise:
 %
 \begin{center}
-	 $W_1,Y,R',M \vdash^{\mathsf{free}} e \Downarrow w_1,Y_1,M_1$ and, 	 $\veq{H_1}{Y_1}{v_1}{w_1}$
+	 $W_1,Y,R',M \vdash^{\mathsf{free}} e \Downarrow w_1,Y_1,M_1$ and, $\veq{H_1}{Y_1}{v_1}{w_1}$
          and,  $|M_1| \ge |F_1|$
 \end{center}
 %
-To instantiate the induction hypothesis on the second premise, we need to show that, among 
-other things, $|M_1 \cup j| \ge |F_1 \cup g|$, where $j$ is the set of collected locations in 
+To instantiate IH on the second premise, NTS $|M_1 \cup j| \ge |F_1 \cup g|$,
+where $j$ is the set of collected locations in 
 the \gcSem{} judgment. We cannot show this precisely because $g$ might contain more cells 
 then $j$ due to the linearity of \copySem{}, thus preventing a piecewise comparison. 
 But of course $|j|$ is always less than $|g|$, since \gcSem{} doesn't copy to share 
@@ -647,13 +707,13 @@ The intention is that $\mathcal{C}_2$ is a configuration for initiating an evalu
 \begin{frame}{Extension Lemma}
   \begin{lemma}\label{itm:frugal}
 	Let $(\mathcal{C}_2,e)$ be a linear computation. Given that 
-	$\mathcal{C}_2 \vdash^{\mathsf{copy}} e \Downarrow v,H',F'$,
+	$\mathcal{C}_2 \vdash^{\copySem} e \Downarrow v,H',F'$,
 	for all well-formed configurations $\mathcal{C}_1$ such that $\mathcal{C}_1 \preceq \mathcal{C}_2$,
 there is exists a triple
 $(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ and 
 	$\gamma' : dom(Y') \setminus M' \to \mathcal{P}(dom(H') \setminus F')$ s.t.
 	\begin{enumerate}
-			\item $\mathcal{C}_1 \vdash^{\mathsf{free}} e \Downarrow w,Y',M'$
+			\item $\mathcal{C}_1 \vdash^{\gcSem} e \Downarrow w,Y',M'$
 			\item $\veq{H'}{Y'}{v}{w}$
 			\item $\gamma'$ is a proper partition, such that for all $l \in dom(\gamma')$, 
 				$|\gamma'(l)| = |reach_{Y_1}(w_1)(l)| + S(l)$
@@ -665,40 +725,17 @@ $(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ and
 \end{lemma}
 \end{frame}
 
-\begin{frame}{Operational Semantics}
-  To state the soundness theorem, we need an operational semantics to witness terminating expressions.
-  Just take $\mathcal{E}_{\ms{oper}}$ the normal natural semantics with
-  rules of the form $V,H \vdash e \Downarrow v,H$.\\
-  
-  In words, the theorem states that given a terminating expression (as shown by a run with
-  $\mathcal{E}_{\ms{oper}}$),
-and given a freelist that is sufficiently large (as predicated by the type derivation), 
-a run with \copySem will normalize to an equivalent value, and the resulting freelist 
-will be sufficiently large (as predicated by the type derivation).
-\end{frame}
 
-\begin{frame}{Linear Context}
-First, we characterize semantically linear contexts: 
-\begin{definition}[Linear context]
-Given a context $(V,H)$, let
-$x,y \in dom(V)$, $x \ne y$, and $r_x = reach_H(V(x))$, $r_y = reach_H(V(y))$.
-	It is \emph{linear} given that  $\ms{set}(r_x)$, $\ms{set}(r_y)$, and $r_x \cap r_y = \emptyset$.
-      \end{definition}
-      
-Where $\ms{set}(S)$ means $S$ a proper set ($S(x) \le 0 \forall x$). 
-Denote this by $\na{V,H}$. Whenever $\na{V,H}$ holds,
-there is at 
-most one path from a variable on the stack $V$ to any location in $H$. 
-\end{frame}
 
 \begin{frame}{Linearity of \copySem}
-Now we can 
-formalize our intuition for linear computations: 
 \begin{definition}[Linear computation]
+  Given a context $(V,H)$, let
+$x,y \in dom(V)$, $x \ne y$, and $r_x = reach_H(V(x))$, $r_y = reach_H(V(y))$.
+It is \emph{linear} given that  $\ms{set}(r_x)$, $\ms{set}(r_y)$, and $r_x \cap r_y = \emptyset$.
 Given a configuration $\mathcal{C} = (V,H,R,F)$ and an expression $e$, 
 we say the 5-tuple $(\mathcal{C},e)$ is a \emph{computation}; it is a \emph{linear computation} 
 given the that  $dom(V) = FV(e)$, $\na{V,H}$, and $\dist{\{R,F,locs_{V,H}(e)\}}$.
-And we write $\wfc{V}{H}{R}{F}{e}$ to denote this fact.
+Write $\wfc{V}{H}{R}{F}{e}$ to denote this fact.
 \end{definition}
 
 % main lemma
@@ -707,6 +744,17 @@ Given a semantically linear computation, the resulting value is linear:
 For all stacks $V$ and heaps $H$, let  $V,H,R,F \; \vdash e \Downarrow v, H', F'$ 
 and $\Sigma; \Gamma \vdash e : B$. Then given that $\wfc{V}{H}{R}{F}{e}$, we have that $\ms{set}(reach_{H'}(v))$ and $\dist{\{R,F',reach_{H'}(v)\}}$.
 \end{lemma}
+\end{frame}
+
+\begin{frame}{Operational Semantics}
+  Let be $\mathcal{E}_{\ms{oper}}$ the normal operational semantics with
+  rules of the form $V,H \vdash e \Downarrow v,H$.\\
+  
+  In words, the theorem states that given a terminating expression (as shown by a run with
+  $\mathcal{E}_{\ms{oper}}$),
+and given a freelist that is sufficiently large (as predicated by the type derivation), 
+a run with \copySem will normalize to an equivalent value, and the resulting freelist 
+will be sufficiently large (as predicated by the type derivation).
 \end{frame}
 
 \begin{frame}{Soundness of \copySem}
@@ -721,7 +769,7 @@ Then $\forall C \in \mathbb{Q}^{+}$ and configuration $V,H,R,F$ s.t.
 \end{enumerate}
 then there exists a triple $(v,H',F')$, and a freelist $F'$ s.t.
 \begin{enumerate}
-  \item $V,H,R,F \vdash e \Downarrow v, H', F'$
+  \item $V,H,R,F \vdash^{\copySem} e \Downarrow v, H', F'$
 	\item $\veq{H_o'}{H'}{v_o}{v}$
   \item $|F'| \ge \Phi_{H'}(v:B) + q' + C$
 \end{enumerate}
@@ -737,6 +785,7 @@ then there exists a triple $(v,H',F')$, and a freelist $F'$ s.t.
   \begin{itemize}
   \item New cost semantics for garbage collection of first-order functional programs
   \item Extension of type based amortized analysis to derive better space bounds
+  \item Soundness Theorem
   \end{itemize}
   
   \begin{itemize}
