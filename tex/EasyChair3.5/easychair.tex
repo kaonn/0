@@ -107,6 +107,7 @@
 \newcommand{\val}[1]{\irl{val}(#1)}
 \newcommand{\gc}[3]{\mathsf{gc}(#1,#2,#3)}
 \newcommand{\wfc}[5]{\mathsf{linearComp}(#1,#2,#3,#4,#5)}
+\newcommand{\linearComp}[2]{\mathsf{linearComp}(#1,#2)}
 \newcommand{\veq}[4]{#3 \sim^{#1}_{#2} #4}
 \newcommand{\ctxeq}[2]{(#1) \sim (#2)}
 \newcommand{\oh}[1]{\oslash(#1)}
@@ -301,9 +302,7 @@ cells available for evaluation. This alternative formulation is
 equivalent to the existing semantics and mainly motivated by the
 soundness proof of our type system for bound analysis.  However, the
 cost semantics is a natural approach and different enough from its
-predecessors~\cite{Spoonhower:2008:SPP:1411204.1411240,DBL     Note: Visa Forms MUST BE TYPED before print out; Then must Sign
-
-P:journals/entcs/Minamide99}
+predecessors~\cite{Spoonhower:2008:SPP:1411204.1411240,DBLP:journals/entcs/Minamide99}
 to be of interest in its own right.
 
 \emph{Our second technical contribution} is the type system for
@@ -535,7 +534,7 @@ For example, we have the let rule:
 Notice that to evaluate $e_1$, we have to extend the continuation $R$ with locations in $e_2$, which
 will be used \emph{after} $e_1$ is evaluated. The total space used is the max of the 
 component, indicating that locations used for $e_1$ can be reused for $e_2$. 
-This is clear when we look at the variable rule. 
+This is clear when we look at the variable rule:
 %
 \[
 	\inferrule{
@@ -548,9 +547,14 @@ This is clear when we look at the variable rule.
 It states that evaluating a variable $x$ requires the locations reachable from $x$ as well as 
 the continuation set $R$. While this way of counting heap locations does model a tracing garbage 
 collector, it is not compatible with the existing type systems for amortized analysis. In these
-systems, the type rules count the heap locations as data is created, i.e.\ at each data constructor.
-Thus looking up a variable incurs no cost, since it was accounted for during creation. This mismatch
-between the dynamics and statics of language prevents us from proving the soundness of the analysis. 
+systems, such as RaML,
+the type rules count the heap locations as data is created, i.e.\ at each data constructor.
+Thus looking up a variable incurs no cost, since it was accounted for during creation.
+On the other hand, the cost of indexing a variable in the semantics includes the cost of
+the entire continuation set, which is potentially unbounded. This mismatch
+between the dynamics and statics of language prevents us from proving the soundness of the analysis.
+We give a new cost semantics that is 1) compatible with the type system and 2) also a more
+concrete model of a garbage collector since costs are realized with explicit locations. 
 
 %------------------------------------------------------------------------------
 
@@ -582,7 +586,26 @@ the previous section, the key ingredient we added is the freelist, which serves
 as the set of available locations. Similar to the predicate $reach$, 
 We call $R$ a (multi)set since the fact that 
 it's a multiset is only useful during the soundness proof. For evaluation, it is 
-convenient to just view $R$ as a set. 
+convenient to just view $R$ as a set. Define a \emph{computation} as a pair
+$(\mathcal{C},e)$ of a configuration $\mathcal{C}$ and an expression $e$.
+Next, we give some coherence conditions to a configuration.
+For a configuration $(V,H,R,F)$, denote the
+garbage w.r.t. a set of locations $L$ 
+as $collect(R,L,H',F') = \{l \in H' \mid l \notin F' \cup R \cup L\}$.
+
+\begin{definition} A configuration $(V,H,R,F)$ is well-formed if 
+	\begin{enumerate}
+		\item $dom(H) \subseteq reach_H(V) \cup R \cup F$
+		\item $reach_H(V) \cup R \subseteq dom(H) \setminus F$
+		\item $collect(R,reach_H(V),H,F) = \emptyset$
+	\end{enumerate}
+\end{definition}
+
+The well-formed conditions ensure the stack and continuation sets are within the active region
+of the heap $H \setminus F$, and that
+the active region of the heap does not contain garbage -- all garbage locations 
+are already in the freelist. From now on, all configurations are implicitly assumed to be coherent
+in the sense defined above.
 
 The semantics \gcSem{} is designed to model the heap usage of a program running with a 
 tracing counting garbage collector: whenever a heap cell becomes unreachable from the 
@@ -1111,8 +1134,8 @@ We seek to prove the following theorem.
 \begin{theorem}[Soundness]
 \label{itm:soundness} Let $H \vDash V {:} \Gamma$, $\;\; \Sigma; \Gamma \sststile{q'}{q} e : B$,
 and $V,H \vdash^{\mathcal{E}_{\ms{oper}}} e \Downarrow v, H'$.
-Then for all configurations $W,Y,F,R$:
-If $V,H \sim W,Y$ and $|F| \ge \Phi_{V,H}(\Gamma) + q$,
+Then for all configurations $W,Y,F,R$,
+if $V,H \sim W,Y$ and $|F| \ge \Phi_{V,H}(\Gamma) + q$,
 there exists a value $w$, and a freelist $F'$ such that
 $$
 \begin{array}{ccc}
@@ -1121,7 +1144,7 @@ $$
 $$
 \end{theorem}
 
-Here,$\mathcal{E}_{\ms{oper}}$ is a standard big-step semantics, with judgments of the form
+Here, $\mathcal{E}_{\ms{oper}}$ is a standard big-step semantics, with judgments of the form
 $\fbox{$V,H \vdash e \Downarrow v,H'$}$
 derived from \gcSem{}, $V,H \sim W,Y$ is context equivalence, and $\veq{H'}{Y'}{v}{w}$
 is value equivalence (these are defined below). The theorem states that, given a terminating expression
@@ -1180,7 +1203,8 @@ semantic values (defined in Section~\ref{sect:lfp}).
 \label{sect:copy}
 To establish the soundness of the type system, we need an 
 intermediary semantics \copySem{}, which is \emph{semantically linear}.  
-As mentioned in Section~\ref{sect:fop}, this means that locations are linear, that is, no location can be 
+As mentioned in Section~\ref{sect:fop}, this means that locations are treated linearly,
+that is, no location can be 
 used twice in a program. Variable sharing is achieved via \emph{copying}: 
 the shared value is created by allocating a fresh set of locations from the freelist and copying the 
 locations of the original value one by one. This is also sometimes referred to as deep copying.
@@ -1240,6 +1264,32 @@ original value. Next, we restrict the stack to the appropriate variables.
 Lastly, any locations not reachable from the current subexpression $e$ are collected. This is 
 for the case when a variable is shared but not used later.  
 
+Recall that a \emph{computation} is a pair $(\mathcal{C},e)$ consisting of a configuration
+$\mathcal{C} = (V,H,R,F)$ and an expression $e$. 
+Since any reasonable semantics can only \emph{preserve} the linearity of a computation,
+we restrict our attention to computations that are linear initially, and show that
+\copySem{} respects the linearity of any initially linear computation. This motivates the following
+definitions:
+
+\begin{definition}(Linear context)
+Given a context $(V,H)$, let
+$x,y \in dom(V)$, $x \ne y$, and $r_x = reach_H(V(x))$, $r_y = reach_H(V(y))$.
+	It is \emph{linear} given that  $\ms{set}(r_x)$, $\ms{set}(r_y)$, and $r_x \cap r_y = \emptyset$.
+\end{definition}
+
+Where $\ms{set}(S)$ means $S$ a proper set ($\forall x, S(x) \le 1$). 
+Denote this by $\na{V,H}$. Whenever $\na{V,H}$ holds,
+there is at 
+most one path from a variable on the stack $V$ to any location in $H$. Now we can 
+formalize our intuition for linear computations: 
+
+\begin{definition}[Linear computation]
+Given a configuration $\mathcal{C} = (V,H,R,F)$ and an expression $e$, 
+we say the 5-tuple $(\mathcal{C},e)$ is a \emph{computation}; it is a \emph{linear computation} 
+given that  $dom(V) = FV(e)$, $\na{V,H}$, and $\dist{\{R,F,locs_{V,H}(e)\}}$.
+And we write $\wfc{V}{H}{R}{F}{e}$ (equivalently $\linearComp{\mathcal{C}}{e}$) to denote this fact.
+\end{definition}
+
 Intuitively, we expect that any terminating compuation
 with \copySem{} has a corresponding run with \gcSem{} that can be instantiated with 
 an equally-sized or smaller freelist. Although this seems quite straightforward to prove, a complete
@@ -1249,7 +1299,7 @@ semantics is necessary. To motivate this, consider the following proof attempt:
 \begin{attempt}
 	Let $\mathcal{C}_2 = (V,H,R,F)$ be a configuration and $(\mathcal{C}_2, e)$ 
 	be a linear computation. Given that 
-	$\mathcal{C}_2 \vdash^{\copySem} e \Downarrow v,H',F'$, and $H' \vDash v \mapsto a : A$, 
+	$\mathcal{C}_2 \vdash^{\copySem} e \Downarrow v,H',F'$, 
 	for all configurations $\mathcal{C}_1 = (W,Y,R,M)$ such that $W,Y \sim V,H$ and $|M| = |F|$,
 there exists a triple
 $(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ such that
@@ -1276,32 +1326,15 @@ the \gcSem{} judgment. We cannot show this precisely because $g$ might contain m
 then $j$ due to the linearity of \copySem{}, thus preventing a piecewise comparison. 
 But of course $|j|$ is always less than $|g|$, since \gcSem{} doesn't copy to share 
 values! This shows that there is a mismatch between the induction hypothesis and the relationship
-between the sizes of the respective freelists and the garbage sets. 
+between the sizes of the respective freelists and the garbage sets. Specifically, we need to
+know exactly how much larger $M_1$ is compared to $F_1$ at any given step. 
 
-Before giving the full relationship between two configurations that allows the successful proof,
-We first give coherence conditions to a configuration. For a configuration $(V,H,R,F)$, denote the
-garbage w.r.t. a set of locations $L$ 
-as $collect(R,L,H',F') = \{l \in H' \mid l \notin F' \cup R \cup L\}$.
-
-\begin{definition} A configuration $(V,H,R,F)$ is well-formed if 
-	\begin{enumerate}
-		\item $dom(H) \subseteq reach_H(V) \cup R \cup F$
-		\item $reach_H(V) \cup R \subseteq dom(H) \setminus F$
-		\item $collect(R,reach_H(V),H,F) = \emptyset$
-	\end{enumerate}
-\end{definition}
-
-The well-formed conditions ensure the stack and continuation sets are within the active region
-of the heap $H \setminus F$, and that
-the active region of the heap does not contain garbage -- all garbage locations 
-are already in the freelist. Although we can leave this condition out, it unnecessarily 
-complicates the presentation of the theorem. 
-
-Now, we can present the following 
+Having a sense of what is missing, we formulate the
 criteria which characterize the required equivalence between two configurations,
 called \emph{copy extension}.
 \begin{definition}
-A well-formed configuration $\mathcal{C}_2 = (V_2,H_2,R_2,F_2)$ is a \emph{copy extension} of another well-formed configuration
+  A configuration $\mathcal{C}_2 = (V_2,H_2,R_2,F_2)$ is a \emph{copy extension} of
+  another configuration
 $\mathcal{C}_1 = (V_1,H_1,R_1,F_1)$ iff
 \begin{enumerate}
 \item $V_1,H_1 \sim V_2,H_2$
@@ -1369,7 +1402,8 @@ subvalues of a value using directions:
 		find_H(v,[]) &= v
 	\end{align*}
 	Call $P$ valid w.r.t a value $v$ if $find_H(v,P) = Just (v')$ for some $v'$.
-	Write $V_H(x;P)$ for $fromJust(find_H(V(x),P))$ given a valid sequence $P$ w.r.t $V(x)$,
+        given a valid sequence $P$ w.r.t $V(x)$,
+	write $V_H(x;P)$ for $fromJust(find_H(V(x),P))$
 	and $reach_H(V(x;P))$ for $reach_H(V_H(x;P))$.
 \end{definition}
 
@@ -1383,12 +1417,12 @@ we have that $F_1$ is greater than $F_2$, with the overhead $\oh{\gamma}$ being 
 $\sum_{l \in \gamma} |\gamma(l)| - 1$ 
 (since each class is non-empty, we use $rep(l)$ to choose an arbitrary element of the class $\gamma(l)$). 
 
-Now we can formulate the key lemma:
+Now we can state the key lemma:
 
 \begin{lemma}
 	Let $(\mathcal{C}_2,e)$ be a linear computation. Given that 
 	$\mathcal{C}_2 \vdash^{\copySem{}} e \Downarrow v,H',F'$,
-	for all well-formed configurations $\mathcal{C}_1$ such that $\mathcal{C}_1 \preceq \mathcal{C}_2$,
+	for all configurations $\mathcal{C}_1$ such that $\mathcal{C}_1 \preceq \mathcal{C}_2$,
 there exists a triple
 $(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ and 
 	$\gamma' : dom(Y') \setminus M' \to \mathcal{P}(dom(H') \setminus F')$ s.t.
@@ -1409,44 +1443,29 @@ $(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ and
 \end{proof}
 
 Thus, we have shown that we can execute a computation using 
-\gcSem if the computation suceeded in a run with \copySem, and that indeed 
-\copySem is an over approximation of \gcSem.
+\gcSem{} if the computation suceeded in a run with \copySem{}, and that indeed 
+\copySem{} is an over approximation of \gcSem{}.
 
 \textbf{Soundness of $\fogc$}
 \label{sect:soundcopy}
-For the second part of the proof, we show $\fogc$ is sound w.r.t. \copySem{}. First,
-we characterize semantically linear contexts: 
-
-\begin{definition}(Linear context)
-Given a context $(V,H)$, let
-$x,y \in dom(V)$, $x \ne y$, and $r_x = reach_H(V(x))$, $r_y = reach_H(V(y))$.
-	It is \emph{linear} given that  $\ms{set}(r_x)$, $\ms{set}(r_y)$, and $r_x \cap r_y = \emptyset$.
-\end{definition}
-
-Where $\ms{set}(S)$ means $S$ a proper set ($\forall x, S(x) \le 1$). 
-Denote this by $\na{V,H}$. Whenever $\na{V,H}$ holds,
-there is at 
-most one path from a variable on the stack $V$ to any location in $H$. Now we can 
-formalize our intuition for linear computations: 
-
-\begin{definition}[Linear computation]
-Given a configuration $\mathcal{C} = (V,H,R,F)$ and an expression $e$, 
-we say the 5-tuple $(\mathcal{C},e)$ is a \emph{computation}; it is a \emph{linear computation} 
-given that  $dom(V) = FV(e)$, $\na{V,H}$, and $\dist{\{R,F,locs_{V,H}(e)\}}$.
-And we write $\wfc{V}{H}{R}{F}{e}$ to denote this fact.
-\end{definition}
-
+For the second part of the proof, we show $\fogc$ is sound w.r.t. \copySem{}. First we
+show the linearity of \copySem{}: 
 % main lemma
-Given a semantically linear computation, the resulting value is linear: 
-\begin{lemma}[Linearity of \copySem]\label{itm:na}
-For all stacks $V$ and heaps $H$, let  $V,H,R,F \; \vdash e \Downarrow v, H', F'$ 
-and $\Sigma; \Gamma \vdash e : B$. Then given that $\wfc{V}{H}{R}{F}{e}$, we have that $\ms{set}(reach_{H'}(v))$ and $\dist{\{R,F',reach_{H'}(v)\}}$.
+ 
+\begin{lemma}[Linearity of \copySem{}]\label{itm:na}
+  Let $\mathcal{C}$ be a configuration, $\mathcal{C} \; \vdash e \Downarrow v, H', F'$, and
+  $\Sigma; \Gamma \vdash e : B$. Given that $\linearComp{\mathcal{C}}{e}$,
+  we have that $\ms{set}(reach_{H'}(v))$ and $\dist{\{R,F',reach_{H'}(v)\}}$.
 \end{lemma}
+
+\begin{proof}
+Induction on the evaluation judgment $\vdash^{\copySem{}}$.
+\end{proof}
 
 \begin{theorem}[Soundness]
 \label{b} let $H_o \vDash V_o : \Gamma$, $\Sigma; \Gamma \sststile{q'}{q} e : B$,
 $V_o,H_o \; \vdash e \Downarrow v_o, H_o'$.
-Then $\forall C \in \mathbb{Q}^{+}$ and configuration $V,H,R,F$ s.t.
+Then $\forall C \in \mathbb{Q}^{+}$ and configuration $(V,H,R,F)$ s.t.
 \begin{enumerate} 
 \item $V_o,H_o \sim V,H$
 \item $\wfc{V}{H}{R}{F}{e}$
@@ -1547,8 +1566,8 @@ We evaluated our new analysis on a number of functions. Table~\ref{table:sig} co
 It shows the type signature for each function.
 Table~\ref{table:bounds} presents the test data that
 showcase the difference between $\foheap$, the previous RaML type system instantiated with the
-heap metric,the old analysis which only counts 
-heap allocations, and $\fogc$, which includes deallocations and copying cost for sharing.
+heap metric (the old analysis which only counts 
+heap allocations), and $\fogc$, which includes deallocations and copying cost for sharing.
 For each type system, we show the heap space bound computed by RaML, 
 the number of constraints generated, and the time elapsed during analysis. The last column gives
 the expression for the exact heap high watermark derived by hand and verified by running the 
