@@ -263,7 +263,7 @@ We model the (highwater mark) memory
 usage based on a perfect garbage collector that immediately
 deallocates memory cells when they become unreachable. The bounds that
 are derived with respect to this cost model are not only a good theoretical
-measure of the space complexity of the program but also have practical
+measure of the heap-space consumption of the program but also have practical
 relevance. Consider a function $f : A \to B$ and assume we derived a
 bound $b_f : \denote{A} \to \mathbb{N}$. In an execution of $f(a)$, we
 can then keep track of the memory usage and start the garbage
