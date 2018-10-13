@@ -187,6 +187,12 @@ Yasuhiko Minamide.
   the {CPS} transformation.
 \newblock {\em Electr. Notes Theor. Comput. Sci.}, 26:105--120, 1999.
 
+\bibitem{Morrisett95}
+Greg Morrisett, Matthias Felleisen, and Robert Harper.
+\newblock Abstract models of memory management.
+\newblock In {\em Proceedings of the Seventh International Conference on
+  Functional Programming Languages and Computer Architecture (FPCA'95)}, 1995.
+
 \bibitem{NgoDFH16}
 Van~Chan Ngo, Mario Dehesa-Azuara, Matthew Fredrikson, and Jan Hoffmann.
 \newblock {Verifying and Synthesizing Constant-Resource Implementations with
