@@ -294,7 +294,7 @@ the cons node allocates one fresh heap cell and that all other
 operations do not allocate heap cells. However, the semantics can be
 instantiated with more realistic cost metrics. A difference to
 existing formulations of cost semantics with
-GC~\cite{Spoonhower:2008:SPP:1411204.1411240,DBLP:journals/entcs/Minamide99}
+GC~\cite{Morrisett95,Spoonhower:2008:SPP:1411204.1411240,DBLP:journals/entcs/Minamide99}
 is that we update the highwater mark when reachability changes at
 inner nodes of the derivation of the evaluation judgement instead of at
 leaves. Moreover, we use a \emph{freelist}, which represents \emph{named}
