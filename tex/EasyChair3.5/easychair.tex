@@ -591,7 +591,7 @@ $(\mathcal{C},e)$ of a configuration $\mathcal{C}$ and an expression $e$.
 Next, we give some coherence conditions to a configuration.
 For a configuration $(V,H,R,F)$, denote the
 garbage w.r.t. a set of locations $L$ 
-as $collect(R,L,H',F') = \{l \in H' \mid l \notin F' \cup R \cup L\}$.
+as $collect(R,L,H,F) = \{l \in H \mid l \notin F \cup R \cup L\}$.
 
 \begin{definition} A configuration $(V,H,R,F)$ is well-formed if 
 	\begin{enumerate}
@@ -823,10 +823,10 @@ and the resulting pair of lists both have 0 potential per element.
 
 More generally, we can give the following types to \texttt{append} and \texttt{appTwice}:
 \begin{align*}
-	&\texttt{append} : \prodtycst{L^p(\irl{int})}{L^q(\irl{int})} \xrightarrow{r/r} L^s(\irl{int}), \text{ 
-	where } p \ge s + 1 \text{ and } q \ge s \; (r \in \mathbb{Q})\\
-	&\texttt{appTwice} : L^p(\irl{int}) \xrightarrow{q/q} \prodtycst{L^r(\irl{int})}{L^s(\irl{int})},
-	\text{ where } p \ge r + s + 2 \; (q \in \mathbb{Q})
+	&\texttt{append} : \prodtycst{L^p(\irl{int})}{L^q(\irl{int})} \xrightarrow{r/r'} L^s(\irl{int}), \text{ 
+	where } p \ge s + 1,\; q \ge s \text{ and } r \ge r' \\
+	&\texttt{appTwice} : L^p(\irl{int}) \xrightarrow{q/q'} \prodtycst{L^r(\irl{int})}{L^s(\irl{int})},
+	\text{ where } p \ge r + s + 2 \text{ and } q \ge q'
 \end{align*}
 
 Notice that the constant potentials $r$ and $q$ are unconstrained since the functions don't
@@ -1091,12 +1091,102 @@ actually copied. This is sound w.r.t the copying semantics because the size of t
 reachable set of a value $v$ is exactly the linear potential of $v : A$ with all resource 
 annotations set to 1.
 
-Now, we can give the improved space overhead bound to \texttt{append} and \texttt{appTwice}:
+For example, we can give the following derivations for \texttt{append} and \texttt{appTwice}.
+For each function, let $e_{\texttt{f}}$ denote the body of the function $\texttt{f}$. The mappings
+$P$ and $\Sigma$ denote the program and signature respectively. 
+
+\[
+P = [\texttt{append} \mapsto e_{\texttt{append}}] \quad\quad
+\Sigma = [\texttt{append} \mapsto \prodtycst{L^p(A)}{L^p(A)} \xrightarrow{q/q} \L^p(A)]
+\]
+
+\begin{tiny}
+\[
+\infer[\text{L:MatL}]{
+	\Sigma; l_1 : L^p(A), l_2 : L^p(A) \sststile{q}{q} 
+    \listcaseexabt{l_1}{l_2}{x}{xs}{\uletabt{r}{\texttt{append}(xs,l_2)}{x::r }} : L^p(A)
+}{
+	\infer[\text{L:Var}]{
+		\Sigma; l_2 : L^p(A) \sststile{q}{q} l_2 : L^p(A)
+	}{
+	}&
+	\infer[\text{L:Let}]{
+		\Sigma; l_2 : L^p(A), x : A, xs : L^p(A) \sststile{q}{q + p + 1} 
+        \uletabt{r}{\texttt{append}(xs,l_2)}{x::r} : L^p(A)
+	}{
+		\infer[\text{L:App}]{
+			\Sigma; L_2 : L^p(A), xs : L^p(A) \sststile{q+p+1}{q+p+1} \texttt{append}(xs,l_2) : L^p(A)
+		}{
+			\texttt{append} : \xrightarrow{q/q} \prodtycst{L^p(A)}{L^p(A)} \to \L^p(A) \in \Sigma
+		}&
+		\infer[\text{L:Cons}]{
+			\Sigma; x : A, r : L^p(A) \sststile{q}{q+p+1} x::r : L^p(A)
+		}{
+		}
+	}
+}
+\]
+\end{tiny}
+
+\[
+P = [\texttt{appTwice} \mapsto e_{\texttt{appTwice}}] \quad\quad
+\Sigma = [\texttt{appTwice} \mapsto L^{r+s+1}(A) \xrightarrow{q/q} \prodtycst{L^r(A)}{L^s(A)},
+\texttt{append} \mapsto \prodtycst{L^p(A)}{L^p(A)} \xrightarrow{q/q} \L^p(A)]
+\]
+
+\begin{tiny}
+\begin{mathpar}
+\infer[\text{L:ShareCopy}]{
+  \Sigma; l : L^{r+s+1}(A) \sststile{q}{q}
+  \shareabt{l}{l1}{l2}{\uletabt{l1'}{\texttt{append}(l1,[])}{\uletabt{l2'}{\texttt{append}(l2,[])}{\pairexcst{l1'}{l2'}}}}
+  : \prodtycst{L^r(A)}{L^s(A)}
+}{
+\inferrule*[vdots=5.5em,rightskip=5em]{
+L^{r+s+1}(A) \curlyvee^1 L^r(A), L^s(A)}{}
+&
+  \infer[\text{L:Let}]{
+  \Sigma; l1 : L^r(A), l2 : L^s(A) \sststile{q}{q}
+  \uletabt{l1'}{\texttt{append}(l1,[])}{\uletabt{l2'}{\texttt{append}(l2,[])}{\pairexcst{l1'}{l2'}}}
+  : \prodtycst{L^r(A)}{L^s(A)}
+}{
+  \infer[\text{L:Fun}]
+  {
+    \Sigma; l1 : L^r(A) \sststile{q}{q} \texttt{append}(l1,[]) : L^r(A)
+  }{
+    \pairexcst{l1}{[]} : \prodtycst{L^r(A)}{L^r(A)}&
+    \Sigma(\texttt{append}) = \prodtycst{L^r(A)}{L^r(A)} \xrightarrow{q/q} \L^r(A)
+    }
+    &
+    \inferrule*[right=\begin{tiny}\text{L:Let}\end{tiny},vdots=4.5em,leftskip=25em]{
+ \infer[\text{L:Fun}]
+   {
+     \Sigma;l2 : L^s(A) \sststile{q}{q} \texttt{append}(l2,[]) : L^s(A)
+   }{
+    \inferrule*[vskip=1.5em,rightskip=15em]{
+    \pairexcst{l2}{[]} : \prodtycst{L^s(A)}{L^s(A)}}{}&
+    \Sigma(\texttt{append}) = \prodtycst{L^s(A)}{L^s(A)} \xrightarrow{q/q} \L^s(A)
+  }
+  \\
+  \infer[\text{L:Pair}]{
+    \Sigma;l1' : L^r(A), l2' : L^s(A) \sststile{q}{q} \pairexcst{l1'}{l2'} :  \prodtycst{L^r(A)}{L^s(A)}
+  }
+  {}
+}{
+   \Sigma;l2 : L^s(A),l1' : L^r(A) \sststile{q}{q} \uletabt{l2'}{\texttt{append}(l2,[])}{\pairexcst{l1'}{l2'}}
+  : \prodtycst{L^r(A)}{L^s(A)}
+}    
+}
+}
+\end{mathpar}
+\end{tiny}
+
+From these derivations,
+we get the improved space overhead bound to \texttt{append} and \texttt{appTwice}:
 \begin{align*}
-	&\texttt{append} : \prodtycst{L^p(\irl{int})}{L^q(\irl{int})} \xrightarrow{r/r} L^s(\irl{int}),
-	\text{ where } p \ge s \text{ and } q \ge s\\
-	&\texttt{appTwice} : L^p(\irl{int}) \xrightarrow{q/q} \prodtycst{L^r(\irl{int})}{L^s(\irl{int})},
-	\text{ where } p + q \ge r + s + 1
+	&\texttt{append} : \prodtycst{L^p(\irl{int})}{L^q(\irl{int})} \xrightarrow{r/r'} L^s(\irl{int}),
+	\text{ where } p \ge s,\; q \ge s, \text{ and } r \ge r'\\
+	&\texttt{appTwice} : L^p(\irl{int}) \xrightarrow{q/q'} \prodtycst{L^r(\irl{int})}{L^s(\irl{int})},
+	\text{ where } p + q \ge r + s + 1 \text{ and } q \ge q'
 \end{align*}
 
 {\bf Cost Metrics}
@@ -1438,8 +1528,160 @@ $(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ and
 	\end{enumerate}
 \end{lemma}
 
+\begin{lemma}
+	Let $V_1,H_1 \sim V_2,H_2$. Then for all $x \in dom(V_1)$ and sequence of directions $P$, 
+	Either $find_{H_1}(V_1(x),P) = find_{H_2}(V_2(x),P) = None$ or 
+	$find_{H_1}(V_1(x),P) = v_1$, $find_{H_2}(V_2(x),P) = v_2$ and
+	$\veq{H_1}{H_2}{v_1}{v_2}$
+\end{lemma}
+
 \begin{proof}
-	Induction on the evaluation judgment $\vdash^{\copySem{}}$.
+	Induction on length of $P$ and then $H \vdash v \mapsto a : A$.
+\end{proof}
+
+\begin{lemma}\label{itm:aux}
+Let $V_2,H_2,R_2,F_2 \vdash^{\mathsf{copy}} e \Downarrow v,H',F'$, and 
+$V_1,H_1,R_1,F_1 \preceq V_2,H_2,R_2,F_2$ because $(-,\gamma,\eta,-,-)$. Then the following hold:
+for all $l \in dom(H_1) \setminus F_1$, 
+	$X \subseteq dom(V)$, $m : X \to \mathcal{S}(\ms{dir})$, $l \in dom(\gamma)$,
+	$\gamma(l) \subseteq collect(R_2,\mathcal{C}_2,reachPath_{V_2,H_2}(X,m),H_2,F_2)$ iff
+	$l \in collect(R_1,reachPath_{V_1,H_1}(X,m),H_1,F_1)$.
+\end{lemma}
+
+\begin{proof}
+	Induction on the evaluation judgment $\vdash^{\copySem{}}$. We illustrate the 
+  ideas with the case CondT:
+\item[\textbf{Case}: 
+\inferrule{
+  V(x) = \irl{T}\\
+	V' = V\restriction_{FV(e_1)}\\
+  g = \{l \in H \mid l \notin F \cup R \cup locs_{V',H}(e_1)\}\\
+  V',H,R,F \cup g\; \vdash e_1 \Downarrow v, H',F'
+}{
+  V,H,R,F \; \vdash \ifexabt{x}{e_1}{e_2} \Downarrow v, H',F'
+}(\text{F:CondT})]
+From the case, we have $V,H,R,F \; \vdash^{\copySem} \ifexabt{x}{e_1}{e_2} \Downarrow v, H',F'$. Let $W,Y,S,M$ be a configuration such that 
+$W,Y,S,M \preceq V,H,R,F$. Define $W' = W \restriction_{dom(V')}$
+and $j = \{l \in Y | l \notin M \cup S \cup locs_{W,Y}(e_1) \}$.
+To instantiate the induction hypothesis, we need to show that 
+  $W',Y,S,M \cup j \preceq V',H,R,F \cup g$, giving us 5 obligations:
+  \begin{align*}
+		&\emph{(1)}\quad W',Y \sim V',H\\
+		&\emph{(2)}\quad \text{Need to find a proper partition } 
+\gamma' : dom(Y) \setminus (M \sqcup j) \to \mathcal{P}(dom(H)\setminus (F \cup g))\\
+		&\emph{(3)}\quad \text{Let $l \in dom(\gamma'), x \in dom(W')$, 
+			$P$ valid sequence w.r.t $W'(x)$. We need to show that }\\
+    &|reach_{H}(V'(x;P)) \cap \gamma'(l)| = reach_{Y}(W'(x;P))(l) \\
+		&\emph{(4)}\quad S \subseteq dom(Y) \setminus (M \cup j) \text{ since } S \cap j = \emptyset\\
+		&\emph{(5)}\quad \text{NTS } |M \cup j| = |F \cup g| + |\oh{\gamma'}|
+  \end{align*}
+  \emph{(1)} is satisfied since $W,Y \sim V,H$. For \emph{(2)}, we take 
+  $\gamma'(l) = \gamma \restriction_{dom(Y)\setminus(M \sqcup j)}(l) \setminus g$. 
+  First, we show that  $\gamma'$ is a partition. 
+	Let $l, l' \in dom(Y) \setminus (M \sqcup j)$ be two arbitrary locations. Then 
+  $\gamma'(l) \cap \gamma'(l') = \emptyset$ since $\gamma$ is a partition. Now 
+  Consider the image of $\gamma'$: 
+  \begin{align*}
+		&\quad \gamma'(dom(Y) \setminus (M \sqcup j)) = \gamma(dom(Y) \setminus (M \sqcup j)) \setminus g\\
+		&\quad = (\bigsqcup_{l \in dom(Y) \setminus M} \gamma(l) \setminus \bigsqcup_{l \in j} \gamma(l)) 
+			\setminus g\\
+		&\quad = ((dom(H) \setminus F) \setminus (\bigsqcup_{l \in j} \gamma(l))) \setminus g 
+			\tag{$\gamma$ is a partition}\\
+		&\quad = (dom(H) \setminus F) \setminus g 
+			\tag{$\bigsqcup_{l \in j} \gamma(l) \subseteq g$ by lemma \ref{itm:aux}}\\
+		&\quad = dom(H) \setminus (F \sqcup g)
+  \end{align*}
+  Hence $\gamma'$ is a partition. Next we need to show it is proper, or that 
+  every class is non empty.
+  Let $l \in dom(Y) \setminus (M \sqcup j)$ be any location. Since 
+  $\gamma'(l) = \gamma(l) \setminus g$, it sufficies to show 
+  that $l$'s class isn't all not collected. For the sake of contradiction, assume 
+  $\gamma(l) \subseteq g$. But then $l \in j$ by Lemma \ref{itm:aux}, and 
+  we have a contradiction since we assumed $l \notin j$.  
+  Lastly, we need to show that $|\gamma'(l)| = reach_{Y}(W')(l) + S(l)$.
+	Let $l \in dom(\gamma')$. By definition, we have 
+  $|\gamma'(l)| = |\gamma(l)| - |\gamma(l) \cap g|$, which by 
+  the second condition of $W,Y,S,M\preceq V,H,R,F$, 
+  is $reach_Y(W)(l) + S(l) - |\gamma(l) \cap g|$. Next, note that 
+	$g = reach_H(V\restriction_{dom(V) \setminus FV(e_1)})$; combined with the 
+  third condition of  $W,Y,S,M\preceq V,H,R,F$, we have
+  $|\gamma(l) \cap g| = reach_Y(W\restriction_{dom(W)\setminus FV(e_1)})(l)$
+	Thus, we have that $|\gamma'(l)| = 
+			reach_Y(W)(l) + S(l) - reach_Y(W\restriction_{dom(W)\setminus FV(e_1)})(l) =
+  reach_Y(W\restriction_{FV(e_1)})(l) +  S(l) = reach_Y(W')(l) +  S(l)$, which is
+  the condition we needed. The conditions \emph{(3)} and \emph{(4)} proceed similarly
+  to the arguments above.
+
+  Lastly, we need to show that the overhead is preserved: 
+  $|M| + |j| = |F| + | g| + |\oh{\gamma'}|$.
+	By assumption, $|M| = |F| + |\oh{\gamma}|$, so it suffices to show 
+  $|j| + |\oh{\gamma}| = |g| + |\oh{\gamma'}|$. We do this by giving a bijection 
+  $f : j \oplus \oh{\gamma} \to g \sqcup \oh{\gamma'}$. 
+  By Lemma \ref{itm:aux}, we have $g = (\bigsqcup_{l \in j} \gamma(l)) \sqcup L $ for some
+  $L$. 
+	Let $\mathcal{C}_1 = \{\gamma(l) \mid l \in j\}$, 
+				$\mathcal{C}_2 = ec(\gamma) \setminus \mathcal{C}_1$. Then we have 
+		$\oh{\gamma} = \bigsqcup_{C  \in \mathcal{C}_1} C \setminus rep(C) 
+    \sqcup \bigsqcup_{C  \in \mathcal{C}_2} C \setminus rep(C)$. 
+		Next, let $D_1 = \bigsqcup_{C  \in \mathcal{C}_1} C \setminus rep(C)$,  
+		$D_2 = \bigsqcup_{C  \in \mathcal{C}_2} C \setminus rep(C)$.
+		We define the bijection $f$ by parts: 
+			$f_1 : j \oplus D_1 \to \bigsqcup_{C \in \mathcal{C}_2} C, f_2 : D_2 \to L \sqcup \oh{\gamma'}$. First, $f_1$ is defined as follows:
+  \begin{align*}
+		&\quad f_1(x) =  
+		\begin{cases}
+			rep(\gamma(l)) &x = (\ms{inl},l)\\
+			l &x = (\ms{inr},l)
+		\end{cases}
+  \end{align*}
+		Clearly, $f_1$ is a bijection, and $|j| + |D_1| = 
+    |\bigsqcup_{C \in \mathcal{C}_1} C|$. To avoid the problem of maintaining 
+    a single representative for a class (which might be collected),
+    note that
+  \begin{align*}
+    |\mathcal{C}_2| &= |ec(\gamma) \setminus \{\gamma(l) \mid l \in j\}|\\
+    &=|ec(\gamma \restriction_{dom(Y) \setminus (M \sqcup j)})|\\
+    &= |ec(\gamma')|
+  \end{align*}
+		Which means that $\mathcal{C}_2$  has the same number of classes as $\gamma'$
+		(note the actual classes might be different). 
+		Since both $\gamma$ and $\gamma'$  are proper partitions, we just keep class
+    representatives for each class and still obtain a bijection:
+    \begin{align*}
+      &|D_2| = |L \sqcup \oh{\gamma'}|\\
+      &\iff |\bigsqcup_{C  \in \mathcal{C}_2} C \setminus rep(C)| = 
+			|L \sqcup \bigsqcup_{C \in ec(\gamma')} C \setminus rep(C)|\\
+      &\iff |\bigsqcup_{C  \in \mathcal{C}_2} C| = 
+        |L \sqcup \bigsqcup_{C \in ec(\gamma')} C|
+  \end{align*}
+		In fact, the latter two sets are equal. 
+		Let $l' \in \bigsqcup_{C  \in \mathcal{C}_2} C$. 
+		By definition of partition, $l' \in H \setminus F$. Suppose $ l \in g$. 
+		Then by definition of $\mathcal{C}_2$, $l' \notin \bigsqcup_{l \in j} \gamma(l)$, 
+    and $l' \in L$ by definition of $g$. Hence 
+    $l' \in L \sqcup \bigsqcup_{C \in ec(\gamma')} C$. 
+		Otherwise,  $l' \notin g$, and $l' \in H \setminus (F \sqcup g)$. 
+		By definition of partition, there exists a class $C \in ec(\gamma')$ s.t. $l' \in C$.
+		Then $l' \in \bigsqcup_{C \in ec(\gamma')} C$, and
+		$l' \in L \sqcup \bigsqcup_{C \in ec(\gamma')} C$.
+		For the other direction, let $ l' \in L \sqcup \bigsqcup_{C \in ec(\gamma')} C$.
+		Suppose $l' \in L$. Then $l' \in H \setminus F$ since $L \subseteq g$.
+    Since $L \cap  \bigsqcup_{C \in \mathcal{C}_1} C = \emptyset$, 
+    there exists a class $C \in \mathcal{C}_2$ s.t. $l' \in C$. Thus 
+    $l' \in \bigsqcup_{C \in \mathcal{C}_2} C$.
+		Otherwise, $l' \in \bigsqcup_{C \in ec(\gamma')} C$. 
+		By definition of partition, $l' \in H \setminus (F \sqcup g)$. 
+    Since $\bigsqcup_{C \in \mathcal{C}_1} C \subseteq g$, there is a class 
+    $C \in \mathcal{C}_2$ s.t. $l' \in C$, and again 
+    $l' \in \bigsqcup_{C \in \mathcal{C}_2} C$.
+    
+    Hence we show that $|D_2| = |L \sqcup \oh{\gamma'}|$, and together with the previous 
+		equality, $|j| + |\oh{\gamma}| = |g| + |\oh{\gamma'}|$. 
+		Thus we have $W',Y,S,F \cup j \preceq V',H,R,F \cup g$. 
+  Now we instantiate the induction hypothesis to obtain the triple $(w,Y',M')$ and 
+  new partition $\gamma''$ with the expected properties. Applying the rule F:CondT 
+  to the first property given by induction, we inherit the required conditions for the 
+  case.
 \end{proof}
 
 Thus, we have shown that we can execute a computation using 
@@ -1452,6 +1694,46 @@ For the second part of the proof, we show $\fogc$ is sound w.r.t. \copySem{}. Fi
 show the linearity of \copySem{}: 
 % main lemma
  
+
+
+\begin{lemma}\label{itm:stable}
+Let $H \vDash v \mapsto a : A$. For all sets of locations $R$, if $reach_H(v) \subseteq R$ and $\stable{R,H,H'}$, then $H' \vDash v \mapsto a : A$ and $reach_H(v) = reach_{H'}(v)$.
+\end{lemma}
+
+\begin{proof}
+Induction on the structure of $H \vDash v \mapsto a : A$.
+\end{proof}
+
+\begin{corollary}
+Let $H \vDash V : \Gamma$. For all $R$, if $\bigcup_{x \in V} reach_H(V(x)) \subseteq R$ and $\stable{R,H,H'}$, then $H' \vDash V : \Gamma$.
+\end{corollary}
+
+\begin{proof}
+Follows from Lemma $\ref{itm:stable}$.
+\end{proof}
+
+% copy
+
+\begin{lemma}[stability of copying]\label{itm:copyStable}
+	Let $H',v' = copy(H,L,v)$. For all $l \in H$, if $l \notin L$, then $H(l) = H'(l)$. 
+	Further, $reach_{H'}(v') \subseteq L$.
+\end{lemma}
+
+\begin{lemma}[copy is copy]
+	Let $H',v' = copy(H,L,v)$. If $H \vDash v \mapsto a : A$, then $H' \vDash v' \mapsto a : A$.
+\end{lemma}
+
+\begin{lemma}\label{itm:shareSize}
+	Let $A \curlyvee^n A_1,A_2$, $H \vDash v_1 : A_1$, $H \vDash v_2 : A_2$, 
+	and $H \vDash v : A$. Then $\Phi_{H}(v : A) = 
+	\Phi_{H}(v_1 : A_1) + \Phi_{H}(v_2 : A_2) + n\cdot |dom(reach_H(v))|$
+\end{lemma}
+
+\begin{lemma}\label{itm:wellFormed}
+	Let $H \vDash V : \Gamma$, $\Sigma;\Gamma \vdash e : A$, and $V,H \vdash e \Downarrow v,H'$. Then 
+	$H' \vDash v : A$.
+\end{lemma}
+
 \begin{lemma}[Linearity of \copySem{}]\label{itm:na}
   Let $\mathcal{C}$ be a configuration, $\mathcal{C} \; \vdash e \Downarrow v, H', F'$, and
   $\Sigma; \Gamma \vdash e : B$. Given that $\linearComp{\mathcal{C}}{e}$,
@@ -1727,109 +2009,6 @@ total memory that is requested from the operating system.
 % the resulting type $A'-1$. This cost-free composition rule would bring the type system closer 
 % to modeling the composition in the garbage collection cost semantics.
 
-
-\section{Example Derivations}
-\label{sect:example}
-
-In the following, let $A = \irl{int}$.
-
-\begin{verbatim}
-let rec append (l1, l2) =
-  match l1 with
-    | [] -> l2
-    | x::xs -> let r = append (xs, l2) in x::r
-\end{verbatim}
-
-$P = [\texttt{append} \mapsto e_{\texttt{append}}]$\\
-$\Sigma = [\texttt{append} \mapsto \prodtycst{L^p(A)}{L^p(A)} \xrightarrow{q/q} \L^p(A)]$\\
-
-Type derivation:
-\begin{tiny}
-\[
-\infer[\text{L:MatL}]{
-	\Sigma; l_1 : L^p(A), l_2 : L^p(A) \sststile{q}{q} 
-		\listcaseexabt{l_1}{l_2}{x}{xs}{\irl{let}\; r = append(xs,l_2) \; \irl{in}\; x::r } : L^p(A)
-}{
-	\infer[\text{L:Var}]{
-		\Sigma; l_2 : L^p(A) \sststile{q}{q} l_2 : L^p(A)
-	}{
-	}&
-	\infer[\text{L:Let}]{
-		\Sigma; l_2 : L^p(A), x : A, xs : L^p(A) \sststile{q}{q + p + 1} 
-				\irl{let}\; r = append(xs,l_2) \; \irl{in}\; x::r : L^p(A)
-	}{
-		\infer[\text{L:App}]{
-			\Sigma; L_2 : L^p(A), xs : L^p(A) \sststile{q+p+1}{q+p+1} append(xs,l_2) : L^p(A)
-		}{
-			append : \xrightarrow{q/q} \prodtycst{L^p(A)}{L^p(A)} \to \L^p(A) \in \Sigma
-		}&
-		\infer[\text{L:Cons}]{
-			\Sigma; x : A, r : L^p(A) \sststile{q}{q+p+1} x::r : L^p(A)
-		}{
-		}
-	}
-}
-\]
-\end{tiny}
-
-\begin{verbatim}
-let appTwice l = 
-    share l as l1,l2 in
-    let l1' = append (l1, []) in 
-    let l2' = append (l2, []) in 
-    (l1',l2')
-\end{verbatim}
-
-
-$P = [\texttt{appTwice} \mapsto e_{\texttt{appTwice}}]$\\
-$\Sigma = [\texttt{appTwice} \mapsto L^{r+s+1}(A) \xrightarrow{q/q} \prodtycst{L^r(A)}{L^s(A)},
-\texttt{append} \mapsto \prodtycst{L^p(A)}{L^p(A)} \xrightarrow{q/q} \L^p(A)]$\\
-
-\begin{tiny}
-\begin{mathpar}
-\infer[\text{L:ShareCopy}]{
-  \Sigma; l : L^{r+s+1}(A) \sststile{q}{q}
-  \shareabt{l}{l1}{l2}{\uletabt{l1'}{append(l1,[])}{\uletabt{l2'}{append(l2,[])}{\pairexcst{l1'}{l2'}}}}
-  : \prodtycst{L^r(A)}{L^s(A)}
-}{
-  L^{r+s+1}(A) \curlyvee^1 L^r(A), L^s(A)&
-  \infer[\text{L:Let}]{
-  \Sigma; l1 : L^r(A), l2 : L^s(A) \sststile{q}{q}
-  \uletabt{l1'}{append(l1,[])}{\uletabt{l2'}{append(l2,[])}{\pairexcst{l1'}{l2'}}}
-  : \prodtycst{L^r(A)}{L^s(A)}
-}{
-  \infer[\text{L:Fun}]
-  {
-    \Sigma; l1 : L^r(A) \sststile{q}{q} append(l1,[]) : L^r(A)
-  }{
-    \pairexcst{l1}{[]} : \prodtycst{L^r(A)}{L^r(A)}&
-    \Sigma(append) = \prodtycst{L^r(A)}{L^r(A)} \xrightarrow{q/q} \L^r(A)
-    }
-  &...
-}
-}\\
-\text{Derivation of ...}\\
-
-  \infer[\text{L:Let}]{
-  \Sigma;l2 : L^s(A),l1' : L^r(A) \sststile{q}{q} \uletabt{l2'}{append(l2,[])}{\pairexcst{l1'}{l2'}}
-  : \prodtycst{L^r(A)}{L^s(A)}
-}{
-   \infer[\text{L:Fun}]
-   {
-     \Sigma;l2 : L^s(A) \sststile{q}{q} append(l2,[]) : L^s(A)
-   }{
-    \pairexcst{l2}{[]} : \prodtycst{L^s(A)}{L^s(A)}&
-    \Sigma(append) = \prodtycst{L^s(A)}{L^s(A)} \xrightarrow{q/q} \L^s(A)
-  }&
-  \infer[\text{L:Pair}]{
-    \Sigma;l1' : L^r(A), l2' : L^s(A) \sststile{q}{q} \pairexcst{l1'}{l2'} :  \prodtycst{L^r(A)}{L^s(A)}
-  }
-  {
-  }
-}
-\end{mathpar}
-\end{tiny}
-
 \section*{Acknowledgments}
 
 This article is based on research supported by the United States Air
@@ -1966,14 +2145,10 @@ and $\Sigma; \Gamma \vdash e : B$. Then given that $\wfc{V}{H}{R}{F}{e}$, we hav
 Where $\ms{stable}$ is a predicate on $\mathcal{P}(\ms{Loc}) \times \ms{Heap} \times \ms{Heap}$, defined
 below. The premises of this lemma is a subset of the premises of the soundness theorem. 
 Thus, we could have
-merged the proof of this lemma directly into the soundness proof. However, we think makes the 
+merged the proof of this lemma directly into the soundness proof. However, we think this makes the 
 presentation clearer; furthermore, the linearity of \copySem is an interesting in itself, 
 regardless of the accompanying type system. Some auxiliary lemmas:
 
-\begin{definition}[Stability]
-Given heaps $H,H'$, a set of locations is \emph{stable} if $\forall l \in R$. $H(l) = H'(l)$. Denote this by
-$\stable{R,H,H'}$.
-\end{definition}
 
 Define $\dagger :  L^p(A) \mapsto L(A)$ as the map that erases resource annotations. 
 This gives a simplified jugdment \fbox{$\Sigma^{\dagger}; \Gamma^{\dagger} \vdash e : B^{\dagger}$}
@@ -1998,6 +2173,11 @@ the multiplicity of variable occurences.
 \begin{proof}
 Induction on the typing judgement.
 \end{proof}
+
+\begin{definition}[Stability]
+Given heaps $H,H'$, a set of locations is \emph{stable} if $\forall l \in R$. $H(l) = H'(l)$. Denote this by
+$\stable{R,H,H'}$.
+\end{definition}
 
 \begin{lemma}\label{itm:stable}
 Let $H \vDash v \mapsto a : A$. For all sets of locations $R$, if $reach_H(v) \subseteq R$ and $\stable{R,H,H'}$, then $H' \vDash v \mapsto a : A$ and $reach_H(v) = reach_{H'}(v)$.
@@ -2511,7 +2691,7 @@ Nested induction on the evaluation judgement and the typing judgement.\\
 		&\quad F' =	F \setminus L,
 		g = \{l \in H \mid l \notin F' \cup R \cup locs_{V',H'}(e)\}\\
 		&\text{By IH with } C, V',H',R,F'\cup g \text{, have the existence clause. NTS the following: }\\
-		&\emph{(1) } V_o',H_o \sim V',H' \tag{By Lemma~\ref{itm:copy} and assumption}\\
+		&\emph{(1) } V_o',H_o \sim V',H' \tag{By Lemma~\ref{itm:copyStable} and assumption}\\
 		&\emph{(2) - (4) } \text{ same as lemma~\ref{itm:na}}\\ 
 		&\emph{(5) } |F' \cup g| \ge \Phi_{V',H'}(\Gamma,x_1 : A_1,x_2 : A_2) + q + C\\
 		&\text{STS } |(F\setminus L) \cup g| \ge \Phi_{V', H'}(\Gamma,x_1 : A_1,x_2 : A_2) + q + C\\
@@ -2639,17 +2819,13 @@ $(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ and
 	\end{enumerate}
 \end{lemma}
 
-For a configuration $\mathcal{C} = (V,H,R,F)$, denote the current garbage w.r.t a set of root variables 
-$X \subseteq dom(V)$ 
-as $clean(\mathcal{C},L) = \{l \in H \mid l \notin F \cup R \cup L\}$. Some auxiliary lemmas: 
-
-\begin{lemma}\label{itm:aux}
+\begin{lemma}
 Let $V_2,H_2,R_2,F_2 \vdash^{\mathsf{copy}} e \Downarrow v,H',F'$, and 
 $V_1,H_1,R_1,F_1 \preceq V_2,H_2,R_2,F_2$ because $(-,\gamma,\eta,-,-)$. Then the following hold:
 for all $l \in dom(H_1) \setminus F_1$, 
 	$X \subseteq dom(V)$, $m : X \to \mathcal{S}(\ms{dir})$, $l \in dom(\gamma)$,
-	$\gamma(l) \subseteq clean(\mathcal{C}_2,reachPath_{V_2,H_2}(X,m))$ iff
-	$l \in clean(\mathcal{C}_1,reachPath_{V_1,H_1}(X,m))$.
+	$\gamma(l) \subseteq collect(R_2,\mathcal{C}_2,reachPath_{V_2,H_2}(X,m),H_2,F_2)$ iff
+	$l \in collect(R_1,reachPath_{V_1,H_1}(X,m),H_1,F_1)$.
 \end{lemma}
 
 \begin{proof}
@@ -2672,7 +2848,7 @@ for all $l \in dom(H_1) \setminus F_1$,
 		&\quad reach_{H_1}(V_1(x;m(x)))(l) = 0\\
 		&\quad reachPath_{V_1,H_1}(X,m)(l) = 0\\
 		&\quad l \notin reachPath_{V_1,H_1}(X,m)\\
-		&\quad \text{Thus, } l \in clean(\mathcal{C}_1,reachPath_{V_1,H_1}(X,m))
+		&\quad \text{Thus, } l \in collect(R_1,reachPath_{V_1,H_1}(X,m),H_1,F_1)
 	\end{align*}
 	$\Longleftarrow$
 	\begin{align*}
@@ -2691,7 +2867,7 @@ for all $l \in dom(H_1) \setminus F_1$,
 		&\quad\gamma(l) \cap reach_{H_2}(V_2(x;m(x))) = \emptyset\\
 		&\quad\gamma(l) \cap reachPath_{V_2,H_2}(X,m) = \emptyset\\
 		&\quad\gamma(l) \cap (F_2 \cup R_2 \cup reachPath_{V_2,H_2}(X,m)) = \emptyset\\
-		&\quad\gamma(l) \in clean(\mathcal{C}_2,reachPath_{V_2,H_2}(X,m))
+		&\quad\gamma(l) \in collect(R_2,reachPath_{V_2,H_2}(X,m),H_2,F_2)
 	\end{align*}
 \end{proof}
 
