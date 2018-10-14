@@ -749,27 +749,7 @@ cons of \texttt{x} and \texttt{xs}, we need to allocate one heap location for th
 cons cell binding \texttt{x} 
 and the recursive result, for which we can use the just matched-on cell. Again, 
 the net overhead is zero. Thus, the total space overhead of \texttt{append} is zero.
-\begin{wrapfigure}{r}{0.4\textwidth}
-	\vspace{-15pt}
-		\begin{center}
-\begin{verbatim}
-let rec append (l1, l2) =
-  match l1 with
-  | [] -> l2
-  | x::xs -> x::(append (xs, l2))
 
-let appTwice l = 
-    share l as l1,l2 in
-    let l1' = append (l1, []) in 
-    let l2' = append (l2, []) in 
-    (l1',l2')
-\end{verbatim}
-			\end{center}
-				\vspace{-15pt}
-			\caption{Functions \texttt{append} and \texttt{appTwice}}
-		\vspace{-10pt}
-\label{fig:dfs}
-\end{wrapfigure}
 %
 For \texttt{appTwice}, we first share the list \texttt{l} as \texttt{l1} and 
 \texttt{l2}. In the first \texttt{let}, the locations in \texttt{l2} are added to the
@@ -829,9 +809,30 @@ More generally, we can give the following types to \texttt{append} and \texttt{a
 	\text{ where } p \ge r + s + 2 \text{ and } q \ge q'
 \end{align*}
 
-Notice that the constant potentials $r$ and $q$ are unconstrained since the functions don't
-use any potential in the base cases.
+\begin{wrapfigure}{r}{0.4\textwidth}
+	\vspace{-15pt}
+		\begin{center}
+\begin{verbatim}
+let rec append (l1, l2) =
+  match l1 with
+  | [] -> l2
+  | x::xs -> x::(append (xs, l2))
 
+let appTwice l = 
+    share l as l1,l2 in
+    let l1' = append (l1, []) in 
+    let l2' = append (l2, []) in 
+    (l1',l2')
+\end{verbatim}
+			\end{center}
+				\vspace{-15pt}
+			\caption{Functions \texttt{append} and \texttt{appTwice}}
+		\vspace{-10pt}
+\label{fig:dfs}
+\end{wrapfigure}
+
+Notice that the constant potentials $r$ and $q$ are unconstrained since the 
+functions don't use any potential in the base cases.
 With AARA, the type system keeps track of this collection of constraints on
 resource annotations and passes them to an off-the-shelf LP-solver 
 which finds the minimum solution. This is then translated to concrete resource bounds
