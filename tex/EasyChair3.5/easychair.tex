@@ -1325,7 +1325,7 @@ $H',v = copy(H,L,v)$ to signify the intended mode for this predicate: $(+,+,+,-,
 \inferr{
 	H_2,\pairexcst{v_1'}{v_2'} = copy(H,L,\pairexcst{v_1}{v_2})
 }{
-	L_1 \sqcup L_2 \subseteq L\\
+  L_1 \sqcup L_2 \subseteq L\\
 	|L_1| = |dom(reach_H(v_1)|\\
 	|L_2| = |dom(reach_H(v_2)|\\
 	H_1,v_1' = copy(H,L_1,v_1)\\
@@ -1448,7 +1448,6 @@ Write this as $\mathcal{C}_1 \preceq \mathcal{C}_2$.
 The intention is that $\mathcal{C}_2$ is a configuration for initiating an evaluation using \copySem
 , and $\mathcal{C}_1$ a configuration for \gcSem. 
 
-
 The first condition is the straightforward context equivalence.
 The second condition requires the existence of 
 a mapping $\gamma$ that tells us given a location in $H_1 \setminus F_1$, which locations in 
@@ -1506,8 +1505,8 @@ subvalues of a value using directions:
   Given a valid sequence $P$ w.r.t. $V(x)$,
 	write $V_H(x;P)$ for $fromJust(find_H(V(x),P))$
 	and $reach_H(V(x;P))$ for $reach_H(V_H(x;P))$.
-  Given a map $m : X \to \mathcal{S}(\ms{dir})$ from varibles to
-  valid sequences of directions, 
+        Given a map $m : X \to \mathcal{S}(\ms{dir})$ that maps each
+        $x \in X \subseteq dom(V)$ to a sequence $P$ valid w.r.t. $V(x)$,  
 	Define $reachPath_{V,H}(X,m) = \biguplus_{x \in X} reach_H(V(x;m(x)))$.
 \end{definition}
 
@@ -1518,10 +1517,11 @@ with the appropriate class $\gamma(l)$ .
 
 The next condition simply states that the continuation sets respect $\gamma$. Lastly, 
 we have that $F_1$ is greater than $F_2$, with the overhead $\oh{\gamma}$ being exactly the sum 
-$\sum_{l \in \gamma} |\gamma(l)| - 1$ 
-(since each class is non-empty, we use $rep(l)$ to choose an arbitrary element of the class $\gamma(l)$). 
+$\sum_{l \in \gamma} |\gamma(l)| - 1$. Here $ec(\gamma)$ is the image of $\gamma$:
+$\{\gamma(l) \mid l \in dom(\gamma)\}$. Since each class $\gamma(l)$ is non-empty,
+we use $rep(l)$ to choose an arbitrary element from the class.
 
-Below we prove the expected properties of a copy extension: 
+Below are the expected properties of a copy extension: 
 \begin{lemma}
 	Let $V_1,H_1 \sim V_2,H_2$. Then for all $x \in dom(V_1)$ and 
   sequence of directions $P$, 
@@ -1565,7 +1565,7 @@ $(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ and
 \end{lemma}
 
 \begin{proof}
-	Induction on the evaluation judgment $\vdash^{\copySem{}}$. We illustrate the 
+  Induction on the evaluation judgment $\vdash^{\copySem{}}$. We illustrate the 
   ideas with the case CondT:
 \item[
 \textbf{Case}: 
@@ -1586,7 +1586,7 @@ To instantiate the induction hypothesis, we need to show that
   \begin{align*}
 		&\emph{(1)}\quad W',Y \sim V',H\\
 		&\emph{(2)}\quad \text{Give a proper partition } 
-\gamma' : dom(Y) \setminus (M \sqcup j) \to \mathcal{P}(dom(H)\setminus (F \cup g))\\
+\gamma' : dom(Y) \setminus (M \cup j) \to \mathcal{P}(dom(H)\setminus (F \cup g))\\
 		&\emph{(3)}\quad \text{For all $l \in dom(\gamma'), x \in dom(W')$, 
            $P \in \mathcal{S}(\ms{Dir})$ a
            valid sequence w.r.t. $W'(x)$, }\\
@@ -1595,38 +1595,41 @@ To instantiate the induction hypothesis, we need to show that
 		&\emph{(5)}\quad |M \cup j| = |F \cup g| + |\oh{\gamma'}|
   \end{align*}
   \emph{(1)} is satisfied since $W,Y \sim V,H$. For \emph{(2)}, we take 
-  $\gamma'(l) = \gamma \restriction_{dom(Y)\setminus(M \sqcup j)}(l) \setminus g$. 
+  $\gamma'(l) = \gamma \restriction_{dom(Y)\setminus(M \cup j)}(l) \setminus g$. 
   First, we show that  $\gamma'$ is a partition. 
-	Let $l, l' \in dom(Y) \setminus (M \sqcup j)$ be two arbitrary locations. Then 
+	Let $l, l' \in dom(Y) \setminus (M \cup j)$ be two arbitrary locations. Then 
   $\gamma'(l) \cap \gamma'(l') = \emptyset$ since $\gamma$ is a partition. Now 
   Consider the image of $\gamma'$: 
   \begin{align*}
-		&\quad \gamma'(dom(Y) \setminus (M \sqcup j)) = \gamma(dom(Y) \setminus (M \sqcup j)) \setminus g\\
-		&\quad = (\bigsqcup_{l \in dom(Y) \setminus M} \gamma(l) \setminus \bigsqcup_{l \in j} \gamma(l)) 
+		&\quad \gamma'(dom(Y) \setminus (M \cup j)) = \gamma(dom(Y) \setminus (M \cup j)) \setminus g\\
+		&\quad = (\bigcup_{l \in dom(Y) \setminus M} \gamma(l) \setminus \bigcup_{l \in j} \gamma(l)) 
 			\setminus g\\
-		&\quad = ((dom(H) \setminus F) \setminus (\bigsqcup_{l \in j} \gamma(l))) \setminus g 
+		&\quad = ((dom(H) \setminus F) \setminus (\bigcup_{l \in j} \gamma(l))) \setminus g 
 			\tag{$\gamma$ is a partition}\\
 		&\quad = (dom(H) \setminus F) \setminus g 
-			\tag{$\bigsqcup_{l \in j} \gamma(l) \subseteq g$ by lemma \ref{itm:aux}}\\
-		&\quad = dom(H) \setminus (F \sqcup g)
+			\tag{$\bigcup_{l \in j} \gamma(l) \subseteq g$ by Lemma \ref{itm:aux}}\\
+		&\quad = dom(H) \setminus (F \cup g)
   \end{align*}
   Hence $\gamma'$ is a partition. Next we need to show it is proper, or that 
-  every class is non empty.
-  Let $l \in dom(Y) \setminus (M \sqcup j)$ be any location. Since 
-  $\gamma'(l) = \gamma(l) \setminus g$, it sufficies to show 
-  that $l$'s class isn't all not collected. For the sake of contradiction, assume 
+  every class is nonempty.
+  Let $l \in dom(Y) \setminus (M \cup j)$ be any location. Since 
+  $\gamma'(l) = \gamma(l) \setminus g$, it suffices to show 
+  that the class $\gamma(l)$ is not all entirely collected. For the sake of contradiction, assume 
   $\gamma(l) \subseteq g$. But then $l \in j$ by Lemma \ref{itm:aux}, and 
   we have a contradiction since we assumed $l \notin j$.  
   Lastly, we need to show that $|\gamma'(l)| = reach_{Y}(W')(l) + S(l)$.
-	Let $l \in dom(\gamma')$. By definition, we have 
-  $|\gamma'(l)| = |\gamma(l)| - |\gamma(l) \cap g|$, which by 
+	Let $l \in dom(\gamma')$. By definition of $\gamma'$, we have 
+  $|\gamma'(l)| = |\gamma(l)| - |\gamma(l) \cap g|$. By 
   the second condition of $W,Y,S,M\preceq V,H,R,F$, 
-  is $reach_Y(W)(l) + S(l) - |\gamma(l) \cap g|$. Next, note that 
-	$g = reach_H(V\restriction_{dom(V) \setminus FV(e_1)})$; combined with the 
+  this is equal to $reach_Y(W)(l) + S(l) - |\gamma(l) \cap g|$. Next, note that
+  since $V,H,R,F$ is well defined, we have $collect(R,reach_H(V),H,F) = \emptyset$.
+  Since $locs_{V',H}(e_1) \subseteq reach_H(V) \subseteq H$, we get 
+  $g = reach_H(V) \setminus locs_{V',H}(e_1) = reach_H(V\restriction_{dom(V) \setminus FV(e_1)})$.
+  Combined with the 
   third condition of  $W,Y,S,M\preceq V,H,R,F$, we have
   $|\gamma(l) \cap g| = reach_Y(W\restriction_{dom(W)\setminus FV(e_1)})(l)$
 	Thus, we have that $|\gamma'(l)| = 
-			reach_Y(W)(l) + S(l) - reach_Y(W\restriction_{dom(W)\setminus FV(e_1)})(l) =
+  reach_Y(W)(l) + S(l) - reach_Y(W\restriction_{dom(W)\setminus FV(e_1)})(l) =
   reach_Y(W\restriction_{FV(e_1)})(l) +  S(l) = reach_Y(W')(l) +  S(l)$, which is
   the condition we needed. The conditions \emph{(3)} and \emph{(4)} proceed similarly
   to the arguments above.
@@ -1634,18 +1637,23 @@ To instantiate the induction hypothesis, we need to show that
   Lastly, we need to show that the overhead is preserved: 
   $|M| + |j| = |F| + | g| + |\oh{\gamma'}|$.
 	By assumption, $|M| = |F| + |\oh{\gamma}|$, so it suffices to show 
-  $|j| + |\oh{\gamma}| = |g| + |\oh{\gamma'}|$. We do this by giving a bijection 
-  $f : j \oplus \oh{\gamma} \to g \sqcup \oh{\gamma'}$. 
-  By Lemma \ref{itm:aux}, we have $g = (\bigsqcup_{l \in j} \gamma(l)) \sqcup L $ for some
-  $L$. 
+        $|j| + |\oh{\gamma}| = |g| + |\oh{\gamma'}|$. Note that since
+        $g$ and the image of $\gamma'$ is disjoint, it suffices to define a bijection 
+        $f : j \oplus \oh{\gamma} \to g \sqcup \oh{\gamma'}$. We use the disjoint union
+        $\oplus$ on the left as a convenient way to distinguish locations between
+        $dom(Y)$ and $dom(H)$. 
 	Let $\mathcal{C}_1 = \{\gamma(l) \mid l \in j\}$, 
-				$\mathcal{C}_2 = ec(\gamma) \setminus \mathcal{C}_1$. Then we have 
-		$\oh{\gamma} = \bigsqcup_{C  \in \mathcal{C}_1} C \setminus rep(C) 
-    \sqcup \bigsqcup_{C  \in \mathcal{C}_2} C \setminus rep(C)$. 
-		Next, let $D_1 = \bigsqcup_{C  \in \mathcal{C}_1} C \setminus rep(C)$,  
-		$D_2 = \bigsqcup_{C  \in \mathcal{C}_2} C \setminus rep(C)$.
+	$\mathcal{C}_2 = ec(\gamma) \setminus \mathcal{C}_1$, and
+        let $D_1 = \bigcup_{C  \in \mathcal{C}_1} C \setminus rep(C)$,  
+		$D_2 = \bigcup_{C  \in \mathcal{C}_2} C \setminus rep(C)$.
+                Then we have $\oh{\gamma} = D_1 \sqcup D_2$.
+                By Lemma \ref{itm:aux}, we have $g = (\bigcup_{C \in \mathcal{C}_1} C) \sqcup L $
+                for some $L$. Therefore, we need to find a bijection
+                $f : j \oplus (D_1 \sqcup D_2) \to (\bigcup_{C \in \mathcal{C}_1} C) \sqcup L
+                \sqcup \oh{\gamma'}$. 
 		We define the bijection $f$ by parts: 
-			$f_1 : j \oplus D_1 \to \bigsqcup_{C \in \mathcal{C}_2} C, f_2 : D_2 \to L \sqcup \oh{\gamma'}$. First, $f_1$ is defined as follows:
+		$f_1 : j \oplus D_1 \to \bigcup_{C \in \mathcal{C}_1} C,
+                f_2 : D_2 \to L \sqcup \oh{\gamma'}$. First, we define $f_1$ as follows:
   \begin{align*}
 		&\quad f_1(x) =  
 		\begin{cases}
@@ -1653,13 +1661,14 @@ To instantiate the induction hypothesis, we need to show that
 			l &x = (\ms{inr},l)
 		\end{cases}
   \end{align*}
-		Clearly, $f_1$ is a bijection, and $|j| + |D_1| = 
-    |\bigsqcup_{C \in \mathcal{C}_1} C|$. To avoid the problem of maintaining 
-    a single representative for a class (which might be collected),
+  Note that $f_1$ simply maps the set of representatives into their respective classes,
+  and is the identity on the rest of the class. Thus $f_1$ is a bijection, and $|j| + |D_1| = 
+  |\bigcup_{C \in \mathcal{C}_1} C|$. Since we cannot assign a single representative for a
+  class (since it might be collected during evaluation),
     note that
   \begin{align*}
     |\mathcal{C}_2| &= |ec(\gamma) \setminus \{\gamma(l) \mid l \in j\}|\\
-    &=|ec(\gamma \restriction_{dom(Y) \setminus (M \sqcup j)})|\\
+    &=|ec(\gamma \restriction_{dom(Y) \setminus (M \cup j)})|\\
     &= |ec(\gamma')|
   \end{align*}
 		Which means that $\mathcal{C}_2$  has the same number of classes as $\gamma'$
@@ -1668,56 +1677,65 @@ To instantiate the induction hypothesis, we need to show that
     representatives for each class and still obtain a bijection:
     \begin{align*}
       &|D_2| = |L \sqcup \oh{\gamma'}|\\
-      &\iff |\bigsqcup_{C  \in \mathcal{C}_2} C \setminus rep(C)| = 
-			|L \sqcup \bigsqcup_{C \in ec(\gamma')} C \setminus rep(C)|\\
-      &\iff |\bigsqcup_{C  \in \mathcal{C}_2} C| = 
-        |L \sqcup \bigsqcup_{C \in ec(\gamma')} C|
+      &\iff |\bigcup_{C  \in \mathcal{C}_2} C \setminus rep(C)| = 
+			|L \sqcup \bigcup_{C \in ec(\gamma')} C \setminus rep(C)|\\
+      &\iff |\bigcup_{C  \in \mathcal{C}_2} C| = 
+        |L \sqcup \bigcup_{C \in ec(\gamma')} C|
   \end{align*}
 		In fact, the latter two sets are equal. 
-		Let $l' \in \bigsqcup_{C  \in \mathcal{C}_2} C$. 
-		By definition of partition, $l' \in H \setminus F$. Suppose $ l \in g$. 
-		Then by definition of $\mathcal{C}_2$, $l' \notin \bigsqcup_{l \in j} \gamma(l)$, 
+		Let $l' \in \bigcup_{C  \in \mathcal{C}_2} C$. 
+		By definition of partition, $l' \in dom(H) \setminus F$. Suppose $ l \in g$. 
+		Then by definition of $\mathcal{C}_2$, $l' \notin \bigcup_{C \in \mathcal{C}_1} C$, 
     and $l' \in L$ by definition of $g$. Hence 
-    $l' \in L \sqcup \bigsqcup_{C \in ec(\gamma')} C$. 
-		Otherwise,  $l' \notin g$, and $l' \in H \setminus (F \sqcup g)$. 
-		By definition of partition, there exists a class $C \in ec(\gamma')$ s.t. $l' \in C$.
-		Then $l' \in \bigsqcup_{C \in ec(\gamma')} C$, and
-		$l' \in L \sqcup \bigsqcup_{C \in ec(\gamma')} C$.
-		For the other direction, let $ l' \in L \sqcup \bigsqcup_{C \in ec(\gamma')} C$.
-		Suppose $l' \in L$. Then $l' \in H \setminus F$ since $L \subseteq g$.
-    Since $L \cap  \bigsqcup_{C \in \mathcal{C}_1} C = \emptyset$, 
-    there exists a class $C \in \mathcal{C}_2$ s.t. $l' \in C$. Thus 
-    $l' \in \bigsqcup_{C \in \mathcal{C}_2} C$.
-		Otherwise, $l' \in \bigsqcup_{C \in ec(\gamma')} C$. 
-		By definition of partition, $l' \in H \setminus (F \sqcup g)$. 
-    Since $\bigsqcup_{C \in \mathcal{C}_1} C \subseteq g$, there is a class 
+    $l' \in L \sqcup \bigcup_{C \in ec(\gamma')} C$. 
+		Otherwise,  $l' \notin g$, and $l' \in dom(H) \setminus (F \cup g)$. 
+		By definition of partition, there exists a class $C \in ec(\gamma')$ s.t.
+                $l' \in C$.
+		Then $l' \in \bigcup_{C \in ec(\gamma')} C$, and
+		$l' \in L \sqcup \bigcup_{C \in ec(\gamma')} C$.
+		For the other direction, let $ l' \in L \sqcup \bigcup_{C \in ec(\gamma')} C$.
+		Suppose $l' \in L$. Then $l' \in dom(H) \setminus F$ since $L \subseteq g$.
+    By definition of $g$, $L \cap  \bigcup_{C \in \mathcal{C}_1} C = \emptyset$, so
+    there must be a class $C \in \mathcal{C}_2$ s.t. $l' \in C$. Thus 
+    $l' \in \bigcup_{C \in \mathcal{C}_2} C$.
+    Otherwise, $l' \in \bigcup_{C \in ec(\gamma')} C$. 
+    By definition of partition, $l' \in dom(H) \setminus (F \cup g)$. 
+    Since $\bigcup_{C \in \mathcal{C}_1} C \subseteq g$, $l' \notin\bigcup_{C \in \mathcal{C}_1} C$,
+    so there must be a class
     $C \in \mathcal{C}_2$ s.t. $l' \in C$, and again 
-    $l' \in \bigsqcup_{C \in \mathcal{C}_2} C$.
+    $l' \in \bigcup_{C \in \mathcal{C}_2} C$.
     
     Hence we show that $|D_2| = |L \sqcup \oh{\gamma'}|$, and together with the previous 
-		equality, $|j| + |\oh{\gamma}| = |g| + |\oh{\gamma'}|$. 
-		Thus we have $W',Y,S,F \cup j \preceq V',H,R,F \cup g$. 
+    equality $|j| + |D_1| = |\bigcup_{C \in \mathcal{C}_1} C|$,
+    we have $|j| + |\oh{\gamma}| = |g| + |\oh{\gamma'}|$. 
+    Thus $W',Y,S,F \cup j \preceq V',H,R,F \cup g$. 
   Now we instantiate the induction hypothesis to obtain the triple $(w,Y',M')$ and 
   new partition $\gamma''$ with the expected properties. Applying the rule F:CondT 
-  to the first property given by induction, we inherit the required conditions for the 
-  case.
+  to the evaluation $W',Y,S,F \cup j \vdash e_1 \Downarrow w,Y',M'$ given by the first property
+  from induction, we get $W,Y,S,F \vdash \ifexabt{x}{e_1}{e_2} \Downarrow w,Y',M'$,
+  which inherits the required conditions \emph{(2)} - \emph{(6)} from induction.
 \end{proof}
 
 Thus, we have shown that we can execute a computation using 
-\gcSem{} if the computation suceeded in a run with \copySem{}, and that indeed 
+\gcSem{} given that the computation suceeded in a run with \copySem{}, which means that  
 \copySem{} is an over approximation of \gcSem{}.
 
 \textbf{Soundness of $\fogc$}
 \label{sect:soundcopy}
 For the second part of the proof, we show $\fogc$ is sound w.r.t. \copySem{}. Below
-we give the lemmas used in the soundness theorem:
+are selected lemmas used in the soundness theorem:
 
+\iffalse
 \begin{lemma}\label{itm:wellFormed}
 	Let $H \vDash V : \Gamma$, $\Sigma;\Gamma \vdash e : A$, and $V,H \vdash e \Downarrow v,H'$. Then 
 	$H' \vDash v : A$.
-\end{lemma}
+      \end{lemma}
+      \fi
+      
 
-% main lemma
+      % main lemma
+
+\iffalse
  \begin{definition}[Stability]
 Given heaps $H,H'$, a set of locations is \emph{stable} if $\forall l \in R$. $H(l) = H'(l)$. Denote this by
 $\stable{R,H,H'}$.
@@ -1727,10 +1745,12 @@ $\stable{R,H,H'}$.
 Let $H \vDash v \mapsto a : A$. For all sets of locations $R$, if $reach_H(v) \subseteq R$ and $\stable{R,H,H'}$, then $H' \vDash v \mapsto a : A$ and $reach_H(v) = reach_{H'}(v)$.
 \end{lemma}
 
+
 \begin{lemma}[Stability of copying]\label{itm:copyStable}
 	Let $H',v' = copy(H,L,v)$. For all $l \in H$, if $l \notin L$, then $H(l) = H'(l)$. 
 	Further, $reach_{H'}(v') \subseteq L$.
-\end{lemma}
+      \end{lemma}
+      \fi
 
 \begin{lemma}[Copy is copy]
 	Let $H',v' = copy(H,L,v)$. If $H \vDash v \mapsto a : A$, then $H' \vDash v' \mapsto a : A$.
