@@ -9,7 +9,7 @@
 %\documentclass[withtimes]{easychair}
 %\documentclass[a4paper]{easychair}
 %\documentclass[letterpaper]{easychair}
-
+\usepackage[T1]{fontenc}
 \usepackage{doc}
 \usepackage{fullpage}
 \usepackage{latexsym}
@@ -33,7 +33,8 @@
 \usepackage{wrapfig}
 \usepackage{bbm}
 \usepackage{rotating}
-\usetikzlibrary{positioning} 
+\usetikzlibrary{positioning}
+\raggedbottom
 
 \allowdisplaybreaks
 
@@ -385,7 +386,7 @@ We write $P : \Sigma$ to mean $P$ is a program with signature $\Sigma$.
 
 \begin{figure}[t!]
 \vspace{-2ex}
-\begin{minipage}[t]{0.33\linewidth}
+\begin{minipage}[t]{0.35\linewidth}
 	\[
 \begin{array}{r l l l l}
 \hspace{-1em}\ms{BTypes} & \tau \,\,\,\,\, ::= \\
@@ -414,7 +415,8 @@ We write $P : \Sigma$ to mean $P$ is a program with signature $\Sigma$.
 \]
 \end{minipage}
 \hfill
-\begin{minipage}[t]{0.59\linewidth}
+\hspace{-1em}
+\begin{minipage}[t]{0.66\linewidth}
 \[
 \begin{array}{r l l l}
 \ms{Exp}
@@ -507,7 +509,7 @@ The notion of reachability naturally lifts to expressions and contexts:
   &reach_H(V) = \biguplus\limits_{x \in dom(V)} reach_H(V(x))
   &&locs_{V,H}(e) = reach_H(V\restriction_{FV(e)})
 \end{align*}
-Where $FV : \ms{Exp} \to \mathcal{P}(\ms{Var})$ denotes the set of free-variables of expressions as usual.\\
+Where $FV : \ms{Exp} \to \mathcal{P}(\ms{Var})$ denotes the set of free-variables of expressions as usual.
 
 \textbf{Towards the Garbage Collection Cost Semantics}
 Now we are ready to give a first attempt to modeling the cost semantics for a
@@ -634,6 +636,7 @@ set $R$. The other rules are similar.
 
 \begin{figure}[t!]
   \centering
+  \begin{minipage}[t]{\linewidth}
 \small
 \begin{mathpar}
 \inferrule{
@@ -649,7 +652,7 @@ set $R$. The other rules are similar.
 
 \inferrule{
   V(x) = \irl{T}\\
-	V' = V\restriction_{FV(e_1)}\\
+	V' = V\restriction_{FV(e_1)}\\\\
   g = \{l \in H \mid l \notin F \cup R \cup locs_{V',H}(e_1)\}\\
   V',H,R,F \cup g\; \vdash e_1 \Downarrow v, H',F'
 }{
@@ -658,7 +661,7 @@ set $R$. The other rules are similar.
 
 \inferrule{
 	V(x) = \irl{F}\\
-	V' = V\restriction_{FV(e_2)}\\
+	V' = V\restriction_{FV(e_2)}\\\\
   g = \{l \in H \mid l \notin F \cup R \cup locs_{V',H}(e_2)\}\\
   V',H,R,F \cup g \; \vdash e_2 \Downarrow v, H',F'
 }{
@@ -723,13 +726,14 @@ set $R$. The other rules are similar.
   V,H,R,F \; \vdash \shareabt{x}{x_1}{x_2}{e} \Downarrow v,H',F'
 }{
 	V(x) = v'\\
-	V' = (V[x_1 \mapsto v',x_2 \mapsto v']) \restriction_{FV(e)}\\
+	V' = (V[x_1 \mapsto v',x_2 \mapsto v']) \restriction_{FV(e)}\\\\
 	g = \{l \in H \mid l \notin F \cup R \cup locs_{V',H}(e)\}\\
   V',H,R,F \cup g \; \vdash e \Downarrow v,H',F'
 }(\text{F:Share})
 \end{mathpar}
   \caption{Cost Semantics for Perfect Garbage Collection}
   \label{fig:costsem}
+  \end{minipage}
 \end{figure}
 Note that in contrast to the semantics in the previous section, evaluating a variable does not incur
 any cost. This ensures that we will be able prove the soundness of the type system. 
@@ -846,15 +850,16 @@ Before giving the type rules, we need to formalize linear potential as explained
 Since potential is associated with the \emph{structure} of a value and not the particular heap 
 locations, it is helpful to introduce a mapping from
 heap values to semantic values of a type. 
-First, we give a denotational semantics for (define the structures of) the first-order types: 
-  \begin{minipage}{0.4\linewidth}
+First, we give a denotational semantics for (define the structures of) the first-order types:
+\hspace{-1em}
+  \begin{minipage}{0.6\linewidth}
 \begin{align*}
 	\denote{\unittyabt} &= \{\val{\irl{Null}}\}\\
 	\denote{\booltyabt} &= \{\val{\irl{T}}, \val{\irl{F}}\}\\
 	\denote{\irl{nat}} &= \mathbb{N}\\
 \end{align*}
-  \end{minipage}%
-\begin{minipage}{0.6\linewidth}
+\end{minipage}%
+\begin{minipage}{1\linewidth}
 \begin{align*}
 \denote{\prodtycst{A_1}{A_2}} &= \denote{A_1} \times \denote{A_2}\\
 \nilexcst &\in \denote{L(A)}\\
@@ -1098,7 +1103,7 @@ $P$ and $\Sigma$ denote the program and signature respectively.
 
 \[
 P = [\texttt{append} \mapsto e_{\texttt{append}}] \quad\quad
-\Sigma = [\texttt{append} \mapsto \prodtycst{L^p(A)}{L^p(A)} \xrightarrow{q/q} \L^p(A)]
+\Sigma = [\texttt{append} \mapsto \prodtycst{L^p(A)}{L^p(A)} \xrightarrow{q/q} L^p(A)]
 \]
 
 \begin{tiny}
@@ -1118,7 +1123,7 @@ P = [\texttt{append} \mapsto e_{\texttt{append}}] \quad\quad
 		\infer[\text{L:App}]{
 			\Sigma; L_2 : L^p(A), xs : L^p(A) \sststile{q+p+1}{q+p+1} \texttt{append}(xs,l_2) : L^p(A)
 		}{
-			\texttt{append} : \xrightarrow{q/q} \prodtycst{L^p(A)}{L^p(A)} \to \L^p(A) \in \Sigma
+			\texttt{append} : \xrightarrow{q/q} \prodtycst{L^p(A)}{L^p(A)} \to L^p(A) \in \Sigma
 		}&
 		\infer[\text{L:Cons}]{
 			\Sigma; x : A, r : L^p(A) \sststile{q}{q+p+1} x::r : L^p(A)
@@ -1129,11 +1134,11 @@ P = [\texttt{append} \mapsto e_{\texttt{append}}] \quad\quad
 \]
 \end{tiny}
 
-\[
-P = [\texttt{appTwice} \mapsto e_{\texttt{appTwice}}] \quad\quad
-\Sigma = [\texttt{appTwice} \mapsto L^{r+s+1}(A) \xrightarrow{q/q} \prodtycst{L^r(A)}{L^s(A)},
-\texttt{append} \mapsto \prodtycst{L^p(A)}{L^p(A)} \xrightarrow{q/q} \L^p(A)]
-\]
+\begin{align*}
+P &= [\texttt{appTwice} \mapsto e_{\texttt{appTwice}}] \\
+\Sigma &= [\texttt{appTwice} \mapsto L^{r+s+1}(A) \xrightarrow{q/q} \prodtycst{L^r(A)}{L^s(A)},
+\texttt{append} \mapsto \prodtycst{L^p(A)}{L^p(A)} \xrightarrow{q/q} L^p(A)]
+\end{align*}
 
 \begin{tiny}
 \begin{mathpar}
@@ -1142,7 +1147,7 @@ P = [\texttt{appTwice} \mapsto e_{\texttt{appTwice}}] \quad\quad
   \shareabt{l}{l1}{l2}{\uletabt{l1'}{\texttt{append}(l1,[])}{\uletabt{l2'}{\texttt{append}(l2,[])}{\pairexcst{l1'}{l2'}}}}
   : \prodtycst{L^r(A)}{L^s(A)}
 }{
-\inferrule*[vdots=5.5em,rightskip=5em]{
+\inferrule*[vdots=5.5em,rightskip=12.5em]{
 L^{r+s+1}(A) \curlyvee^1 L^r(A), L^s(A)}{}
 &
   \infer[\text{L:Let}]{
@@ -1155,17 +1160,16 @@ L^{r+s+1}(A) \curlyvee^1 L^r(A), L^s(A)}{}
     \Sigma; l1 : L^r(A) \sststile{q}{q} \texttt{append}(l1,[]) : L^r(A)
   }{
     \pairexcst{l1}{[]} : \prodtycst{L^r(A)}{L^r(A)}&
-    \Sigma(\texttt{append}) = \prodtycst{L^r(A)}{L^r(A)} \xrightarrow{q/q} \L^r(A)
+    \Sigma(\texttt{append}) = \prodtycst{L^r(A)}{L^r(A)} \xrightarrow{q/q} L^r(A)
     }
     &
     \inferrule*[right=\begin{tiny}\text{L:Let}\end{tiny},vdots=4.5em,leftskip=25em]{
- \infer[\text{L:Fun}]
+ \inferrule*[right=\begin{tiny}\text{L:Fun}\end{tiny}]
    {
-     \Sigma;l2 : L^s(A) \sststile{q}{q} \texttt{append}(l2,[]) : L^s(A)
+      \pairexcst{l2}{[]} : \prodtycst{L^s(A)}{L^s(A)}\\\\
+    \Sigma(\texttt{append}) = \prodtycst{L^s(A)}{L^s(A)} \xrightarrow{q/q} L^s(A)W
    }{
-    \inferrule*[vskip=1.5em,rightskip=15em]{
-    \pairexcst{l2}{[]} : \prodtycst{L^s(A)}{L^s(A)}}{}&
-    \Sigma(\texttt{append}) = \prodtycst{L^s(A)}{L^s(A)} \xrightarrow{q/q} \L^s(A)
+    \Sigma;l2 : L^s(A) \sststile{q}{q} \texttt{append}(l2,[]) : L^s(A)
   }
   \\
   \infer[\text{L:Pair}]{
@@ -1218,7 +1222,7 @@ can be found in previous work~\cite{Jost03,HoffmannW15}.
 
 %------------------------------------------------------------------------------
 
-\section{Soundness of $\fogc$}
+\section{Soundness of \texorpdfstring{$\fogc$}{ }}
 
 We seek to prove the following theorem.
 
@@ -1560,7 +1564,8 @@ $(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ and
 \begin{proof}
 	Induction on the evaluation judgment $\vdash^{\copySem{}}$. We illustrate the 
   ideas with the case CondT:
-\item[\textbf{Case}: 
+\item[
+\textbf{Case}: 
 \inferrule{
   V(x) = \irl{T}\\
 	V' = V\restriction_{FV(e_1)}\\
@@ -1568,7 +1573,8 @@ $(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ and
   V',H,R,F \cup g\; \vdash e_1 \Downarrow v, H',F'
 }{
   V,H,R,F \; \vdash \ifexabt{x}{e_1}{e_2} \Downarrow v, H',F'
-}(\text{F:CondT})]
+}]
+\  \\
 From the case, we have $V,H,R,F \; \vdash^{\copySem} \ifexabt{x}{e_1}{e_2} \Downarrow v, H',F'$. Let $W,Y,S,M$ be a configuration such that 
 $W,Y,S,M \preceq V,H,R,F$. Define $W' = W \restriction_{dom(V')}$
 and $j = \{l \in Y | l \notin M \cup S \cup locs_{W,Y}(e_1) \}$.
@@ -1739,7 +1745,7 @@ Let $H \vDash v \mapsto a : A$. For all sets of locations $R$, if $reach_H(v) \s
 \end{lemma}
 
 \begin{theorem}[Soundness]
-\label{b} let $H_o \vDash V_o : \Gamma$, $\Sigma; \Gamma \sststile{q'}{q} e : B$,
+let $H_o \vDash V_o : \Gamma$, $\Sigma; \Gamma \sststile{q'}{q} e : B$,
 $V_o,H_o \; \vdash e \Downarrow v_o, H_o'$.
 Then $\forall C \in \mathbb{Q}^{+}$ and configuration $(V,H,R,F)$ s.t.
 \begin{enumerate} 
@@ -1812,7 +1818,7 @@ and no space overhead is created by allocating closures for function declaration
 
 
 \label{sect:evaluation}
-\begin{wraptable}{r}{0.5\textwidth}
+\begin{wraptable}{r}{0.55\textwidth}
 \small
 	\vspace{-20pt}
 		\begin{center}
@@ -1896,7 +1902,7 @@ totals to the size of the input. % This example shows a weakness in the new gc m
 
 % Please add the following required packages to your document preamble:
 % \usepackage{booktabs}
-\begin{table}[]
+\begin{table}[tbp]
 	\begin{adjustbox}{width=1\textwidth, center=\textwidth}
   \begin{tabular}{@{}llllllllll@{}}
 		\toprule
@@ -2028,6 +2034,7 @@ sponsoring organizations.
 \bibliography{easychair,lit}
 
 %------------------------------------------------------------------------------
+\iffalse
 \appendix\label{sect:appendix}
 
 \section{Notation}
@@ -2126,7 +2133,7 @@ And we write $\wfc{V}{H}{R}{F}{e}$ to denote this fact.
 Given a semantically linear computation 
 (one with no sharing between the underlying locations), the resulting value is linear 
 (expressed by item 1. and 2. below):
-\begin{lemma}[Linearity of \copySem]\label{itm:na}
+\begin{lemma}[Linearity of \copySem]
 For all stacks $V$ and heaps $H$, let  $V,H,R,F \; \vdash e \Downarrow v, H', F'$ 
 and $\Sigma; \Gamma \vdash e : B$. Then given that $\wfc{V}{H}{R}{F}{e}$, we have the follwoing: 
 \begin{enumerate}
@@ -2161,7 +2168,7 @@ as the usual $FV$ inductively over the structure of $e$. This version of $FV$ re
 the multiplicity of variable occurences.
 
 \begin{lemma}\label{itm:linear}
-\label{a} If $\Sigma; \Gamma \sststile{q'}{q} e : B$, then $\set{FV^{\star}(e)}$ and $dom(\Gamma) = FV(e)$.
+If $\Sigma; \Gamma \sststile{q'}{q} e : B$, then $\set{FV^{\star}(e)}$ and $dom(\Gamma) = FV(e)$.
 \end{lemma}
 
 \begin{proof}
@@ -3353,7 +3360,7 @@ Induction on the evaluation judgement.\\
   \end{description}
 \end{proof}
 
-
+\fi
 
 %------------------------------------------------------------------------------
 % Index
