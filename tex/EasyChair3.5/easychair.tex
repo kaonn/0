@@ -1093,7 +1093,8 @@ replacing the rule L:Share with the rule L:ShareCopy:
 To share a variabe of type $A$, we need to split the potential between two new annotated types 
 $A_1$ and $A_2$ as usual. In addition, we have to pay an ``overhead'' of 1 for every cons node 
 in any structure in $\llbracket A \rrbracket$. The idea is that we treat data as if it is
-actually copied. This is sound w.r.t the copying semantics because the size of the domain of the
+actually copied. This is sound w.r.t. the copying semantics because the size of the domain
+of the
 reachable set of a value $v$ is exactly the linear potential of $v : A$ with all resource 
 annotations set to 1.
 
@@ -1279,7 +1280,7 @@ does the job. In both runs, the return value maps to the semantic value $\texttt
 Thus we use semantical equality above as the basis for value and context equivalence:
 
 \begin{definition}[Value Equivalence]
-Two values $v_1,v_2$ are equivalent (with the presupposition that they are well-formed w.r.t heaps $H_1,H_2$),
+Two values $v_1,v_2$ are equivalent (with the presupposition that they are well-formed w.r.t. heaps $H_1,H_2$),
 iff $H_1 \vDash v_1 \mapsto a : A$ and $H_2 \vDash v_2 \mapsto a : A$. 
 Write value equivalence as $\veq{H_1}{H_2}{v_1}{v_2}$.
 \end{definition}
@@ -1435,7 +1436,7 @@ $\mathcal{C}_1 = (V_1,H_1,R_1,F_1)$ iff
 \item $V_1,H_1 \sim V_2,H_2$
 \item There is a proper partition $\gamma : dom(H_1) \setminus F_1 \to \mathcal{P}(dom(H_2) \setminus F_2)$ 
 such that for all $l \in dom(\gamma)$, $|\gamma(l)| = reach_{H_1}(V_1)(l) + R_1(l)$
-\item For all $l \in dom(\gamma)$, $x \in dom(V_1)$, valid sequence of directions $P$ w.r.t $V_1(x)$,
+\item For all $l \in dom(\gamma)$, $x \in dom(V_1)$, valid sequence of directions $P$ w.r.t. $V_1(x)$,
 	$|reach_{H_2}(V_2(x;P)) \cap \gamma(l)| = reach_{H_1}(V_1(x;P))(l)$.
 \item	For all $l \in dom(\gamma)$, $|\gamma(l) \cap R_2| = R_1(l)$
 \item $|F_1| = |F_2| + |\oh{\gamma}|$, where 
@@ -1501,8 +1502,8 @@ subvalues of a value using directions:
 		find_H(v,D::P) &= find_H(get_H(v,D),P)\\
 		find_H(v,[]) &= v
 	\end{align*}
-	Call $P$ valid w.r.t a value $v$ if $find_H(v,P) = Just (v')$ for some $v'$.
-  Given a valid sequence $P$ w.r.t $V(x)$,
+	Call $P$ valid w.r.t. a value $v$ if $find_H(v,P) = Just (v')$ for some $v'$.
+  Given a valid sequence $P$ w.r.t. $V(x)$,
 	write $V_H(x;P)$ for $fromJust(find_H(V(x),P))$
 	and $reach_H(V(x;P))$ for $reach_H(V_H(x;P))$.
   Given a map $m : X \to \mathcal{S}(\ms{dir})$ from varibles to
@@ -1551,10 +1552,12 @@ $(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ and
 	\begin{enumerate}
 			\item $\mathcal{C}_1 \vdash^{\gcSem{}} e \Downarrow w,Y',M'$
 			\item $\veq{H'}{Y'}{v}{w}$
-			\item $\gamma'$ is a proper partition, such that for all $l \in dom(\gamma')$, 
+			\item $\gamma'$ is a proper partition,
+                          and for all $l \in dom(\gamma')$, 
 				$|\gamma'(l)| = |reach_{Y_1}(w_1)(l)| + S(l)$
-      \item For all $P \in \mathcal{S}(\ms{Dir})$ that is valid w.r.t $v$, 
-        $|reach_{H'}(find_{H'}(v;P)) \cap \gamma'(l)| = 
+                              \item For all $l \in dom(\gamma')$ and
+                                $P \in \mathcal{S}(\ms{Dir})$ that is valid w.r.t. $v$, 
+                                $|reach_{H'}(find_{H'}(v;P)) \cap \gamma'(l)| = 
 				reach_{Y'}(find_{Y'}(w;P))(l)$
 			\item For all $l \in dom(\gamma')$, $\gamma'(l) \cap R = \gamma(l) \cap R$
 			\item $|M'| = |F'| + |\oh{\gamma'}|$
@@ -1582,12 +1585,13 @@ To instantiate the induction hypothesis, we need to show that
   $W',Y,S,M \cup j \preceq V',H,R,F \cup g$, giving us 5 obligations:
   \begin{align*}
 		&\emph{(1)}\quad W',Y \sim V',H\\
-		&\emph{(2)}\quad \text{Need to find a proper partition } 
+		&\emph{(2)}\quad \text{Give a proper partition } 
 \gamma' : dom(Y) \setminus (M \sqcup j) \to \mathcal{P}(dom(H)\setminus (F \cup g))\\
-		&\emph{(3)}\quad \text{Let $l \in dom(\gamma'), x \in dom(W')$, 
-			$P$ valid sequence w.r.t $W'(x)$. We need to show that }\\
-    &|reach_{H}(V'(x;P)) \cap \gamma'(l)| = reach_{Y}(W'(x;P))(l) \\
-		&\emph{(4)}\quad S \subseteq dom(Y) \setminus (M \cup j) \text{ since } S \cap j = \emptyset\\
+		&\emph{(3)}\quad \text{For all $l \in dom(\gamma'), x \in dom(W')$, 
+           $P \in \mathcal{S}(\ms{Dir})$ a
+           valid sequence w.r.t. $W'(x)$, }\\
+                &|reach_{H}(V'(x;P)) \cap \gamma'(l)| = reach_{Y}(W'(x;P))(l) \\
+		&\emph{(4)}\quad \text{For all } l \in S, |\gamma'(l) \cap R| = S(l)\\
 		&\emph{(5)}\quad |M \cup j| = |F \cup g| + |\oh{\gamma'}|
   \end{align*}
   \emph{(1)} is satisfied since $W,Y \sim V,H$. For \emph{(2)}, we take 
@@ -1879,7 +1883,7 @@ The transpose function is implemented tail-recursively, with the accumulator sta
 empty list. When ``flipping'' the first row $r$ of the input and appending this to the accumulator, 
 we need to create $|r|$ many new nil and cons constructors to store the row as a column. While this
 overhead only occurs once, RaML is unable to infer this from the source code, and thus the cost
-is repeated over the entire input matrix, resulting in the linear bound (w.r.t the size of the 
+is repeated over the entire input matrix, resulting in the linear bound (w.r.t. the size of the 
 matrix). This artifact is unrelated to the new extension; it is a limitation
 due to the implementation of RaML. 
 
@@ -2034,7 +2038,7 @@ sponsoring organizations.
 \bibliography{easychair,lit}
 
 %------------------------------------------------------------------------------
-\iffalse
+
 \appendix\label{sect:appendix}
 
 \section{Notation}
@@ -2719,7 +2723,7 @@ Nested induction on the evaluation judgement and the typing judgement.\\
 \end{definition}
 
 For a context $(V,H,R,F)$, denote the
-garbage w.r.t a set of locations $L$ 
+garbage w.r.t. a set of locations $L$ 
 as $collect(R,L,H',F') = \{l \in H' \mid l \notin F' \cup R \cup L\}$.
 \begin{lemma}\label{itm:eager}
 	Given a well-formed context $(V,H,R,F)$ and $V,H,R,F \vdash e \Downarrow v,H',F'$, 
@@ -2763,8 +2767,8 @@ as $ec(f) = \{f(x) \mid x \in A\} = f(A)$, i.e. the image of $f$ on its domain $
 		find_H(v,D::P) &= find_H(get_H(v,D),P)\\
 		find_H(v,[]) &= v
 	\end{align*}
-	Call $P$ valid w.r.t a value $v$ if $find_H(v,P) = Just (v')$ for some $v'$.
-	Write $V_H(x;P)$ for $fromJust(find_H(V(x),P))$ given a valid sequence $P$ w.r.t $V(x)$,
+	Call $P$ valid w.r.t. a value $v$ if $find_H(v,P) = Just (v')$ for some $v'$.
+	Write $V_H(x;P)$ for $fromJust(find_H(V(x),P))$ given a valid sequence $P$ w.r.t. $V(x)$,
 	and $reach_H(V(x;P))$ for $reach_H(V_H(x;P))$.
 	Given a map $m : X \to \mathcal{S}(\ms{dir})$ from varibles to valid sequences of directions, 
 	Define $reachPath_{V,H}(X,m) = \biguplus_{x \in X} reach_H(V(x;m(x)))$.
@@ -2789,7 +2793,7 @@ $\mathcal{C}_1 = (V_1,H_1,R_1,F_1)$ iff
 \item $V_1,H_1 \sim V_2,H_2$
 \item There is a proper partition $\gamma : dom(H_1) \setminus F_1 \to \mathcal{P}(dom(H_2) \setminus F_2)$ 
 such that for all $l \in dom(\gamma)$, $|\gamma(l)| = reach_{H_1}(V_1)(l) + R_1(l)$
-\item for all $l \in dom(\gamma)$, $x \in dom(V_1)$, valid sequence of directions $P$ w.r.t $V_1(x)$,
+\item for all $l \in dom(\gamma)$, $x \in dom(V_1)$, valid sequence of directions $P$ w.r.t. $V_1(x)$,
 	$|reach_{H_2}(V_2(x;P)) \cap \gamma(l)| = reach_{H_1}(V_1(x;P))(l)$.
 \item for all $l \in dom(\gamma)$, $|\gamma(l) \cap R_2| = R_1(l)$
 \item $|F_1| = |F_2| + |\oh{\gamma}|$, where 
@@ -2812,7 +2816,7 @@ $(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ and
 			\item $\veq{H'}{Y'}{v}{w}$
 			\item $\gamma'$ is a proper partition, such that for all $l \in dom(\gamma')$, 
 				$|\gamma'(l)| = reach_{Y_1}(w_1)(l) + S(l)$
-			\item For all $P$ valid w.r.t $v$, $|reach_{H'}(find_{H'}(v;P)) \cap \gamma'(l)| = 
+			\item For all $P$ valid w.r.t. $v$, $|reach_{H'}(find_{H'}(v;P)) \cap \gamma'(l)| = 
 				reach_{Y'}(find_{Y'}(w;P))(l)$
 			\item $l \in dom(\gamma')$, 
 					$\gamma'(l) \cap R = \gamma(l) \cap R$ 
@@ -2941,7 +2945,7 @@ Induction on the evaluation judgement.\\
 		&\quad = reach_Y(W\restriction_{FV(e_1)})(l) +  S(l)\\
 		&\quad = reach_Y(W')(l) +  S(l)\\
 		&\emph{(3)}\quad \text{Let $l \in dom(\gamma'), x \in dom(W')$, 
-			$P$ valid sequence w.r.t $W'(x)$. NTS }\\ 
+			$P$ valid sequence w.r.t. $W'(x)$. NTS }\\ 
 		&|reach_{H}(V'(x;P)) \cap \gamma'(l)| = reach_{Y}(W'(x;P))(l)\\ 
 		&\quad \text{STS } |reach_{H}(V'(x;P)) \cap (\gamma(l) \setminus g)| = reach_{Y}(W'(x;P))(l) \\
 		&\quad g \cap reach_H(V'(x;P)) = \emptyset \tag{definition of $g$}\\
@@ -3106,7 +3110,7 @@ Induction on the evaluation judgement.\\
 		&\quad\quad = reach_{Y_1}(w_1)(l) + reach_{Y_1}(W\restriction_{FV(e_2)\setminus \{x\}})(l) + S(l) 		\tag{By \ref{itm:stable}}\\
 		&\quad\quad = reach_{Y_1}(W_2)(l) + S(l)\\
 		&\emph{(3)}\quad \text{Let $l \in dom(\gamma_2), x' \in dom(W_2)$, 
-			$P$ valid sequence w.r.t $W_2(x')$. NTS }\\ 
+			$P$ valid sequence w.r.t. $W_2(x')$. NTS }\\ 
 		&|reach_{H_1}(V_2(x';P)) \cap \gamma_2(l)| = reach_{Y_1}(W_2(x';P))(l)\\ 
 		&\quad \textbf{case } x' = x:\\
 		&\quad\quad |reach_{H_1}(V_2(x';P)) \cap \gamma_2(l)| = reach_{Y_1}(W_2(x';P))(l) \tag{Fact 4}\\ 
@@ -3177,7 +3181,7 @@ Induction on the evaluation judgement.\\
 		&\quad = reach_{H'}(w_1)(l') + reach_{H'}(w_2)(l') + S(l')\\
 		&\quad = \{m \mapsto 1\}(l') + reach_{H'}(w_1)(l') + reach_{H'}(w_2)(l') + S(l')\\
 		&\quad = reach_{H'}(m)(l') + S(l')\\
-		&\emph{(4) } \text{Let } l \in dom(\gamma'), P \text{ be a valid path w.r.t } l. \text{ NTS }
+		&\emph{(4) } \text{Let } l \in dom(\gamma'), P \text{ be a valid path w.r.t. } l. \text{ NTS }
 		|reach_{H'}(find_{H'}(l;P)) \cap \gamma'(l')| = 
 				reach_{Y'}(find_{Y'}(m;P))(l')\\
 		&\textbf{case } P = []\\
@@ -3289,7 +3293,7 @@ Induction on the evaluation judgement.\\
 		&\textbf{case } x_t \in FV(e_2), x_h \notin FV(e_2) \text{ and } 
 			\{x_h,x_t\} \cap FV(e_2) = \emptyset: \text{ symmetric to above }\\
 		&\emph{(3) } \text{Let $l' \in dom(\gamma'), x' \in dom(W')$, 
-			$P$ valid sequence w.r.t $W'(x')$. NTS }\\ 
+			$P$ valid sequence w.r.t. $W'(x')$. NTS }\\ 
 		&\quad|reach_{H}(V'(x';P)) \cap \gamma'(l')| = reach_{Y}(W'(x';P))(l')\\ 
 		&\textbf{case } x' \notin \{x_h,x_t\}:\\
 		&\quad |reach_{H}(V'(x';P)) \cap \gamma'(l')| = 
@@ -3360,7 +3364,6 @@ Induction on the evaluation judgement.\\
   \end{description}
 \end{proof}
 
-\fi
 
 %------------------------------------------------------------------------------
 % Index
