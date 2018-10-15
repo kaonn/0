@@ -1475,8 +1475,10 @@ First, we need to access
 subvalues of a value using directions: 
 
 \begin{definition}
-	Let \ms{dir} be the set \{\ms{L},\ms{R},\ms{N}\}, denoting left, right, and next 
-	respectively. We can index values via directions:
+	Let \ms{Dir} be the set \{\ms{L},\ms{R},\ms{N}\}, denoting left, right, and next 
+  respectively. We define the function 
+  $get_H : 1 \oplus (\ms{Val} \times \ms{Dir}) \to 1 \oplus \ms{Val}$
+  which indexes values via directions:
         $$
 	\begin{array}{lclclcl}
 		get_H(Just(\pairexcst{v_1}{v_2},\ms{L})) &=& Just(v_1) & \hspace{4em} &
@@ -1487,15 +1489,21 @@ subvalues of a value using directions:
 		get_H(r,\_) &=& r
 	\end{array}
         $$
-	Let $P$ be a sequence of directions. Extend $get$ to sequence of directions:
+  Let $P \in \mathcal{S}(\ms{Dir})$, where $\mathcal{S}(X)$ denotes the set of sequence
+  with elements from $X$. We define 
+  $find_H : 1 \oplus (\ms{Val} \times \mathcal{S}(\ms{Dir})) \to 1 \oplus \ms{Val}$ 
+  to extend $get_H$ to sequences of directions:
 	\begin{align*}
 		find_H(v,D::P) &= find_H(get_H(v,D),P)\\
 		find_H(v,[]) &= v
 	\end{align*}
 	Call $P$ valid w.r.t a value $v$ if $find_H(v,P) = Just (v')$ for some $v'$.
-        given a valid sequence $P$ w.r.t $V(x)$,
+  Given a valid sequence $P$ w.r.t $V(x)$,
 	write $V_H(x;P)$ for $fromJust(find_H(V(x),P))$
 	and $reach_H(V(x;P))$ for $reach_H(V_H(x;P))$.
+  Given a map $m : X \to \mathcal{S}(\ms{dir})$ from varibles to
+  valid sequences of directions, 
+	Define $reachPath_{V,H}(X,m) = \biguplus_{x \in X} reach_H(V(x;m(x)))$.
 \end{definition}
 
 With this, the third condition gives us a more fine grained restriction: for any subvalue in $V_1$,
@@ -1507,6 +1515,25 @@ The next condition simply states that the continuation sets respect $\gamma$. La
 we have that $F_1$ is greater than $F_2$, with the overhead $\oh{\gamma}$ being exactly the sum 
 $\sum_{l \in \gamma} |\gamma(l)| - 1$ 
 (since each class is non-empty, we use $rep(l)$ to choose an arbitrary element of the class $\gamma(l)$). 
+
+Below we prove the expected properties of a copy extension: 
+\begin{lemma}
+	Let $V_1,H_1 \sim V_2,H_2$. Then for all $x \in dom(V_1)$ and 
+  sequence of directions $P$, 
+	Either $find_{H_1}(V_1(x),P) = find_{H_2}(V_2(x),P) = None$ or 
+	$find_{H_1}(V_1(x),P) = v_1$, $find_{H_2}(V_2(x),P) = v_2$ and
+	$\veq{H_1}{H_2}{v_1}{v_2}$
+\end{lemma}
+
+\begin{lemma}\label{itm:aux}
+Let $V_2,H_2,R_2,F_2 \vdash^{\mathsf{copy}} e \Downarrow v,H',F'$, and 
+$V_1,H_1,R_1,F_1 \preceq V_2,H_2,R_2,F_2$, where $\gamma$ is the partition satisfying 
+the copy extension property. Then the following hold:
+for all $l \in dom(H_1) \setminus F_1$, 
+	$X \subseteq dom(V)$, $m : X \to \mathcal{S}(\ms{dir})$, $l \in dom(\gamma)$,
+	$\gamma(l) \subseteq collect(R_2,\mathcal{C}_2,reachPath_{V_2,H_2}(X,m),H_2,F_2)$ iff
+	$l \in collect(R_1,reachPath_{V_1,H_1}(X,m),H_1,F_1)$.
+\end{lemma}
 
 Now we can state the key lemma:
 
@@ -1522,31 +1549,12 @@ $(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ and
 			\item $\veq{H'}{Y'}{v}{w}$
 			\item $\gamma'$ is a proper partition, such that for all $l \in dom(\gamma')$, 
 				$|\gamma'(l)| = |reach_{Y_1}(w_1)(l)| + S(l)$
-			\item For all $P$, $|reach_{H'}(find_{H'}(v;P)) \cap \gamma'(l)| = 
+      \item For all $P \in \mathcal{S}(\ms{Dir})$ that is valid w.r.t $v$, 
+        $|reach_{H'}(find_{H'}(v;P)) \cap \gamma'(l)| = 
 				reach_{Y'}(find_{Y'}(w;P))(l)$
 			\item For all $l \in dom(\gamma')$, $\gamma'(l) \cap R = \gamma(l) \cap R$
 			\item $|M'| = |F'| + |\oh{\gamma'}|$
 	\end{enumerate}
-\end{lemma}
-
-\begin{lemma}
-	Let $V_1,H_1 \sim V_2,H_2$. Then for all $x \in dom(V_1)$ and sequence of directions $P$, 
-	Either $find_{H_1}(V_1(x),P) = find_{H_2}(V_2(x),P) = None$ or 
-	$find_{H_1}(V_1(x),P) = v_1$, $find_{H_2}(V_2(x),P) = v_2$ and
-	$\veq{H_1}{H_2}{v_1}{v_2}$
-\end{lemma}
-
-\begin{proof}
-	Induction on length of $P$ and then $H \vdash v \mapsto a : A$.
-\end{proof}
-
-\begin{lemma}\label{itm:aux}
-Let $V_2,H_2,R_2,F_2 \vdash^{\mathsf{copy}} e \Downarrow v,H',F'$, and 
-$V_1,H_1,R_1,F_1 \preceq V_2,H_2,R_2,F_2$ because $(-,\gamma,\eta,-,-)$. Then the following hold:
-for all $l \in dom(H_1) \setminus F_1$, 
-	$X \subseteq dom(V)$, $m : X \to \mathcal{S}(\ms{dir})$, $l \in dom(\gamma)$,
-	$\gamma(l) \subseteq collect(R_2,\mathcal{C}_2,reachPath_{V_2,H_2}(X,m),H_2,F_2)$ iff
-	$l \in collect(R_1,reachPath_{V_1,H_1}(X,m),H_1,F_1)$.
 \end{lemma}
 
 \begin{proof}
@@ -1574,7 +1582,7 @@ To instantiate the induction hypothesis, we need to show that
 			$P$ valid sequence w.r.t $W'(x)$. We need to show that }\\
     &|reach_{H}(V'(x;P)) \cap \gamma'(l)| = reach_{Y}(W'(x;P))(l) \\
 		&\emph{(4)}\quad S \subseteq dom(Y) \setminus (M \cup j) \text{ since } S \cap j = \emptyset\\
-		&\emph{(5)}\quad \text{NTS } |M \cup j| = |F \cup g| + |\oh{\gamma'}|
+		&\emph{(5)}\quad |M \cup j| = |F \cup g| + |\oh{\gamma'}|
   \end{align*}
   \emph{(1)} is satisfied since $W,Y \sim V,H$. For \emph{(2)}, we take 
   $\gamma'(l) = \gamma \restriction_{dom(Y)\setminus(M \sqcup j)}(l) \setminus g$. 
@@ -1691,59 +1699,44 @@ Thus, we have shown that we can execute a computation using
 
 \textbf{Soundness of $\fogc$}
 \label{sect:soundcopy}
-For the second part of the proof, we show $\fogc$ is sound w.r.t. \copySem{}. First we
-show the linearity of \copySem{}: 
-% main lemma
- 
-
-
-\begin{lemma}\label{itm:stable}
-Let $H \vDash v \mapsto a : A$. For all sets of locations $R$, if $reach_H(v) \subseteq R$ and $\stable{R,H,H'}$, then $H' \vDash v \mapsto a : A$ and $reach_H(v) = reach_{H'}(v)$.
-\end{lemma}
-
-\begin{proof}
-Induction on the structure of $H \vDash v \mapsto a : A$.
-\end{proof}
-
-\begin{corollary}
-Let $H \vDash V : \Gamma$. For all $R$, if $\bigcup_{x \in V} reach_H(V(x)) \subseteq R$ and $\stable{R,H,H'}$, then $H' \vDash V : \Gamma$.
-\end{corollary}
-
-\begin{proof}
-Follows from Lemma $\ref{itm:stable}$.
-\end{proof}
-
-% copy
-
-\begin{lemma}[stability of copying]\label{itm:copyStable}
-	Let $H',v' = copy(H,L,v)$. For all $l \in H$, if $l \notin L$, then $H(l) = H'(l)$. 
-	Further, $reach_{H'}(v') \subseteq L$.
-\end{lemma}
-
-\begin{lemma}[copy is copy]
-	Let $H',v' = copy(H,L,v)$. If $H \vDash v \mapsto a : A$, then $H' \vDash v' \mapsto a : A$.
-\end{lemma}
-
-\begin{lemma}\label{itm:shareSize}
-	Let $A \curlyvee^n A_1,A_2$, $H \vDash v_1 : A_1$, $H \vDash v_2 : A_2$, 
-	and $H \vDash v : A$. Then $\Phi_{H}(v : A) = 
-	\Phi_{H}(v_1 : A_1) + \Phi_{H}(v_2 : A_2) + n\cdot |dom(reach_H(v))|$
-\end{lemma}
+For the second part of the proof, we show $\fogc$ is sound w.r.t. \copySem{}. Below
+we give the lemmas used in the soundness theorem:
 
 \begin{lemma}\label{itm:wellFormed}
 	Let $H \vDash V : \Gamma$, $\Sigma;\Gamma \vdash e : A$, and $V,H \vdash e \Downarrow v,H'$. Then 
 	$H' \vDash v : A$.
 \end{lemma}
 
+% main lemma
+ \begin{definition}[Stability]
+Given heaps $H,H'$, a set of locations is \emph{stable} if $\forall l \in R$. $H(l) = H'(l)$. Denote this by
+$\stable{R,H,H'}$.
+\end{definition}
+
+\begin{lemma}\label{itm:stable}
+Let $H \vDash v \mapsto a : A$. For all sets of locations $R$, if $reach_H(v) \subseteq R$ and $\stable{R,H,H'}$, then $H' \vDash v \mapsto a : A$ and $reach_H(v) = reach_{H'}(v)$.
+\end{lemma}
+
+\begin{lemma}[Stability of copying]\label{itm:copyStable}
+	Let $H',v' = copy(H,L,v)$. For all $l \in H$, if $l \notin L$, then $H(l) = H'(l)$. 
+	Further, $reach_{H'}(v') \subseteq L$.
+\end{lemma}
+
+\begin{lemma}[Copy is copy]
+	Let $H',v' = copy(H,L,v)$. If $H \vDash v \mapsto a : A$, then $H' \vDash v' \mapsto a : A$.
+\end{lemma}
+
+\begin{lemma}\label{itm:shareSize}
+	Let $A \curlyvee^n A_1,A_2$, $H \vDash v : A$, 
+  $\veq{H}{H}{v}{v_1}$, and $\veq{H}{H}{v}{v_2}$. Then $\Phi_{H}(v : A) = 
+	\Phi_{H}(v_1 : A_1) + \Phi_{H}(v_2 : A_2) + n\cdot |dom(reach_H(v))|$
+\end{lemma}
+
 \begin{lemma}[Linearity of \copySem{}]\label{itm:na}
-  Let $\mathcal{C}$ be a configuration, $\mathcal{C} \; \vdash e \Downarrow v, H', F'$, and
+  Let $\mathcal{C}$ be a configuration, $\mathcal{C} \; \vdash^{\copySem{}} e \Downarrow v, H', F'$, and
   $\Sigma; \Gamma \vdash e : B$. Given that $\linearComp{\mathcal{C}}{e}$,
   we have that $\ms{set}(reach_{H'}(v))$ and $\dist{\{R,F',reach_{H'}(v)\}}$.
 \end{lemma}
-
-\begin{proof}
-Induction on the evaluation judgment $\vdash^{\copySem{}}$.
-\end{proof}
 
 \begin{theorem}[Soundness]
 \label{b} let $H_o \vDash V_o : \Gamma$, $\Sigma; \Gamma \sststile{q'}{q} e : B$,
@@ -1756,7 +1749,7 @@ Then $\forall C \in \mathbb{Q}^{+}$ and configuration $(V,H,R,F)$ s.t.
 \end{enumerate}
 then there exists a triple $(v,H',F')$, and a freelist $F'$ s.t.
 \begin{enumerate}
-  \item $V,H,R,F \vdash e \Downarrow v, H', F'$
+  \item $V,H,R,F \vdash^{\copySem{}} e \Downarrow v, H', F'$
 	\item $\veq{H_o'}{H'}{v_o}{v}$
   \item $|F'| \ge \Phi_{H'}(v:B) + q' + C$
 \end{enumerate}
@@ -2180,7 +2173,7 @@ Given heaps $H,H'$, a set of locations is \emph{stable} if $\forall l \in R$. $H
 $\stable{R,H,H'}$.
 \end{definition}
 
-\begin{lemma}\label{itm:stable}
+\begin{lemma}
 Let $H \vDash v \mapsto a : A$. For all sets of locations $R$, if $reach_H(v) \subseteq R$ and $\stable{R,H,H'}$, then $H' \vDash v \mapsto a : A$ and $reach_H(v) = reach_{H'}(v)$.
 \end{lemma}
 
@@ -2198,7 +2191,7 @@ Follows from Lemma $\ref{itm:stable}$.
 
 % copy
 
-\begin{lemma}[stability of copying]\label{itm:copyStable}
+\begin{lemma}[stability of copying]
 	Let $H',v' = copy(H,L,v)$. For all $l \in H$, if $l \notin L$, then $H(l) = H'(l)$. 
 	Further, $reach_{H'}(v') \subseteq L$.
 \end{lemma}
@@ -2207,13 +2200,13 @@ Follows from Lemma $\ref{itm:stable}$.
 	Let $H',v' = copy(H,L,v)$. If $H \vDash v \mapsto a : A$, then $H' \vDash v' \mapsto a : A$.
 \end{lemma}
 
-\begin{lemma}\label{itm:shareSize}
+\begin{lemma}
 	Let $A \curlyvee^n A_1,A_2$, $H \vDash v_1 : A_1$, $H \vDash v_2 : A_2$, 
 	and $H \vDash v : A$. Then $\Phi_{H}(v : A) = 
 	\Phi_{H}(v_1 : A_1) + \Phi_{H}(v_2 : A_2) + n\cdot |dom(reach_H(v))|$
 \end{lemma}
 
-\begin{lemma}\label{itm:wellFormed}
+\begin{lemma}
 	Let $H \vDash V : \Gamma$, $\Sigma;\Gamma \vdash e : A$, and $V,H \vdash e \Downarrow v,H'$. Then 
 	$H' \vDash v : A$.
 \end{lemma}
