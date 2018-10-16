@@ -10,7 +10,7 @@
 
 \newcommand{\letabt}[4]{\OpABTp{\cd{let}}{#1}{#2;\AbsABT{#3}{#4}}}
 \newcommand{\letcst}[4]{\kwop{let}\TightIsOf{#3}{#1}\kwop{be}{#2}\kwop{in}{#4}}
-\newcommand{\uletabt}[3]{\kwop{let}{#2;\AbsABT{#1}{#3}}}
+\newcommand{\uletabt}[3]{\kwop{let}{#1 = #2 \kwop{ in } #3}}
 \newcommand{\uletcst}[3]{\kwop{let}{#2}\kwop{be}{#1}\kwop{in}{#3}}
 
 \newcommand{\fdefabt}[6]{\OpABTp{\cd{fun}}{#1;#2}{\AbsABT{#3}{#4};\AbsABT{#5}{#6}}}

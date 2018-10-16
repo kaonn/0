@@ -605,10 +605,11 @@ as $collect(R,L,H,F) = \{l \in H \mid l \notin F \cup R \cup L\}$.
 
 Furthermore, this condition is invariant under evaluation:
 \begin{lemma}\label{itm:eager}
-	Given a well-formed context $(V,H,R,F)$ and $V,H,R,F \vdash e \Downarrow v,H',F'$, 
-	$dom(H') \subseteq reach_H(v) \cup R \cup F'$,
-	$reach_H(v) \cup R \subseteq dom(H') \setminus F'$ and
-	$collect(R,reach_H'(v),H',F') = \emptyset$.
+  Given a well-formed context $(V,H,R,F)$ and $V,H,R,F \vdash e \Downarrow v,H',F'$,
+  we have
+	$dom(H') \subseteq reach_{H'}(v) \cup R \cup F'$,
+	$reach_{H'}(v) \cup R \subseteq dom(H') \setminus F'$, and
+	$collect(R,reach_{H'}(v),H',F') = \emptyset$.
 \end{lemma}
 The well-formed conditions ensure the stack and continuation sets are within the active region
 of the heap $H \setminus F$, and that
@@ -1008,7 +1009,7 @@ rest of the expression with the two new variables $x_1: A_1$, $x_2 : A_2$.
   \Sigma; x : A \sststile{q'}{q} f(x) : B
 }
 {
-  \Sigma(f) = A \xmapsto{q/q'} B
+  \Sigma(f) = A \xrightarrow{q/q'} B
 }(\text{L:Fun})
 
 \inferr{
@@ -1106,14 +1107,7 @@ of the
 reachable set of a value $v$ is exactly the linear potential of $v : A$ with all resource 
 annotations set to 1.
 
-For example, we can give the following derivations for \texttt{append} and \texttt{appTwice}.
-For each function, let $e_{\texttt{f}}$ denote the body of the function $\texttt{f}$. The mappings
-$P$ and $\Sigma$ denote the program and signature respectively. 
-
-\[
-P = [\texttt{append} \mapsto e_{\texttt{append}}] \quad\quad
-\Sigma = [\texttt{append} \mapsto \prodtycst{L^p(A)}{L^p(A)} \xrightarrow{q/q} L^p(A)]
-\]
+For example, we can give the following derivations for \texttt{append} and \texttt{appTwice}, where $A = \irl{int}$:
 
 \begin{tiny}
 \[
@@ -1130,9 +1124,9 @@ P = [\texttt{append} \mapsto e_{\texttt{append}}] \quad\quad
         \uletabt{r}{\texttt{append}(xs,l_2)}{x::r} : L^p(A)
 	}{
 		\infer[\text{L:App}]{
-			\Sigma; L_2 : L^p(A), xs : L^p(A) \sststile{q+p+1}{q+p+1} \texttt{append}(xs,l_2) : L^p(A)
+		\Sigma; L_2 : L^p(A), xs : L^p(A) \sststile{q+p+1}{q+p+1} \texttt{append}(xs,l_2) : L^p(A)
 		}{
-			\texttt{append} : \xrightarrow{q/q} \prodtycst{L^p(A)}{L^p(A)} \to L^p(A) \in \Sigma
+		\Sigma(\texttt{append}) = \prodtycst{L^p(A)}{L^p(A)} \xrightarrow{q/q}  L^p(A) 
 		}&
 		\infer[\text{L:Cons}]{
 			\Sigma; x : A, r : L^p(A) \sststile{q}{q+p+1} x::r : L^p(A)
@@ -1142,12 +1136,6 @@ P = [\texttt{append} \mapsto e_{\texttt{append}}] \quad\quad
 }
 \]
 \end{tiny}
-
-\begin{align*}
-P &= [\texttt{appTwice} \mapsto e_{\texttt{appTwice}}] \\
-\Sigma &= [\texttt{appTwice} \mapsto L^{r+s+1}(A) \xrightarrow{q/q} \prodtycst{L^r(A)}{L^s(A)},
-\texttt{append} \mapsto \prodtycst{L^p(A)}{L^p(A)} \xrightarrow{q/q} L^p(A)]
-\end{align*}
 
 \begin{tiny}
 \begin{mathpar}
@@ -1176,7 +1164,7 @@ L^{r+s+1}(A) \curlyvee^1 L^r(A), L^s(A)}{}
  \inferrule*[right=\begin{tiny}\text{L:Fun}\end{tiny}]
    {
       \pairexcst{l2}{[]} : \prodtycst{L^s(A)}{L^s(A)}\\\\
-    \Sigma(\texttt{append}) = \prodtycst{L^s(A)}{L^s(A)} \xrightarrow{q/q} L^s(A)W
+    \Sigma(\texttt{append}) = \prodtycst{L^s(A)}{L^s(A)} \xrightarrow{q/q} L^s(A)
    }{
     \Sigma;l2 : L^s(A) \sststile{q}{q} \texttt{append}(l2,[]) : L^s(A)
   }
@@ -1194,27 +1182,34 @@ L^{r+s+1}(A) \curlyvee^1 L^r(A), L^s(A)}{}
 \end{mathpar}
 \end{tiny}
 
+Where $e_{\texttt{append}}$ denotes the body of the function $\texttt{append}$. The mapping
+$P =  [\texttt{append} \mapsto e_{\texttt{append}}]$ is the program, and $\Sigma = [\texttt{append} \mapsto \prodtycst{L^p(\irl{int})}{L^p(\irl{int})} \xrightarrow{q/q} L^p(\irl{int})]$
+is the program signature. 
 From these derivations,
 we get the improved space overhead bound to \texttt{append} and \texttt{appTwice}:
 \begin{align*}
 	&\texttt{append} : \prodtycst{L^p(\irl{int})}{L^q(\irl{int})} \xrightarrow{r/r'} L^s(\irl{int}),
 	\text{ where } p \ge s,\; q \ge s, \text{ and } r \ge r'\\
 	&\texttt{appTwice} : L^p(\irl{int}) \xrightarrow{q/q'} \prodtycst{L^r(\irl{int})}{L^s(\irl{int})},
-	\text{ where } p + q \ge r + s + 1 \text{ and } q \ge q'
+	\text{ where } p \ge r + s + 1 \text{ and } q \ge q'
 \end{align*}
 
 {\bf Cost Metrics}
 In previous versions of AARA~\cite{Jost10,HoffmannAH10}, the typing judgment and cost semantics
 are parametrized by a \emph{cost metric} 
 $m : \ms{res\_const \to \mathbb{Q}}$, which assigns a constant cost to 
-each step in the semantics. Thus we instantiate the previous type system with the heap metric,
-the cost metric that measures heap cost, resulting in a concrete type system $\foheap$.
+each step in the semantics.
+Recall the heap metric introduced above; formally, this is the function
+$k \mapsto \mathbbm{1}_{k = k^{\texttt{cons}}}$. 
+For comparison's sake,
+we instantiate the previous type system this metric
+(which only accounts for heap \emph{allocations}),
+resulting in a concrete type system $\foheap$.
 We give a full evaluation of the improvements of $\fogc$ over $\foheap$ in Section~\ref{sect:conclusion}.
 Although we defined the constructor to cost
 1 heap location (as shown in L:Cons and L:MatLD), it can be any constant as long as the introduction
 and elimination rules agree on that constant. Thus we can extend the type system to accurately track
-closure sizes and constructors which vary in size depending on the argument (more in 
-Section~\ref{sect:conclusion}).
+constructors which vary in size depending on the argument.
 
 {\bf Type Inference} One of the benefits of AARA is efficient type
 inference using off-the-shelve LP solvers~\cite{Jost03}, even for
@@ -1283,9 +1278,10 @@ $\emptyset,\emptyset,\emptyset,\{1\} \vdash^{\mathcal{E}_{\ms{oper}}} e \Downarr
 we also first map 1 to $\texttt{[4]}$, but then 
 allocate a new location, say 2, and map it to $\texttt{[5]}$, and $v_2 =  2$. Due to the 
 difference in allocation strategies and the fact that both are nondeterministic, we need a more 
-robust notion of equality for values. Luckily, the structures from the denotational semantics 
+robust notion of equality for values. Luckily, the structures from the denotational semantics
+ (defined in Section~\ref{sect:lfp})
 does the job. In both runs, the return value maps to the semantic value $\texttt{[5]}$.
-Thus we use semantical equality above as the basis for value and context equivalence:
+Thus we use semantical equality as the basis for value and context equivalence:
 
 \begin{definition}[Value Equivalence]
 Two values $v_1,v_2$ are equivalent (with the presupposition that they are well-formed w.r.t. heaps $H_1,H_2$),
@@ -1294,14 +1290,13 @@ Write value equivalence as $\veq{H_1}{H_2}{v_1}{v_2}$.
 \end{definition}
 
 \begin{definition}[Context Equivalence]
-Two contexts $(V_1,H_1), (V_2,H_2)$ are equivalent
-(with the presupposition that both are well-formed contexts) iff $dom(V_1) = dom(V_2)$ and 
+Two contexts $(V_1,H_1), (V_2,H_2)$ are equivalent iff $dom(V_1) = dom(V_2)$ and 
 for all $x \in dom(V_1)$, $\veq{H_1}{H_2}{V_1(x)}{V_2(x)}$. Write context equivalence as 
 $\ctxeq{V_2,H_2}{V_2,H_2}$
 \end{definition}
 
 Stated simply, two contexts are equivalent when they have the same domain and equal variables bind equal 
-semantic values (defined in Section~\ref{sect:lfp}).
+semantic values.
 
 \textbf{Linear Garbage Collection Cost Semantics}
 \label{sect:copy}
@@ -1354,7 +1349,7 @@ Now, consider \gcSem{} with the share rule F:Share replaced with the following r
 	V' = (V[x_1 \mapsto v',x_2 \mapsto v'']) \restriction_{FV(e)}\\
 	F' =	F \setminus L\\
 	g = \{l \in H \mid l \notin F' \cup R \cup locs_{V',H}(e)\}\\
- 	V',H',R,F' \sqcup g \; \vdash e \Downarrow v,H'',F''
+ 	V',H',R,F' \cup g \; \vdash e \Downarrow v,H'',F''
 }{
   V,H,R,F \; \vdash \sharecpcst{x}{x_1}{x_2}{e} \Downarrow v,H'',F''
 }(\text{E:Share})
@@ -1370,7 +1365,7 @@ for the case when a variable is shared but not used later.
 
 Recall that a \emph{computation} is a pair $(\mathcal{C},e)$ consisting of a configuration
 $\mathcal{C} = (V,H,R,F)$ and an expression $e$. 
-Since any reasonable semantics can only \emph{preserve} the linearity of a computation,
+Since the cost semantics can only \emph{preserve} the linearity of a computation,
 we restrict our attention to computations that are linear initially, and show that
 \copySem{} respects the linearity of any initially linear computation. This motivates the following
 definitions:
@@ -1398,7 +1393,7 @@ Intuitively, we expect that any terminating compuation
 with \copySem{} has a corresponding run with \gcSem{} that can be instantiated with 
 an equally-sized or smaller freelist. Although this seems quite straightforward to prove, a complete
 characterization of the relationship between the space allocations of two runs with each 
-semantics is necessary. To motivate this, consider the following proof attempt: 
+semantics is necessary. To demonstrate the difficulties involved, consider the following proof attempt: 
 
 \begin{attempt}
 	Let $\mathcal{C}_2 = (V,H,R,F)$ be a configuration and $(\mathcal{C}_2, e)$ 
@@ -1444,11 +1439,12 @@ $\mathcal{C}_1 = (V_1,H_1,R_1,F_1)$ iff
 \item $V_1,H_1 \sim V_2,H_2$
 \item There is a proper partition $\gamma : dom(H_1) \setminus F_1 \to \mathcal{P}(dom(H_2) \setminus F_2)$ 
 such that for all $l \in dom(\gamma)$, $|\gamma(l)| = reach_{H_1}(V_1)(l) + R_1(l)$
-\item For all $l \in dom(\gamma)$, $x \in dom(V_1)$, valid sequence of directions $P$ w.r.t. $V_1(x)$,
+\item For all $l \in dom(\gamma)$, $x \in dom(V_1)$, sequence of directions $P$ which is valid
+  w.r.t. $V_1(x)$,
 	$|reach_{H_2}(V_2(x;P)) \cap \gamma(l)| = reach_{H_1}(V_1(x;P))(l)$.
 \item	For all $l \in dom(\gamma)$, $|\gamma(l) \cap R_2| = R_1(l)$
 \item $|F_1| = |F_2| + |\oh{\gamma}|$, where 
-	$\oh{\gamma} = \bigcup_{P \in ec(\gamma)} P \setminus (rep(P))$
+	$\oh{\gamma} = \bigcup_{P \in ec(\gamma)} P \setminus \{rep(P)\}$
 \end{enumerate}
 Write this as $\mathcal{C}_1 \preceq \mathcal{C}_2$.
 \end{definition} 
@@ -1489,22 +1485,20 @@ subvalues of a value using directions:
 \begin{definition}
 	Let \ms{Dir} be the set \{\ms{L},\ms{R},\ms{N}\}, denoting left, right, and next 
   respectively. We define the function 
-  $get_H : 1 \oplus (\ms{Val} \times \ms{Dir}) \to 1 \oplus \ms{Val}$
+  $get_H : (1 \oplus \ms{Val}) \times \ms{Dir} \to 1 \oplus \ms{Val}$
   which indexes values via directions:
         $$
 	\begin{array}{lclclcl}
-		get_H(Just(\pairexcst{v_1}{v_2},\ms{L})) &=& Just(v_1) & \hspace{4em} &
+		get_H(Just(\pairexcst{v_1}{v_2}),\ms{L}) &=& Just(v_1) & \hspace{4em} &
 		get_H(Just(l),\ms{N}) &=& Just(H(l)) \\
-                get_H(Just(\pairexcst{v_1}{v_2},\ms{R})) &=& Just(v_2) &&
-                get_H(Just(l), \_) &=& None\\
-                get_H(Just(\pairexcst{v_1}{v_2}),\ms{N}) &=& None &&
-		get_H(r,\_) &=& r
+                get_H(Just(\pairexcst{v_1}{v_2}),\ms{R}) &=& Just(v_2) &&
+                get_H(\_, \_) &=& None\\
 	\end{array}
         $$
   Let $P \in \mathcal{S}(\ms{Dir})$, where $\mathcal{S}(X)$ denotes the set of sequence
   with elements from $X$. We define 
   $find_H : (1 \oplus \ms{Val}) \times \mathcal{S}(\ms{Dir}) \to 1 \oplus \ms{Val}$ 
-  to extend $get_H$ to sequences of directions:
+  extending $get_H$ to sequences of directions:
 	\begin{align*}
 		find_H(v,D::P) &= find_H(get_H(v,D),P)\\
 		find_H(v,[]) &= v
@@ -1612,9 +1606,10 @@ To instantiate the induction hypothesis, we need to show that
   Consider the image of $\gamma'$: 
   \begin{align*}
 		&\quad \gamma'(dom(Y) \setminus (M \cup j)) = \gamma(dom(Y) \setminus (M \cup j)) \setminus g\\
-		&\quad = \bigcup_{l \in dom(Y) \setminus M} \gamma(l) \setminus \bigcup_{l \in j} \gamma(l)) 
+		&\quad = ((\bigcup_{l \in dom(Y) \setminus M} \gamma(l)) \setminus
+           \bigcup_{l \in j} \gamma(l)) 
 			\setminus g\\
-		&\quad = ((dom(H) \setminus F) \setminus (\bigcup_{l \in j} \gamma(l))) \setminus g 
+		&\quad = ((dom(H) \setminus F) \setminus \bigcup_{l \in j} \gamma(l)) \setminus g 
 			\tag{$\gamma$ is a partition}\\
 		&\quad = (dom(H) \setminus F) \setminus g 
 			\tag{$\bigcup_{l \in j} \gamma(l) \subseteq g$ by Lemma \ref{itm:aux}}\\
@@ -1624,7 +1619,7 @@ To instantiate the induction hypothesis, we need to show that
   every class is nonempty.
   Let $l \in dom(Y) \setminus (M \cup j)$ be any location. Since 
   $\gamma'(l) = \gamma(l) \setminus g$, it suffices to show 
-  that the class $\gamma(l)$ is not all entirely collected. For the sake of contradiction, assume 
+  that the class $\gamma(l)$ is not all collected. For the sake of contradiction, assume 
   $\gamma(l) \subseteq g$. But then $l \in j$ by Lemma \ref{itm:aux}, and 
   we have a contradiction since we assumed $l \notin j$.  
   Lastly, we need to show that $|\gamma'(l)| = reach_{Y}(W')(l) + S(l)$.
@@ -1632,7 +1627,7 @@ To instantiate the induction hypothesis, we need to show that
   $|\gamma'(l)| = |\gamma(l)| - |\gamma(l) \cap g|$. By 
   the second condition of $W,Y,S,M\preceq V,H,R,F$, 
   this is equal to $reach_Y(W)(l) + S(l) - |\gamma(l) \cap g|$. Next, note that
-  since $V,H,R,F$ is well defined, we have $collect(R,reach_H(V),H,F) = \emptyset$.
+  since $V,H,R,F$ is a well defined configuration, we have $collect(R,reach_H(V),H,F) = \emptyset$.
   Since $locs_{V',H}(e_1) \subseteq reach_H(V) \subseteq H$, we get 
   $g = reach_H(V) \setminus locs_{V',H}(e_1) = reach_H(V\restriction_{dom(V) \setminus FV(e_1)})$.
   Combined with the 
@@ -1650,12 +1645,12 @@ To instantiate the induction hypothesis, we need to show that
         $|j| + |\oh{\gamma}| = |g| + |\oh{\gamma'}|$. Note that since
         $g$ and the image of $\gamma'$ is disjoint, it suffices to define a bijection 
         $f : j \oplus \oh{\gamma} \to g \sqcup \oh{\gamma'}$. We use the disjoint union
-        $\oplus$ on the left as a convenient way to distinguish locations between
+        $\oplus$ on the left as a convenient way to distinguish between locations from
         $dom(Y)$ and $dom(H)$. 
 	Let $\mathcal{C}_1 = \{\gamma(l) \mid l \in j\}$, 
 	$\mathcal{C}_2 = ec(\gamma) \setminus \mathcal{C}_1$, and
-        let $D_1 = \bigcup_{C  \in \mathcal{C}_1} C \setminus rep(C)$,  
-		$D_2 = \bigcup_{C  \in \mathcal{C}_2} C \setminus rep(C)$.
+        let $D_1 = \bigcup_{C  \in \mathcal{C}_1} C \setminus \{rep(C)\}$,  
+		$D_2 = \bigcup_{C  \in \mathcal{C}_2} C \setminus \{rep(C)\}$.
                 Then we have $\oh{\gamma} = D_1 \sqcup D_2$.
                 By Lemma \ref{itm:aux}, we have $g = (\bigcup_{C \in \mathcal{C}_1} C) \sqcup L $
                 for some $L$. Therefore, we need to find a bijection
@@ -1683,37 +1678,37 @@ To instantiate the induction hypothesis, we need to show that
   \end{align*}
 		Which means that $\mathcal{C}_2$  has the same number of classes as $\gamma'$
 		(note the actual classes might be different). 
-		Since both $\gamma$ and $\gamma'$  are proper partitions, we just keep class
-    representatives for each class and still obtain a bijection:
+		Since both $\gamma$ and $\gamma'$  are proper partitions, we can keep class
+    representatives for each class when defining the bijection:
     \begin{align*}
       &|D_2| = |L \sqcup \oh{\gamma'}|\\
-      &\iff |\bigcup_{C  \in \mathcal{C}_2} C \setminus rep(C)| = 
-			|L \sqcup \bigcup_{C \in ec(\gamma')} C \setminus rep(C)|\\
+      &\iff |\bigcup_{C  \in \mathcal{C}_2} C \setminus \{rep(C)\}| = 
+			|L \sqcup \bigcup_{C \in ec(\gamma')} C \setminus \{rep(C)\}|\\
       &\iff |\bigcup_{C  \in \mathcal{C}_2} C| = 
         |L \sqcup \bigcup_{C \in ec(\gamma')} C|
   \end{align*}
 		In fact, the latter two sets are equal. 
-		Let $l' \in \bigcup_{C  \in \mathcal{C}_2} C$. 
-		By definition of partition, $l' \in dom(H) \setminus F$. Suppose $ l \in g$. 
-		Then by definition of $\mathcal{C}_2$, $l' \notin \bigcup_{C \in \mathcal{C}_1} C$, 
-    and $l' \in L$ by definition of $g$. Hence 
-    $l' \in L \sqcup \bigcup_{C \in ec(\gamma')} C$. 
-		Otherwise,  $l' \notin g$, and $l' \in dom(H) \setminus (F \cup g)$. 
+		Let $l \in \bigcup_{C  \in \mathcal{C}_2} C$. 
+		By definition of partition, $l \in dom(H) \setminus F$. Suppose $ l \in g$. 
+		Then by definition of $\mathcal{C}_2$, $l \notin \bigcup_{C \in \mathcal{C}_1} C$, 
+    and $l \in L$ by definition of $g$. Hence 
+    $l \in L \sqcup \bigcup_{C \in ec(\gamma')} C$. 
+		Otherwise,  $l \notin g$, and $l \in dom(H) \setminus (F \cup g)$. 
 		By definition of partition, there exists a class $C \in ec(\gamma')$ s.t.
-                $l' \in C$.
-		Then $l' \in \bigcup_{C \in ec(\gamma')} C$, and
-		$l' \in L \sqcup \bigcup_{C \in ec(\gamma')} C$.
-		For the other direction, let $ l' \in L \sqcup \bigcup_{C \in ec(\gamma')} C$.
-		Suppose $l' \in L$. Then $l' \in dom(H) \setminus F$ since $L \subseteq g$.
+                $l \in C$.
+		Then $l \in \bigcup_{C \in ec(\gamma')} C$, and
+		$l \in L \sqcup \bigcup_{C \in ec(\gamma')} C$.
+		For the other direction, let $ l \in L \sqcup \bigcup_{C \in ec(\gamma')} C$.
+		Suppose $l \in L$. Then $l \in dom(H) \setminus F$ since $L \subseteq g$.
     By definition of $g$, $L \cap  \bigcup_{C \in \mathcal{C}_1} C = \emptyset$, so
-    there must be a class $C \in \mathcal{C}_2$ s.t. $l' \in C$. Thus 
-    $l' \in \bigcup_{C \in \mathcal{C}_2} C$.
-    Otherwise, $l' \in \bigcup_{C \in ec(\gamma')} C$. 
-    By definition of partition, $l' \in dom(H) \setminus (F \cup g)$. 
-    Since $\bigcup_{C \in \mathcal{C}_1} C \subseteq g$, $l' \notin\bigcup_{C \in \mathcal{C}_1} C$,
+    there must be a class $C \in \mathcal{C}_2$ s.t. $l \in C$. Thus 
+    $l \in \bigcup_{C \in \mathcal{C}_2} C$.
+    Otherwise, $l \in \bigcup_{C \in ec(\gamma')} C$. 
+    By definition of partition, $l \in dom(H) \setminus (F \cup g)$. 
+    Since $\bigcup_{C \in \mathcal{C}_1} C \subseteq g$, $l \notin\bigcup_{C \in \mathcal{C}_1} C$,
     so there must be a class
-    $C \in \mathcal{C}_2$ s.t. $l' \in C$, and again 
-    $l' \in \bigcup_{C \in \mathcal{C}_2} C$.
+    $C \in \mathcal{C}_2$ s.t. $l \in C$, and again 
+    $l \in \bigcup_{C \in \mathcal{C}_2} C$.
     
     Hence we show that $|D_2| = |L \sqcup \oh{\gamma'}|$, and together with the previous 
     equality $|j| + |D_1| = |\bigcup_{C \in \mathcal{C}_1} C|$,
@@ -1745,7 +1740,7 @@ are selected lemmas used in the soundness theorem:
 
       % main lemma
 
-\iffalse
+
  \begin{definition}[Stability]
 Given heaps $H,H'$, a set of locations is \emph{stable} if $\forall l \in R$. $H(l) = H'(l)$. Denote this by
 $\stable{R,H,H'}$.
@@ -1760,7 +1755,7 @@ Let $H \vDash v \mapsto a : A$. For all sets of locations $R$, if $reach_H(v) \s
 	Let $H',v' = copy(H,L,v)$. For all $l \in H$, if $l \notin L$, then $H(l) = H'(l)$. 
 	Further, $reach_{H'}(v') \subseteq L$.
       \end{lemma}
-      \fi
+      
 
 \begin{lemma}[Copy is copy]
 	Let $H',v' = copy(H,L,v)$. If $H \vDash v \mapsto a : A$, then $H' \vDash v' \mapsto a : A$.
