@@ -466,14 +466,14 @@ $\ms{Stack} \triangleq \{ V \mid V : \ms{Var} \to \ms{Val} \}$
 and $\ms{Heap} \triangleq \{ H \mid H: \ms{Loc} \to \ms{Val} \}$
 for the set of stacks and heaps respectively. 
 
-\textbf{Reachability}
+\paragraph{Reachability}
 \label{sect:reachability}
 Before we define the rules for the cost semantics, we relate the heap locations to 
 values with the 3-place reachability relation $reach(H,v,L)$ on $\ms{Heap} \times \ms{Val} \times \wp(\ms{Loc})$, where $\wp$ is the powermultiset. 
 This is read as ``under heap $H$, the value $v$ reaches the multiset 
 of locations $L$''. 
 Write $L = reach_H(v)$ to indicate this is a functional relation 
-justified by the (valid) mode $(+,+,-)$. We also say that the reachable set of $v$ is $L$. 
+justified by the (valid) mode $(+,+,-)$. We say that the reachable set of $v$ is $L$. 
 %
 \begin{mathpar}
 \inferrule{
@@ -511,7 +511,7 @@ The notion of reachability naturally lifts to expressions and contexts:
 \end{align*}
 Where $FV : \ms{Exp} \to \mathcal{P}(\ms{Var})$ denotes the set of free-variables of expressions as usual.
 
-\textbf{Towards the Garbage Collection Cost Semantics}
+\paragraph{Towards the Garbage Collection Cost Semantics}
 Now we are ready to give a first attempt to modeling the cost semantics for a
 tracing garbage collector. Before we present our new semantics, we explain an
 existing cost semantics we experimented with~\cite{DBLP:journals/entcs/Minamide99}. Judgements have the form
@@ -784,7 +784,7 @@ Section~\ref{sect:fop}.
 \section{Automatic Amortized Heap-Space Analysis with GC}
 \label{sect:aara}
 
-{\bf Automatic Amortized Resource Analysis (AARA)}
+\paragraph{Automatic Amortized Resource Analysis (AARA)}
 %
 The idea of AARA~\cite{Jost03,Jost10,HoffmannAH10,HoffmannW15} is to automate the potential method of amortized
 analysis using a type system.  Types introduce potential functions that
@@ -853,7 +853,7 @@ to polynomial potential functions, user-defined data types, and higher-order fun
 still relying on linear constraint solving~\cite{HoffmannAH10,HoffmannW15}.
 %
 
-\textbf{Linear Potential Functions}\label{sect:lfp}
+\paragraph{Linear Potential Functions}\label{sect:lfp}
 Before giving the type rules, we need to formalize linear potential as explained above.
 Since potential is associated with the \emph{structure} of a value and not the particular heap 
 locations, it is helpful to introduce a mapping from
@@ -972,7 +972,7 @@ Now define $A \curlyvee A_1,A_2,n$ as the sharing relation for resource-annotate
 The sharing relation captures the amount of potential needed to copy a type $A$ where each 
 cons node in any structure in $\llbracket A \rrbracket$ has a copying overhead $n$.
 
-\textbf{Type Rules}
+\paragraph{Type Rules}
 \label{sect:typing}
 The type system $\fogc$ consists of rules of the form \fbox{$\Sigma;\Gamma \sststile{q'}{q} e : A$}, 
 read as under signature $\Sigma : \ms{Var} \to \ms{FTypes}$, 
@@ -1065,7 +1065,7 @@ rest of the expression with the two new variables $x_1: A_1$, $x_2 : A_2$.
   \label{fig:typeRules}
 \end{figure}
 
-{\bf New Rules}
+\paragraph{New Rules}
 %
 The new type system for programs with garbage collection replaces the rules L:MatL and L:Share. The observation is that if we ensure 
 that locations are used linearly, we can use destructive pattern matching to model 
@@ -1106,16 +1106,15 @@ of the
 reachable set of a value $v$ is exactly the linear potential of $v : A$ with all resource 
 annotations set to 1.
 
-For example, we can give the following derivations for \texttt{append} and \texttt{appTwice}.
-For each function, let $e_{\texttt{f}}$ denote the body of the function $\texttt{f}$. The mappings
-$P$ and $\Sigma$ denote the program and signature respectively. 
+\begin{figure}[t]
+  \centering
+\begin{footnotesize}
 
 \[
 P = [\texttt{append} \mapsto e_{\texttt{append}}] \quad\quad
 \Sigma = [\texttt{append} \mapsto \prodtycst{L^p(A)}{L^p(A)} \xrightarrow{q/q} L^p(A)]
 \]
 
-\begin{tiny}
 \[
 \infer[\text{L:MatL}]{
 	\Sigma; l_1 : L^p(A), l_2 : L^p(A) \sststile{q}{q} 
@@ -1124,24 +1123,23 @@ P = [\texttt{append} \mapsto e_{\texttt{append}}] \quad\quad
 	\infer[\text{L:Var}]{
 		\Sigma; l_2 : L^p(A) \sststile{q}{q} l_2 : L^p(A)
 	}{
-	}&
-	\infer[\text{L:Let}]{
-		\Sigma; l_2 : L^p(A), x : A, xs : L^p(A) \sststile{q}{q + p + 1} 
-        \uletabt{r}{\texttt{append}(xs,l_2)}{x::r} : L^p(A)
-	}{
+	}
+	\inferrule*[vdots=3.5em,leftskip=15em,right=\begin{footnotesize}\text{L:Let}\end{footnotesize}]{
 		\infer[\text{L:App}]{
 			\Sigma; L_2 : L^p(A), xs : L^p(A) \sststile{q+p+1}{q+p+1} \texttt{append}(xs,l_2) : L^p(A)
 		}{
 			\texttt{append} : \xrightarrow{q/q} \prodtycst{L^p(A)}{L^p(A)} \to L^p(A) \in \Sigma
-		}&
+		}
 		\infer[\text{L:Cons}]{
 			\Sigma; x : A, r : L^p(A) \sststile{q}{q+p+1} x::r : L^p(A)
 		}{
 		}
+	}{
+		\Sigma; l_2 : L^p(A), x : A, xs : L^p(A) \sststile{q}{q + p + 1}
+        \uletabt{r}{\texttt{append}(xs,l_2)}{x::r} : L^p(A)
 	}
 }
 \]
-\end{tiny}
 
 \begin{align*}
 P &= [\texttt{appTwice} \mapsto e_{\texttt{appTwice}}] \\
@@ -1149,21 +1147,17 @@ P &= [\texttt{appTwice} \mapsto e_{\texttt{appTwice}}] \\
 \texttt{append} \mapsto \prodtycst{L^p(A)}{L^p(A)} \xrightarrow{q/q} L^p(A)]
 \end{align*}
 
-\begin{tiny}
+
 \begin{mathpar}
 \infer[\text{L:ShareCopy}]{
   \Sigma; l : L^{r+s+1}(A) \sststile{q}{q}
-  \shareabt{l}{l1}{l2}{\uletabt{l1'}{\texttt{append}(l1,[])}{\uletabt{l2'}{\texttt{append}(l2,[])}{\pairexcst{l1'}{l2'}}}}
+  \shareabt{l}{l1}{l2}{\uletabt{l1'}{\texttt{append}(l1,[])}{e_0}}
   : \prodtycst{L^r(A)}{L^s(A)}
 }{
-\inferrule*[vdots=5.5em,rightskip=12.5em]{
+\inferrule*[rightskip=4.5em]{
 L^{r+s+1}(A) \curlyvee^1 L^r(A), L^s(A)}{}
 &
-  \infer[\text{L:Let}]{
-  \Sigma; l1 : L^r(A), l2 : L^s(A) \sststile{q}{q}
-  \uletabt{l1'}{\texttt{append}(l1,[])}{\uletabt{l2'}{\texttt{append}(l2,[])}{\pairexcst{l1'}{l2'}}}
-  : \prodtycst{L^r(A)}{L^s(A)}
-}{
+  \inferrule*[vdots=4ex,leftskip=9em,right=\begin{footnotesize}\text{L:Let}\end{footnotesize}]{
   \infer[\text{L:Fun}]
   {
     \Sigma; l1 : L^r(A) \sststile{q}{q} \texttt{append}(l1,[]) : L^r(A)
@@ -1171,29 +1165,39 @@ L^{r+s+1}(A) \curlyvee^1 L^r(A), L^s(A)}{}
     \pairexcst{l1}{[]} : \prodtycst{L^r(A)}{L^r(A)}&
     \Sigma(\texttt{append}) = \prodtycst{L^r(A)}{L^r(A)} \xrightarrow{q/q} L^r(A)
     }
-    &
-    \inferrule*[right=\begin{tiny}\text{L:Let}\end{tiny},vdots=4.5em,leftskip=25em]{
- \inferrule*[right=\begin{tiny}\text{L:Fun}\end{tiny}]
+    \inferrule*[right=\begin{footnotesize}\text{L:Let}\end{footnotesize},vdots=4.5em,leftskip=14.5em]{
+ \inferrule*[right=\begin{footnotesize}\text{L:Fun}\end{footnotesize}]
    {
       \pairexcst{l2}{[]} : \prodtycst{L^s(A)}{L^s(A)}\\\\
     \Sigma(\texttt{append}) = \prodtycst{L^s(A)}{L^s(A)} \xrightarrow{q/q} L^s(A)W
    }{
     \Sigma;l2 : L^s(A) \sststile{q}{q} \texttt{append}(l2,[]) : L^s(A)
   }
-  \\
-  \infer[\text{L:Pair}]{
+  \inferrule*[right=\begin{footnotesize}\text{L:Pair}\end{footnotesize},leftskip=40em,rightskip=0em,vdots=12ex,]{ }{
     \Sigma;l1' : L^r(A), l2' : L^s(A) \sststile{q}{q} \pairexcst{l1'}{l2'} :  \prodtycst{L^r(A)}{L^s(A)}
   }
-  {}
 }{
-   \Sigma;l2 : L^s(A),l1' : L^r(A) \sststile{q}{q} \uletabt{l2'}{\texttt{append}(l2,[])}{\pairexcst{l1'}{l2'}}
-  : \prodtycst{L^r(A)}{L^s(A)}
+  \;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\; \Sigma;l2 : L^s(A),l1' : L^r(A) \sststile{q}{q} e_0
+  : \prodtycst{L^r(A)}{L^s(A)} \;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;
 }    
+}{
+  \Sigma; l1 : L^r(A), l2 : L^s(A) \sststile{q}{q}
+  \uletabt{l1'}{\texttt{append}(l1,[])}{e_0}
+  : \prodtycst{L^r(A)}{L^s(A)}
 }
 }
 \end{mathpar}
-\end{tiny}
+\end{footnotesize}
+\vspace{-4ex}  
+  \caption{Type derivations for the functions \texttt{append} and \texttt{appTwice}. In the derivation for \texttt{appTwice} we write $e_0$ for $\uletabt{l2'}{\texttt{append}(l2,[])}{\pairexcst{l1'}{l2'}}$.}
+  \label{fig:derivations}
+\end{figure}
 
+
+For example, Figure~\ref{fig:derivations} contains derivations for \texttt{append} and \texttt{appTwice}.
+For each function, let $e_{\texttt{f}}$ denote the body of the function $\texttt{f}$. The mappings
+$P$ and $\Sigma$ denote the program and signature respectively. 
+%
 From these derivations,
 we get the improved space overhead bound to \texttt{append} and \texttt{appTwice}:
 \begin{align*}
@@ -1203,7 +1207,7 @@ we get the improved space overhead bound to \texttt{append} and \texttt{appTwice
 	\text{ where } p + q \ge r + s + 1 \text{ and } q \ge q'
 \end{align*}
 
-{\bf Cost Metrics}
+\paragraph{Cost Metrics}
 In previous versions of AARA~\cite{Jost10,HoffmannAH10}, the typing judgment and cost semantics
 are parametrized by a \emph{cost metric} 
 $m : \ms{res\_const \to \mathbb{Q}}$, which assigns a constant cost to 
@@ -1216,7 +1220,7 @@ and elimination rules agree on that constant. Thus we can extend the type system
 closure sizes and constructors which vary in size depending on the argument (more in 
 Section~\ref{sect:conclusion}).
 
-{\bf Type Inference} One of the benefits of AARA is efficient type
+\paragraph{Type Inference} One of the benefits of AARA is efficient type
 inference using off-the-shelve LP solvers~\cite{Jost03}, even for
 non-linear potential functions~\cite{HoffmannAH10,HoffmannW15}. The
 new rules do not complicate inference and previous techniques still
@@ -1303,7 +1307,7 @@ $\ctxeq{V_2,H_2}{V_2,H_2}$
 Stated simply, two contexts are equivalent when they have the same domain and equal variables bind equal 
 semantic values (defined in Section~\ref{sect:lfp}).
 
-\textbf{Linear Garbage Collection Cost Semantics}
+\paragraph{Linear Garbage Collection Cost Semantics}
 \label{sect:copy}
 To establish the soundness of the type system, we need an 
 intermediary semantics \copySem{}, which is \emph{semantically linear}.  
@@ -1453,9 +1457,9 @@ such that for all $l \in dom(\gamma)$, $|\gamma(l)| = reach_{H_1}(V_1)(l) + R_1(
 Write this as $\mathcal{C}_1 \preceq \mathcal{C}_2$.
 \end{definition} 
 
-The intention is that $\mathcal{C}_2$ is a configuration for initiating an evaluation using \copySem
+The intention is that $\mathcal{C}_2$ is a configuration for an evaluation using \copySem
 , and $\mathcal{C}_1$ a configuration for \gcSem. 
-
+%
 The first condition is the straightforward context equivalence.
 The second condition requires the existence of 
 a mapping $\gamma$ that tells us given a location in $H_1 \setminus F_1$, which locations in 
@@ -1677,16 +1681,16 @@ To instantiate the induction hypothesis, we need to show that
   class (since it might be collected during evaluation),
     note that
   \begin{align*}
-    |\mathcal{C}_2| &= |ec(\gamma) \setminus \{\gamma(l) \mid l \in j\}|\\
-    &=|ec(\gamma \restriction_{dom(Y) \setminus (M \cup j)})|\\
-    &= |ec(\gamma')|
+    |\mathcal{C}_2| = |ec(\gamma) \setminus \{\gamma(l) \mid l \in j\}|
+    =|ec(\gamma \restriction_{dom(Y) \setminus (M \cup j)})|
+    = |ec(\gamma')|
   \end{align*}
 		Which means that $\mathcal{C}_2$  has the same number of classes as $\gamma'$
 		(note the actual classes might be different). 
 		Since both $\gamma$ and $\gamma'$  are proper partitions, we just keep class
     representatives for each class and still obtain a bijection:
     \begin{align*}
-      &|D_2| = |L \sqcup \oh{\gamma'}|\\
+      |D_2| = |L \sqcup \oh{\gamma'}|
       &\iff |\bigcup_{C  \in \mathcal{C}_2} C \setminus rep(C)| = 
 			|L \sqcup \bigcup_{C \in ec(\gamma')} C \setminus rep(C)|\\
       &\iff |\bigcup_{C  \in \mathcal{C}_2} C| = 
@@ -1730,7 +1734,7 @@ Thus, we have shown that we can execute a computation using
 \gcSem{} given that the computation suceeded in a run with \copySem{}, which means that  
 \copySem{} is an over approximation of \gcSem{}.
 
-\textbf{Soundness of $\fogc$}
+\paragraph{Soundness of $\fogc$}
 \label{sect:soundcopy}
 For the second part of the proof, we show $\fogc$ is sound w.r.t. \copySem{}. Below
 are selected lemmas used in the soundness theorem:
@@ -1805,7 +1809,7 @@ will be sufficiently large (as predicated by the type derivation).
 \section{Implementation and Evaluation}
 \label{sect:implementation}
 
-{\bf Implementation}
+\paragraph{Implementation}
 We have implemented the novel cost semantics and the type system in
 Resource Aware ML (RaML). The implementation covers full RaML,
 including user-defined data types, higher-order functions, and
@@ -1822,14 +1826,19 @@ RaML. As mentioned before, RaML leverages the syntax of OCaml programs.
 First, we take the OCaml type checked abstract syntax tree and perform a series of transformations. 
 The evaluation modules operate on the resulting RaML syntax tree. 
 In the gc evaluation module, \texttt{evaluate} has the following signature:
-{\small%
+\begin{minipage}{1.0\linewidth}
+\small
+\vspace{2ex}
 \begin{verbatim}
  evaluate : ('a, unit) Expressions.expression -> int -> (('a value * 'a heap * Int.Set.t) option) 
 \end{verbatim}
-}
+\vspace{0ex}
+\end{minipage}
+
 Here, the second argument \texttt{int} specifies the size of the initial freelist.
 The result is an option triple of the return value, heap, and freelist; \texttt{None} is returned
 in case the freelist was not sufficient for the evaluation.
+%
 Whereas the normal evaluation boxes every value (everything evaluates to a location), 
 the gc module follows the cost semantics and only boxes data constructors. The rationale is
 that the size for other values can be computed statically and thus stack allocated. One difference
@@ -1877,7 +1886,7 @@ and no space overhead is created by allocating closures for function declaration
 \label{table:sig}
 \end{wraptable}
 
-\textbf{Evaluation}
+\paragraph{Evaluation}
 We evaluated our new analysis on a number of functions. Table~\ref{table:sig} contains a representative compilation.
 It shows the type signature for each function.
 Table~\ref{table:bounds} presents the test data that
