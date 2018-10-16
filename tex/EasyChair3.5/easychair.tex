@@ -603,11 +603,18 @@ as $collect(R,L,H,F) = \{l \in H \mid l \notin F \cup R \cup L\}$.
 	\end{enumerate}
 \end{definition}
 
+Furthermore, this condition is invariant under evaluation:
+\begin{lemma}\label{itm:eager}
+	Given a well-formed context $(V,H,R,F)$ and $V,H,R,F \vdash e \Downarrow v,H',F'$, 
+	$dom(H') \subseteq reach_H(v) \cup R \cup F'$,
+	$reach_H(v) \cup R \subseteq dom(H') \setminus F'$ and
+	$collect(R,reach_H'(v),H',F') = \emptyset$.
+\end{lemma}
 The well-formed conditions ensure the stack and continuation sets are within the active region
 of the heap $H \setminus F$, and that
 the active region of the heap does not contain garbage -- all garbage locations 
 are already in the freelist. From now on, all configurations are implicitly assumed to be coherent
-in the sense defined above.
+in the sense defined above. 
 
 The semantics \gcSem{} is designed to model the heap usage of a program running with a 
 tracing counting garbage collector: whenever a heap cell becomes unreachable from the 
@@ -772,6 +779,7 @@ define the cost of a closed program to be the minimum size of the initial freeli
 guarantees successful evaluation, which is
 equivalent to the cost annotation in the previous cost semantics introduced in 
 Section~\ref{sect:fop}.
+
 
 \section{Automatic Amortized Heap-Space Analysis with GC}
 \label{sect:aara}
@@ -1427,7 +1435,7 @@ know exactly how much larger $M_1$ is compared to $F_1$ at any given step.
 
 Having a sense of what is missing, we formulate the
 criteria which characterize the required equivalence between two configurations,
-called \emph{copy extension}.
+which we call \emph{copy extension}.
 \begin{definition}
   A configuration $\mathcal{C}_2 = (V_2,H_2,R_2,F_2)$ is a \emph{copy extension} of
   another configuration
@@ -1495,7 +1503,7 @@ subvalues of a value using directions:
         $$
   Let $P \in \mathcal{S}(\ms{Dir})$, where $\mathcal{S}(X)$ denotes the set of sequence
   with elements from $X$. We define 
-  $find_H : 1 \oplus (\ms{Val} \times \mathcal{S}(\ms{Dir})) \to 1 \oplus \ms{Val}$ 
+  $find_H : (1 \oplus \ms{Val}) \times \mathcal{S}(\ms{Dir}) \to 1 \oplus \ms{Val}$ 
   to extend $get_H$ to sequences of directions:
 	\begin{align*}
 		find_H(v,D::P) &= find_H(get_H(v,D),P)\\
@@ -1505,9 +1513,11 @@ subvalues of a value using directions:
   Given a valid sequence $P$ w.r.t. $V(x)$,
 	write $V_H(x;P)$ for $fromJust(find_H(V(x),P))$
 	and $reach_H(V(x;P))$ for $reach_H(V_H(x;P))$.
-        Given a map $m : X \to \mathcal{S}(\ms{dir})$ that maps each
-        $x \in X \subseteq dom(V)$ to a sequence $P$ valid w.r.t. $V(x)$,  
-	Define $reachPath_{V,H}(X,m) = \biguplus_{x \in X} reach_H(V(x;m(x)))$.
+        A map $m_V : X \to \mathcal{S}(\ms{dir})$ is a
+        \emph{subvalue map} given that $X \subseteq dom(V)$ and each
+        $x \in X$ is mapped to a sequence $P$ which is valid w.r.t. $V(x)$.  
+	Given a subvalue map $m_V$,
+        define its action as $reachPath_{V,H}(X,m) = \biguplus_{x \in X} reach_H(V(x;m(x)))$.
 \end{definition}
 
 With this, the third condition gives us a more fine grained restriction: for any subvalue in $V_1$,
@@ -1521,7 +1531,7 @@ $\sum_{l \in \gamma} |\gamma(l)| - 1$. Here $ec(\gamma)$ is the image of $\gamma
 $\{\gamma(l) \mid l \in dom(\gamma)\}$. Since each class $\gamma(l)$ is non-empty,
 we use $rep(l)$ to choose an arbitrary element from the class.
 
-Below are the expected properties of a copy extension: 
+Below are some expected properties of a copy extension: 
 \begin{lemma}
 	Let $V_1,H_1 \sim V_2,H_2$. Then for all $x \in dom(V_1)$ and 
   sequence of directions $P$, 
@@ -1533,17 +1543,17 @@ Below are the expected properties of a copy extension:
 \begin{lemma}\label{itm:aux}
 Let $V_2,H_2,R_2,F_2 \vdash^{\mathsf{copy}} e \Downarrow v,H',F'$, and 
 $V_1,H_1,R_1,F_1 \preceq V_2,H_2,R_2,F_2$, where $\gamma$ is the partition satisfying 
-the copy extension property. Then the following hold:
-for all $l \in dom(H_1) \setminus F_1$, 
-	$X \subseteq dom(V)$, $m : X \to \mathcal{S}(\ms{dir})$, $l \in dom(\gamma)$,
-	$\gamma(l) \subseteq collect(R_2,\mathcal{C}_2,reachPath_{V_2,H_2}(X,m),H_2,F_2)$ iff
+the copy extension property. Then
+for all $l \in dom(\gamma)$ and subvalue map
+        $m_V : X \to \mathcal{S}(\ms{dir})$,
+	$\gamma(l) \subseteq collect(R_2,reachPath_{V_2,H_2}(X,m),H_2,F_2)$ iff
 	$l \in collect(R_1,reachPath_{V_1,H_1}(X,m),H_1,F_1)$.
 \end{lemma}
 
 Now we can state the key lemma:
 
 \begin{lemma}
-	Let $(\mathcal{C}_2,e)$ be a linear computation. Given that 
+	Let $(\mathcal{C}_2,e) = (V,H,R,F,e)$ be a linear computation. Given that 
 	$\mathcal{C}_2 \vdash^{\copySem{}} e \Downarrow v,H',F'$,
 	for all configurations $\mathcal{C}_1$ such that $\mathcal{C}_1 \preceq \mathcal{C}_2$,
 there exists a triple
@@ -1578,7 +1588,7 @@ $(w,Y',M') \in \ms{Val} \times \ms{Heap} \times \ms{Loc}$ and
   V,H,R,F \; \vdash \ifexabt{x}{e_1}{e_2} \Downarrow v, H',F'
 }]
 \  \\
-From the case, we have $V,H,R,F \; \vdash^{\copySem} \ifexabt{x}{e_1}{e_2} \Downarrow v, H',F'$. Let $W,Y,S,M$ be a configuration such that 
+Let $W,Y,S,M$ be a configuration such that 
 $W,Y,S,M \preceq V,H,R,F$. Define $W' = W \restriction_{dom(V')}$
 and $j = \{l \in Y | l \notin M \cup S \cup locs_{W,Y}(e_1) \}$.
 To instantiate the induction hypothesis, we need to show that 
@@ -1602,7 +1612,7 @@ To instantiate the induction hypothesis, we need to show that
   Consider the image of $\gamma'$: 
   \begin{align*}
 		&\quad \gamma'(dom(Y) \setminus (M \cup j)) = \gamma(dom(Y) \setminus (M \cup j)) \setminus g\\
-		&\quad = (\bigcup_{l \in dom(Y) \setminus M} \gamma(l) \setminus \bigcup_{l \in j} \gamma(l)) 
+		&\quad = \bigcup_{l \in dom(Y) \setminus M} \gamma(l) \setminus \bigcup_{l \in j} \gamma(l)) 
 			\setminus g\\
 		&\quad = ((dom(H) \setminus F) \setminus (\bigcup_{l \in j} \gamma(l))) \setminus g 
 			\tag{$\gamma$ is a partition}\\
